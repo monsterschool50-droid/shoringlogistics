@@ -1,5 +1,45 @@
 @import "tailwindcss";
 
+/* ========= THEME VARIABLES ========= */
+:root {
+  --bg:          #ffffff;
+  --bg-alt:      #f8fafc;
+  --bg-card:     #ffffff;
+  --bg-input:    #f9fafb;
+  --text:        #1a3c5e;
+  --text-body:   #475569;
+  --text-muted:  #94a3b8;
+  --border:      #e2e8f0;
+  --border-soft: #f1f5f9;
+  --accent:      #00b894;
+  --accent-bg:   #eaf7f3;
+  --navy:        #1a3c5e;
+  --navy-deep:   #15304f;
+  --shadow-sm:   0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md:   0 4px 20px rgba(0,0,0,0.10);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.14);
+  --transition:  0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+[data-theme="dark"] {
+  --bg:          #0d1b2a;
+  --bg-alt:      #0f2030;
+  --bg-card:     #162032;
+  --bg-input:    #1a2d40;
+  --text:        #e2e8f0;
+  --text-body:   #94a3b8;
+  --text-muted:  #5a7490;
+  --border:      #1e3348;
+  --border-soft: #1a2d3e;
+  --accent:      #00c9a7;
+  --accent-bg:   #0a2820;
+  --navy:        #e2e8f0;
+  --navy-deep:   #f1f5f9;
+  --shadow-sm:   0 1px 4px rgba(0,0,0,0.30);
+  --shadow-md:   0 4px 20px rgba(0,0,0,0.45);
+  --shadow-lg:   0 8px 32px rgba(0,0,0,0.60);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -50,6 +90,32 @@ body {
   align-items: center;
   flex-shrink: 0;
   user-select: none;
+}
+.logo-tl {
+  color: #1a3c5e;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  transition: color 0.25s;
+}
+.logo-v {
+  color: #00b894;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+.logo-sub {
+  color: #1a3c5e;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  transition: color 0.25s;
+}
+[data-theme="dark"] .logo-tl,
+[data-theme="dark"] .logo-sub {
+  color: #e2e8f0;
 }
 
 /* Desktop nav — hidden on mobile */
@@ -328,6 +394,24 @@ body {
   .btn-primary, .btn-secondary { width: auto; }
 }
 
+/* Hero text */
+.hero-title {
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 900;
+  color: #1a3c5e;
+  line-height: 1.15;
+  margin: 0;
+}
+.hero-sub {
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ══════════════════════════════════
    STATS
 ══════════════════════════════════ */
@@ -346,6 +430,25 @@ body {
   .stats-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
+.stat-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  transition: background-color 0.25s, box-shadow 0.25s;
+}
+.stat-value {
+  font-size: 30px;
+  font-weight: 900;
+}
+.stat-val-navy { color: #1a3c5e; }
+.stat-val-teal { color: #00b894; }
+.stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
 /* ══════════════════════════════════
    WHY KOREA
 ══════════════════════════════════ */
@@ -355,6 +458,48 @@ body {
   padding: 56px 20px 64px;
   text-align: center;
 }
+
+.why-title {
+  font-size: clamp(22px, 3vw, 36px);
+  font-weight: 900;
+  color: #1a3c5e;
+}
+.why-sub {
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.adv-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.adv-item-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  transition: background-color 0.25s;
+}
+.adv-item-value {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1a3c5e;
+  transition: color 0.25s;
+}
+.adv-item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  transition: color 0.25s;
+}
+.adv-label-accent { color: #00b894; }
 
 .why-inner {
   max-width: 720px;
@@ -1276,18 +1421,18 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background-color: #ffffff;
-  color: #374151;
+  background-color: #25d366;
+  color: #ffffff;
   font-size: 14px;
   font-weight: 600;
   border-radius: 10px;
-  border: 1.5px solid #d1d5db;
+  border: none;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: background-color 0.15s;
 }
 
-.btn-wa-group:hover { border-color: #1a3c5e; }
+.btn-wa-group:hover { background-color: #1ab854; }
 
 /* Title */
 .cat-title {
@@ -2326,4 +2471,928 @@ body {
   gap: 14px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+/* =====================================================================
+   ANIMATIONS & SCROLL REVEAL
+   ===================================================================== */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+@keyframes pulse-accent {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,184,148,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(0,184,148,0); }
+}
+
+/* Scroll reveal — elements start hidden, become visible via JS */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1),
+              transform 0.55s cubic-bezier(0.4,0,0.2,1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+.reveal-delay-4 { transition-delay: 0.32s; }
+.reveal-delay-5 { transition-delay: 0.40s; }
+
+/* =====================================================================
+   ENHANCED BUTTONS — hover lift + press + ripple
+   ===================================================================== */
+
+/* Primary dark buttons */
+.btn-primary,
+.btn-process-cta,
+.btn-wa-primary,
+.btn-cta-primary,
+.btn-car-primary,
+.cnt-btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: background-color var(--transition),
+              transform var(--transition),
+              box-shadow var(--transition) !important;
+}
+.btn-primary:hover,
+.btn-process-cta:hover,
+.btn-wa-primary:hover,
+.btn-cta-primary:hover,
+.btn-car-primary:hover,
+.cnt-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(26,60,94,0.30) !important;
+}
+.btn-primary:active,
+.btn-process-cta:active,
+.btn-wa-primary:active,
+.btn-cta-primary:active,
+.btn-car-primary:active,
+.cnt-btn-primary:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: none !important;
+}
+
+/* Ripple effect for primary buttons */
+.btn-primary::after,
+.btn-process-cta::after,
+.btn-wa-primary::after,
+.btn-cta-primary::after,
+.btn-car-primary::after,
+.cnt-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255,255,255,0.18);
+  opacity: 0;
+  transform: scale(0);
+}
+.btn-primary:active::after,
+.btn-process-cta:active::after,
+.btn-wa-primary:active::after,
+.btn-cta-primary:active::after,
+.btn-car-primary:active::after,
+.cnt-btn-primary:active::after {
+  animation: ripple 0.45s ease-out forwards;
+}
+
+/* Outline / secondary buttons */
+.btn-secondary,
+.btn-wa-secondary,
+.btn-cta-secondary,
+.btn-car-outline,
+.cnt-btn-outline,
+.cnt-btn-social {
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition),
+              background var(--transition),
+              transform var(--transition),
+              box-shadow var(--transition) !important;
+}
+.btn-secondary:hover,
+.btn-wa-secondary:hover,
+.btn-cta-secondary:hover,
+.btn-car-outline:hover,
+.cnt-btn-outline:hover,
+.cnt-btn-social:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(26,60,94,0.12) !important;
+}
+.btn-secondary:active,
+.btn-wa-secondary:active,
+.btn-cta-secondary:active,
+.btn-car-outline:active,
+.cnt-btn-outline:active,
+.cnt-btn-social:active {
+  transform: scale(0.97);
+}
+
+/* Green WhatsApp button */
+.btn-car-green {
+  position: relative;
+  overflow: hidden;
+  transition: background-color var(--transition),
+              transform var(--transition),
+              box-shadow var(--transition) !important;
+}
+.btn-car-green:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,184,148,0.35) !important;
+}
+.btn-car-green:active {
+  transform: scale(0.97);
+}
+
+/* Negotiate / tag button */
+.btn-car-negotiate {
+  transition: background-color var(--transition),
+              transform var(--transition) !important;
+}
+.btn-car-negotiate:hover {
+  transform: translateY(-1px);
+}
+.btn-car-negotiate:active {
+  transform: scale(0.96);
+}
+
+/* Catalog top buttons */
+.btn-encar,
+.btn-wa-group {
+  transition: background-color var(--transition),
+              border-color var(--transition),
+              transform var(--transition),
+              box-shadow var(--transition) !important;
+}
+.btn-encar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(26,60,94,0.18) !important;
+}
+.btn-wa-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(37,211,102,0.35) !important;
+}
+.btn-encar:active,
+.btn-wa-group:active { transform: scale(0.97); }
+
+/* Filter reset */
+.filter-reset-btn {
+  transition: color var(--transition), background var(--transition), transform var(--transition) !important;
+}
+.filter-reset-btn:hover { transform: translateY(-1px); }
+.filter-reset-btn:active { transform: scale(0.95); }
+
+/* Mobile filter toggle */
+.cat-filter-btn {
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition) !important;
+}
+.cat-filter-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26,60,94,0.14) !important;
+}
+
+/* Sort select */
+.cat-sort {
+  transition: border-color var(--transition) !important;
+  cursor: pointer;
+}
+
+/* Header login */
+.header-login {
+  transition: color var(--transition), background var(--transition), transform var(--transition) !important;
+}
+.header-login:hover { transform: translateY(-1px); }
+
+/* Nav links — underline slide */
+.header-nav a {
+  position: relative;
+}
+.header-nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent, #00b894);
+  border-radius: 2px;
+  transition: width 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+.header-nav a:hover::after,
+.header-nav a.active::after {
+  width: 100%;
+}
+
+/* =====================================================================
+   ENHANCED CARDS
+   ===================================================================== */
+
+.adv-card,
+.review-card,
+.step-card,
+.cnt-way-card,
+.cnt-office-card,
+.cnt-hours-card {
+  transition: transform var(--transition),
+              box-shadow var(--transition),
+              border-color var(--transition) !important;
+}
+.adv-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.10) !important;
+  border-color: #c7d8e8 !important;
+}
+.review-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.09) !important;
+  border-color: #c7d8e8 !important;
+}
+.step-card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,0.09) !important;
+  border-color: #d4e6f0 !important;
+}
+.car-card {
+  transition: box-shadow var(--transition), border-color var(--transition) !important;
+}
+.car-card:hover {
+  box-shadow: 0 6px 28px rgba(0,0,0,0.11) !important;
+  border-color: #b8d0e4 !important;
+}
+
+/* =====================================================================
+   THEME TOGGLE BUTTON
+   ===================================================================== */
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background var(--transition),
+              border-color var(--transition),
+              color var(--transition),
+              transform var(--transition);
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1a3c5e;
+  transform: rotate(20deg) scale(1.08);
+}
+.theme-toggle:active {
+  transform: scale(0.92);
+}
+
+[data-theme="dark"] .theme-toggle {
+  border-color: #1e3348;
+  color: #94a3b8;
+}
+[data-theme="dark"] .theme-toggle:hover {
+  background: #1e3348;
+  border-color: #2d4a60;
+  color: #e2e8f0;
+}
+
+/* =====================================================================
+   DARK MODE — COMPREHENSIVE OVERRIDES
+   ===================================================================== */
+
+[data-theme="dark"] body {
+  background-color: #0d1b2a;
+  color: #94a3b8;
+}
+
+/* Header */
+[data-theme="dark"] .site-header {
+  background-color: rgba(13,27,42,0.97);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+[data-theme="dark"] .site-header-scrolled {
+  background-color: rgba(13,27,42,0.82);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.45);
+}
+[data-theme="dark"] .header-nav a {
+  color: #94a3b8;
+}
+[data-theme="dark"] .header-nav a:hover {
+  color: #00c9a7;
+}
+[data-theme="dark"] .header-nav a.active {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .search-input {
+  background-color: #162032;
+  border-color: #1e3348;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .search-input::placeholder {
+  color: #3d5570;
+}
+[data-theme="dark"] .search-input:focus {
+  border-color: #00c9a7;
+  box-shadow: 0 0 0 3px rgba(0,201,167,0.15);
+}
+[data-theme="dark"] .header-search-icon {
+  color: #3d5570;
+}
+[data-theme="dark"] .header-login {
+  color: #94a3b8;
+}
+[data-theme="dark"] .header-login:hover {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .header-icon-btn {
+  color: #64748b;
+}
+[data-theme="dark"] .header-icon-btn:hover {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .header-mobile-menu {
+  background: #111e2e;
+  border-top-color: #1e3348;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+[data-theme="dark"] .mobile-nav-link {
+  color: #94a3b8;
+}
+[data-theme="dark"] .mobile-nav-link:hover {
+  background: #162032;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .mobile-nav-link.active {
+  background: #0a2820;
+  color: #00c9a7;
+}
+[data-theme="dark"] .mobile-login-btn {
+  color: #94a3b8;
+  border-top-color: #1e3348;
+}
+
+/* Hero */
+[data-theme="dark"] .hero-section {
+  background-color: #091820;
+}
+[data-theme="dark"] .hero-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .hero-sub {
+  color: #7a96b0;
+}
+[data-theme="dark"] .stat-card {
+  background-color: #162032;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+[data-theme="dark"] .stat-val-navy {
+  color: #c8daea;
+}
+[data-theme="dark"] .stat-label {
+  color: #5a7490;
+}
+[data-theme="dark"] .why-section {
+  background-color: #0d1b2a;
+}
+[data-theme="dark"] .why-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .why-sub {
+  color: #7a96b0;
+}
+[data-theme="dark"] .adv-item-icon {
+  background-color: #1e3348;
+  color: #5a7490;
+}
+[data-theme="dark"] .adv-item-value {
+  color: #c8daea;
+}
+[data-theme="dark"] .adv-item-label {
+  color: #5a7490;
+}
+[data-theme="dark"] .adv-label-accent {
+  color: #00c9a7;
+}
+/* WhatsApp group button — keep green in dark mode too */
+[data-theme="dark"] .btn-wa-group {
+  background-color: #1da851;
+  color: #ffffff;
+  border-color: transparent;
+}
+[data-theme="dark"] .btn-wa-group:hover {
+  background-color: #16913f;
+  border-color: transparent;
+  color: #ffffff;
+}
+
+/* Buttons — primary dark */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-process-cta,
+[data-theme="dark"] .btn-wa-primary,
+[data-theme="dark"] .btn-cta-primary,
+[data-theme="dark"] .btn-car-primary,
+[data-theme="dark"] .cnt-btn-primary {
+  background-color: #1e4a72;
+}
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn-process-cta:hover,
+[data-theme="dark"] .btn-wa-primary:hover,
+[data-theme="dark"] .btn-cta-primary:hover,
+[data-theme="dark"] .btn-car-primary:hover,
+[data-theme="dark"] .cnt-btn-primary:hover {
+  background-color: #255a8a;
+}
+
+/* Buttons — outline */
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .btn-wa-secondary,
+[data-theme="dark"] .btn-cta-secondary,
+[data-theme="dark"] .btn-car-outline,
+[data-theme="dark"] .cnt-btn-outline,
+[data-theme="dark"] .cnt-btn-social {
+  background-color: transparent;
+  border-color: #1e3348;
+  color: #c8daea;
+}
+[data-theme="dark"] .btn-secondary:hover,
+[data-theme="dark"] .btn-wa-secondary:hover,
+[data-theme="dark"] .btn-cta-secondary:hover,
+[data-theme="dark"] .btn-car-outline:hover,
+[data-theme="dark"] .cnt-btn-outline:hover,
+[data-theme="dark"] .cnt-btn-social:hover {
+  background-color: #162032;
+  border-color: #2d5070;
+  color: #e2e8f0;
+}
+
+/* Process section */
+[data-theme="dark"] .process-section {
+  background-color: #0f2030;
+}
+[data-theme="dark"] .process-title,
+[data-theme="dark"] .step-card-title,
+[data-theme="dark"] .section-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .step-card-desc {
+  color: #7a96b0;
+}
+[data-theme="dark"] .step-card {
+  background: #162032;
+  border-color: #1e3348;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] .step-line {
+  background-color: #1e3348;
+}
+[data-theme="dark"] .step-label {
+  color: #3d5570;
+}
+[data-theme="dark"] .step-badge.green {
+  background-color: #0a2a1a;
+  color: #4ade80;
+}
+[data-theme="dark"] .step-badge.orange {
+  background-color: #2a1a05;
+  color: #fbbf24;
+}
+
+/* Advantages section */
+[data-theme="dark"] .advantages-section,
+[data-theme="dark"] .why-section,
+[data-theme="dark"] .final-cta-section {
+  background-color: #0d1b2a;
+}
+[data-theme="dark"] .adv-card {
+  background: #162032;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .adv-card-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .adv-card-desc {
+  color: #7a96b0;
+}
+[data-theme="dark"] .adv-icon-wrap {
+  background-color: #1e3348;
+}
+[data-theme="dark"] .section-subtitle {
+  color: #00c9a7;
+}
+
+/* Reviews section */
+[data-theme="dark"] .reviews-section {
+  background-color: #0f2030;
+}
+[data-theme="dark"] .review-card {
+  background: #162032;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .review-name {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .review-text {
+  color: #7a96b0;
+}
+
+/* WhatsApp section */
+[data-theme="dark"] .whatsapp-section {
+  background-color: #0f2030;
+  border-top-color: #1e3348;
+}
+
+/* Final CTA */
+[data-theme="dark"] .final-cta-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .final-cta-subtitle {
+  color: #7a96b0;
+}
+
+/* Footer */
+[data-theme="dark"] .site-footer {
+  background-color: #091820;
+  border-top-color: #1e3348;
+}
+[data-theme="dark"] .footer-col-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .footer-link {
+  color: #7a96b0;
+}
+[data-theme="dark"] .footer-link:hover {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .footer-link strong {
+  color: #c8daea;
+}
+[data-theme="dark"] .footer-link-icon {
+  background-color: #162032;
+  color: #64748b;
+}
+[data-theme="dark"] .footer-hours-label {
+  color: #7a96b0;
+}
+[data-theme="dark"] .footer-hours-time {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .footer-emergency {
+  background-color: #162032;
+}
+[data-theme="dark"] .footer-emergency-label {
+  color: #c8daea;
+}
+[data-theme="dark"] .footer-emergency-sub {
+  color: #5a7490;
+}
+[data-theme="dark"] .footer-office-city {
+  color: #c8daea;
+}
+[data-theme="dark"] .footer-office-addr {
+  color: #5a7490;
+}
+[data-theme="dark"] .footer-bottom {
+  border-top-color: #1e3348;
+  background-color: #060f17;
+}
+[data-theme="dark"] .footer-bottom-left,
+[data-theme="dark"] .footer-bottom-right {
+  color: #3d5570;
+}
+
+/* Catalog page */
+[data-theme="dark"] .catalog-page {
+  background-color: #0d1b2a;
+}
+[data-theme="dark"] .cat-breadcrumb {
+  background-color: #0f2030;
+  border-bottom-color: #1e3348;
+}
+[data-theme="dark"] .cat-filter-btn {
+  background: #1e3348;
+  border-color: #2d4a60;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cat-filter-btn:hover {
+  background: #253f55;
+  border-color: #3d6080;
+  color: #ffffff;
+}
+[data-theme="dark"] .cat-bc-link {
+  color: #5a7490;
+}
+[data-theme="dark"] .cat-bc-link:hover {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cat-bc-sep,
+[data-theme="dark"] .cat-bc-current {
+  color: #3d5570;
+}
+
+/* Filter sidebar */
+[data-theme="dark"] .filter-sidebar {
+  background: #111e2e;
+  border-right-color: #1e3348;
+}
+[data-theme="dark"] .filter-header {
+  background: #111e2e;
+  border-bottom-color: #1e3348;
+}
+[data-theme="dark"] .filter-header-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .filter-section {
+  border-bottom-color: #1e3348;
+}
+[data-theme="dark"] .filter-section-hd,
+[data-theme="dark"] .filter-section-btn {
+  color: #e2e8f0;
+  background: none;
+}
+[data-theme="dark"] .filter-section-hd:hover,
+[data-theme="dark"] .filter-section-btn:hover {
+  background: #1a2d40;
+}
+[data-theme="dark"] .filter-section-body {
+  background: transparent;
+}
+[data-theme="dark"] .filter-subsection-title {
+  color: #5a7490;
+}
+[data-theme="dark"] .filter-label {
+  color: #94a3b8;
+}
+[data-theme="dark"] .filter-input,
+[data-theme="dark"] .filter-range-input {
+  background: #162032;
+  border-color: #1e3348;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .filter-input:focus,
+[data-theme="dark"] .filter-range-input:focus {
+  border-color: #00c9a7;
+  outline: none;
+}
+[data-theme="dark"] .filter-input::placeholder {
+  color: #3d5570;
+}
+[data-theme="dark"] .filter-select {
+  background: #162032;
+  border-color: #1e3348;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .filter-brand-search,
+[data-theme="dark"] .filter-search-input {
+  background: #162032;
+  border-color: #1e3348;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .filter-brand-search::placeholder,
+[data-theme="dark"] .filter-search-input::placeholder {
+  color: #3d5570;
+}
+[data-theme="dark"] .filter-brand-search-icon {
+  color: #3d5570;
+}
+[data-theme="dark"] .filter-count {
+  color: #3d5570;
+}
+[data-theme="dark"] .filter-show-more-btn {
+  color: #00c9a7;
+}
+[data-theme="dark"] .filter-color-name {
+  color: #94a3b8;
+}
+[data-theme="dark"] .cat-sidebar-open {
+  background: #111e2e;
+}
+
+/* Catalog main */
+[data-theme="dark"] .cat-main {
+  background-color: #0d1b2a;
+}
+[data-theme="dark"] .cat-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cat-subtitle {
+  color: #5a7490;
+}
+[data-theme="dark"] .cat-results-heading {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cat-results-count {
+  color: #5a7490;
+}
+[data-theme="dark"] .cat-sort {
+  background: #162032;
+  border-color: #1e3348;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .btn-encar {
+  background-color: #162032;
+  color: #c8daea;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .btn-encar:hover {
+  background-color: #1e3348;
+}
+/* Car cards */
+[data-theme="dark"] .car-card {
+  background: #162032;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .car-img-placeholder {
+  background: #1a2d40;
+}
+[data-theme="dark"] .car-img-btn {
+  background: rgba(13,27,42,0.75);
+  color: #94a3b8;
+}
+[data-theme="dark"] .car-img-btn:hover {
+  background: rgba(13,27,42,0.95);
+  color: #e2e8f0;
+}
+[data-theme="dark"] .car-name {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .car-model {
+  color: #5a7490;
+}
+[data-theme="dark"] .car-meta {
+  color: #7a96b0;
+}
+[data-theme="dark"] .car-detail-label {
+  color: #5a7490;
+}
+[data-theme="dark"] .car-detail-value {
+  color: #94a3b8;
+}
+[data-theme="dark"] .car-location {
+  color: #7a96b0;
+}
+[data-theme="dark"] .car-vin {
+  color: #3d5570;
+}
+[data-theme="dark"] .car-vin span {
+  color: #5a7490;
+}
+[data-theme="dark"] .car-price-col {
+  border-left-color: #1e3348;
+}
+[data-theme="dark"] .car-price-krw {
+  color: #7a96b0;
+}
+[data-theme="dark"] .car-price-usd {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .car-price-row span:first-child {
+  color: #5a7490;
+}
+[data-theme="dark"] .car-price-row span:last-child {
+  color: #94a3b8;
+}
+[data-theme="dark"] .car-price-vat span {
+  color: #00c9a7 !important;
+}
+[data-theme="dark"] .car-price-total {
+  border-top-color: #1e3348;
+  background: #0f2030;
+}
+[data-theme="dark"] .car-price-total span:first-child {
+  color: #7a96b0;
+}
+[data-theme="dark"] .car-price-total span:last-child {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .car-card-actions {
+  border-top-color: #1e3348;
+  background: #111e2e;
+}
+[data-theme="dark"] .btn-car-negotiate {
+  background: #1e3348;
+  color: #7a96b0;
+  border-color: #2d4a60;
+}
+
+/* Contacts page */
+[data-theme="dark"] .cnt-page {
+  background: #0d1b2a;
+}
+[data-theme="dark"] .cnt-hero {
+  background: linear-gradient(135deg, #091820 0%, #0d1b2a 100%);
+}
+[data-theme="dark"] .cnt-hero-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cnt-hero-sub {
+  color: #7a96b0;
+}
+[data-theme="dark"] .cnt-section {
+  background-color: #0d1b2a;
+}
+[data-theme="dark"] .cnt-section-alt {
+  background-color: #0f2030;
+}
+[data-theme="dark"] .cnt-section-wa {
+  background-color: #0d1b2a;
+}
+[data-theme="dark"] .cnt-section-social {
+  background-color: #0f2030;
+}
+[data-theme="dark"] .cnt-section-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cnt-section-sub {
+  color: #5a7490;
+}
+[data-theme="dark"] .cnt-way-card {
+  background: #162032;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .cnt-way-card:hover {
+  border-color: #00c9a7;
+  box-shadow: 0 6px 24px rgba(0,201,167,0.12);
+}
+[data-theme="dark"] .cnt-way-icon {
+  background-color: #1e3348;
+  color: #5a7490;
+}
+[data-theme="dark"] .cnt-way-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cnt-way-desc {
+  color: #5a7490;
+}
+[data-theme="dark"] .cnt-val-teal { color: #00c9a7; }
+[data-theme="dark"] .cnt-val-blue { color: #60a5fa; }
+[data-theme="dark"] .cnt-val-dark { color: #c8daea; }
+[data-theme="dark"] .cnt-way-sub {
+  color: #3d5570;
+}
+[data-theme="dark"] .cnt-quick {
+  border-top-color: #1e3348;
+}
+[data-theme="dark"] .cnt-quick-text {
+  color: #7a96b0;
+}
+[data-theme="dark"] .cnt-hours-card {
+  background: #162032;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .cnt-hours-clock {
+  background: #0a2820;
+  color: #00c9a7;
+}
+[data-theme="dark"] .cnt-hours-card-title {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cnt-hours-card-sub {
+  color: #00c9a7;
+}
+[data-theme="dark"] .cnt-hours-label {
+  color: #5a7490;
+}
+[data-theme="dark"] .cnt-hours-value {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cnt-hours-divider {
+  background: #1e3348;
+}
+[data-theme="dark"] .cnt-hours-note {
+  background: #111e2e;
+  color: #7a96b0;
+}
+[data-theme="dark"] .cnt-office-card {
+  background: #162032;
+  border-color: #1e3348;
+}
+[data-theme="dark"] .cnt-office-city {
+  color: #e2e8f0;
+}
+[data-theme="dark"] .cnt-office-label {
+  color: #3d5570;
+}
+[data-theme="dark"] .cnt-office-text {
+  color: #7a96b0;
+}
+[data-theme="dark"] .cnt-office-link {
+  color: #00c9a7;
 }

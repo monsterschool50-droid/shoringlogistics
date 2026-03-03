@@ -29,14 +29,14 @@ export default function Reviews() {
   return (
     <section className="reviews-section">
       <div className="section-inner">
-        <h2 className="section-title">Отзывы наших клиентов</h2>
-        <p className="section-subtitle">
+        <h2 className="section-title reveal">Отзывы наших клиентов</h2>
+        <p className="section-subtitle reveal reveal-delay-1">
           Что говорят люди, которые уже получили свои автомобили из Кореи
         </p>
 
         <div className="reviews-grid">
-          {reviews.map(({ name, text }) => (
-            <div className="review-card" key={name}>
+          {reviews.map(({ name, text }, i) => (
+            <div className={`review-card reveal reveal-delay-${i + 1}`} key={name}>
               <Stars />
               <p className="review-name">{name}</p>
               <p className="review-text">{text}</p>

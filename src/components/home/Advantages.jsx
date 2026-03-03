@@ -54,14 +54,14 @@ export default function Advantages() {
   return (
     <section className="advantages-section">
       <div className="section-inner">
-        <h2 className="section-title">Наши преимущества</h2>
-        <p className="section-subtitle">
+        <h2 className="section-title reveal">Наши преимущества</h2>
+        <p className="section-subtitle reveal reveal-delay-1">
           Почему клиенты выбирают TLV Auto Korea для покупки автомобилей из Кореи
         </p>
 
         <div className="adv-grid">
-          {advantages.map(({ icon, title, desc }) => (
-            <div className="adv-card" key={title}>
+          {advantages.map(({ icon, title, desc }, i) => (
+            <div className={`adv-card reveal reveal-delay-${i + 1}`} key={title}>
               <div className="adv-icon-wrap">{icon}</div>
               <h3 className="adv-card-title">{title}</h3>
               <p className="adv-card-desc">{desc}</p>
