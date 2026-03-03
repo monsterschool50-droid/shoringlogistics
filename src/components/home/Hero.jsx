@@ -47,7 +47,7 @@ const stats = [
 const advantages = [
   { icon: <PeopleIcon />, value: '1000+', label: 'Довольных клиентов', labelCls: '' },
   { icon: <CarSmallIcon />, value: '1000+', label: 'Доставленных авто', labelCls: '' },
-  { icon: <BadgeIcon />, value: '3+ года', label: 'На рынке', labelCls: 'adv-label-accent' },
+  { icon: <BadgeIcon />, value: '3+ года', label: 'На рынке', labelCls: '' },
 ]
 
 const whyReasons = [
@@ -56,6 +56,7 @@ const whyReasons = [
   'Богатая комплектация уже в базе',
   'Отличное качество кузова и двигателя',
   'Богатый выбор: Корейцы, Немцы, Японцы и др.',
+  '🌍 Доставка в любую точку Мира',
 ]
 
 export default function Hero() {
@@ -64,6 +65,10 @@ export default function Hero() {
       {/* ── Hero ── */}
       <div className="hero-section">
         <div className="hero-inner">
+
+          <div className="hero-delivery-badge">
+            🌍 Доставка в любую точку Мира
+          </div>
 
           <h1 className="hero-title">
             Автомобили из Кореи<br />

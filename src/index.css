@@ -105,6 +105,11 @@ body {
   width: 100%;
 }
 
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 0 rgba(0,184,148,0.4), inset 0 1px 0 rgba(255,255,255,0.08); }
+  50%       { box-shadow: 0 4px 16px rgba(0,0,0,0.22), 0 0 0 7px rgba(0,184,148,0), inset 0 1px 0 rgba(255,255,255,0.08); }
+}
+
 /* Logo */
 .header-logo {
   text-decoration: none;
@@ -116,11 +121,16 @@ body {
   padding: 7px 14px 7px 12px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.25s ease;
+  animation: badgePop 0.65s cubic-bezier(0.34,1.56,0.64,1) both,
+             logoPulse 2.5s ease-in-out 1s infinite;
 }
 .header-logo:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.1);
-  transform: translateY(-1px);
+  transform: scale(1.07) translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,100,50,0.45),
+              0 0 0 2px rgba(255,255,255,0.15),
+              inset 0 1px 0 rgba(255,255,255,0.15);
 }
 /* На зелёном фоне A и T — светлые */
 .header-logo .logo-a,
@@ -485,6 +495,57 @@ body {
 
 @media (min-width: 640px) {
   .btn-primary, .btn-secondary { width: auto; }
+}
+
+/* Hero delivery badge */
+@keyframes badgePop {
+  0%   { opacity: 0; transform: scale(0.7) translateY(12px); }
+  65%  { opacity: 1; transform: scale(1.08) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0,184,148,0.15), 0 0 0 0 rgba(0,184,148,0.3); }
+  50%       { box-shadow: 0 4px 16px rgba(0,184,148,0.25), 0 0 0 6px rgba(0,184,148,0); }
+}
+
+.hero-delivery-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #eaf7f3 0%, #d4f1e8 100%);
+  color: #00875a;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: 100px;
+  border: 1px solid rgba(0,184,148,0.3);
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(0,184,148,0.15);
+  animation: badgePop 0.6s cubic-bezier(0.34,1.56,0.64,1) both,
+             badgePulse 2.5s ease-in-out 1s infinite;
+  cursor: default;
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.2s ease;
+}
+.hero-delivery-badge:hover {
+  transform: scale(1.07) translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,184,148,0.3);
+}
+[data-theme="dark"] .hero-delivery-badge {
+  background: linear-gradient(135deg, rgba(0,184,148,0.15) 0%, rgba(0,184,148,0.07) 100%);
+  color: #00c9a7;
+  border-color: rgba(0,201,167,0.3);
+}
+
+/* Badge in why-section */
+.why-delivery-badge-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 28px 0 0 0;
+}
+.why-delivery-badge {
+  margin-bottom: 0;
+  animation-delay: 0.3s;
 }
 
 /* Hero text */
