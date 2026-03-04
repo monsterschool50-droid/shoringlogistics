@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Env файлы (никогда не пушить!)
+.env
+.env.local
+.env.production
+
+# Загруженные фото (на Railway хранить не нужно)
+server/uploads/cars/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

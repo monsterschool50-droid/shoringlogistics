@@ -42,6 +42,16 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
 })
 
+// В production — раздаём собранный React-фронтенд
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '..', 'dist')
+  app.use(express.static(distPath))
+  // SPA fallback — все остальные маршруты → index.html
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
+
 // Инициализация БД и запуск
 async function start() {
   try {
