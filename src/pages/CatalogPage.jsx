@@ -16,6 +16,40 @@ function shouldReplaceText(value) {
   return !text || text === '-' || hasHangul(text)
 }
 
+function normalizeTagLabel(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const low = text.toLowerCase()
+
+  if (low.includes('diesel') || text.includes('디젤')) return 'Дизель'
+  if (low.includes('gasoline') || text.includes('가솔린') || text.includes('휘발유')) return 'Бензин'
+  if (low.includes('hybrid') || text.includes('하이브리드')) return 'Бензин (гибрид)'
+  if (low.includes('electric') || text.includes('전기')) return 'Электро'
+  if (low.includes('lpg') || text.includes('엘피지')) return 'Газ (LPG)'
+  if (low.includes('auto') || text.includes('오토') || text.includes('자동')) return 'Автомат'
+  if (low.includes('manual') || text.includes('수동')) return 'Механика'
+  if (low.includes('cvt')) return 'CVT'
+  if (low.includes('dct') || low.includes('dual')) return 'Робот'
+
+  return text
+}
+
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return []
+  const out = []
+  for (const tag of tags) {
+    const normalized = normalizeTagLabel(tag)
+    if (!normalized) continue
+    if (!out.includes(normalized)) out.push(normalized)
+  }
+  return out
+}
+
+function hasUntranslatedTags(tags) {
+  if (!Array.isArray(tags) || !tags.length) return true
+  return tags.some((tag) => shouldReplaceText(tag))
+}
+
 function normalizeColorLabel(value) {
   const text = String(value || '').trim()
   if (!text) return ''
@@ -79,6 +113,9 @@ function needsEncarEnrichment(car) {
   if (!car?.encarId || car.encarId === '-') return false
   return (
     hasWeakImages(car) ||
+    shouldReplaceText(car.name) ||
+    shouldReplaceText(car.model) ||
+    hasUntranslatedTags(car.tags) ||
     shouldReplaceColor(car.bodyColor) ||
     shouldReplaceColor(car.interiorColor) ||
     shouldReplaceText(car.location)
@@ -99,6 +136,10 @@ async function fetchEncarDetail(encarId) {
       const detailImages = normalizeImages(detail?.photos?.length ? detail.photos : detail?.images)
       const normalized = {
         images: detailImages,
+        name: detail?.name || '',
+        model: detail?.model || '',
+        fuelType: normalizeTagLabel(detail?.fuel_type || ''),
+        transmission: normalizeTagLabel(detail?.transmission || ''),
         bodyColor: detail?.body_color || '',
         interiorColor: detail?.interior_color || '',
         location: detail?.location || '',
@@ -172,7 +213,7 @@ function mapCar(c) {
     model: c.model,
     year: c.year,
     mileage: c.mileage || 0,
-    tags: c.tags || [],
+    tags: normalizeTags(c.tags || []),
     bodyColor: normalizeColorLabel(c.body_color || '-'),
     bodyColorDots: c.body_color_dots || [],
     interiorColor: normalizeColorLabel(c.interior_color || c.body_color || '-'),
@@ -233,6 +274,12 @@ export default function CatalogPage() {
             if (!detail) return car
 
             const next = { ...car }
+            if (shouldReplaceText(car.name) && detail.name) next.name = detail.name
+            if (shouldReplaceText(car.model) && detail.model) next.model = detail.model
+            if (hasUntranslatedTags(car.tags)) {
+              const detailTags = normalizeTags([detail.fuelType, detail.transmission])
+              if (detailTags.length) next.tags = detailTags
+            }
             if (hasWeakImages(car) && detail.images.length) next.images = detail.images
             if (shouldReplaceColor(car.bodyColor) && detail.bodyColor) next.bodyColor = normalizeColorLabel(detail.bodyColor)
             if (shouldReplaceColor(car.interiorColor) && detail.interiorColor) next.interiorColor = normalizeColorLabel(detail.interiorColor)
