@@ -113,7 +113,7 @@ export default function CarCard({ car }) {
           <div className="car-meta">
             <span>{car.year}</span>
             <span className="car-meta-sep">•</span>
-            <span>{Number(car.mileage || 0).toLocaleString()} km</span>
+            <span>{Number(car.mileage || 0).toLocaleString()} км</span>
           </div>
 
           <div className="car-tags">
@@ -132,11 +132,11 @@ export default function CarCard({ car }) {
           </div>
 
           <div className="car-detail">
-            <span className="car-detail-label">Body:</span>
+            <span className="car-detail-label">Кузов:</span>
             <span className="car-detail-value">{car.bodyColor || '-'}</span>
           </div>
           <div className="car-detail">
-            <span className="car-detail-label">Interior:</span>
+            <span className="car-detail-label">Салон:</span>
             <span className="car-detail-value">{car.interiorColor || '-'}</span>
           </div>
           <div className="car-location">
@@ -151,48 +151,48 @@ export default function CarCard({ car }) {
           <div className="car-price-usd">${Number(car.priceUSD || 0).toLocaleString()}</div>
           <div className="car-price-breakdown">
             <div className="car-price-row">
-              <span>Commission:</span><span>${Number(car.commission || 0).toLocaleString()}</span>
+              <span>Комиссия:</span><span>${Number(car.commission || 0).toLocaleString()}</span>
             </div>
             <div className="car-price-row">
-              <span>Delivery:</span><span>${Number(car.delivery || 0).toLocaleString()}</span>
+              <span>Доставка:</span><span>${Number(car.delivery || 0).toLocaleString()}</span>
             </div>
             <div className="car-price-row">
-              <span>Loading:</span><span>${Number(car.loading || 0).toLocaleString()}</span>
+              <span>Погрузка:</span><span>${Number(car.loading || 0).toLocaleString()}</span>
             </div>
             <div className="car-price-row">
-              <span>Unloading:</span><span>${Number(car.unloading || 0).toLocaleString()}</span>
+              <span>Выгрузка:</span><span>${Number(car.unloading || 0).toLocaleString()}</span>
             </div>
             <div className="car-price-row">
-              <span>Storage:</span><span>${Number(car.storage || 0).toLocaleString()}</span>
+              <span>Стоянка:</span><span>${Number(car.storage || 0).toLocaleString()}</span>
             </div>
             <div className="car-price-row car-price-vat">
-              <span>VAT Refund (7%):</span><span>-${Number(car.vatRefund || 0).toLocaleString()}</span>
+              <span>Возврат НДС (7%):</span><span>-${Number(car.vatRefund || 0).toLocaleString()}</span>
             </div>
           </div>
           <div className="car-price-total">
-            <span>To Bishkek:</span>
+            <span>До Бишкека:</span>
             <span>${Number(car.total || 0).toLocaleString()}</span>
           </div>
         </div>
       </div>
 
       <div className="car-card-actions">
-        <a href={car.encarUrl || '#'} className="btn-car-primary">Open</a>
+        <a href={car.encarUrl || '#'} className="btn-car-primary">Открыть</a>
         <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-outline">
-          <NewTabIcon /> New tab
+          <NewTabIcon /> В новой вкладке
         </a>
         <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-outline">
           Encar →
         </a>
         <a
-          href={`https://wa.me/996705188088?text=I want this car: ${car.name} (${car.year}), VIN: ${car.vin || '-'}`}
+          href={`https://wa.me/996705188088?text=Хочу заказать: ${car.name} (${car.year}), VIN: ${car.vin || '-'}`}
           target="_blank"
           rel="noreferrer"
           className="btn-car-green"
         >
-          <WhatsAppIcon /> Order
+          <WhatsAppIcon /> Заказать
         </a>
-        {car.canNegotiate && <button className="btn-car-negotiate">Negotiable</button>}
+        {car.canNegotiate && <button className="btn-car-negotiate">Возможен торг</button>}
       </div>
     </div>
   )
