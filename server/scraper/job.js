@@ -1,5 +1,5 @@
 import pool from '../db.js'
-import { fetchCarList, extractPhotoUrls, probePhotoUrls, jitter, sleep } from './encarApi.js'
+import { fetchCarList, extractPhotoUrls, probePhotoUrls, sleep } from './encarApi.js'
 import { downloadPhotos } from './downloader.js'
 import {
   MANUFACTURER_MAP, FUEL_MAP, GEAR_MAP, COLOR_MAP,
@@ -209,18 +209,9 @@ export async function runScrapeJob(limit = 100) {
 
         processed++
 
-        // Rate-limit between cars
-        if (processed < limit && !state.stopReq) {
-          await jitter(1200, 2800)
-        }
       }
 
       offset += cars.length
-
-      // Delay between pages
-      if (processed < limit && !state.stopReq) {
-        await jitter(3000, 5000)
-      }
     }
 
     await updateScrapeStats(addedThisRun)
