@@ -44,6 +44,15 @@ const WaGroupIcon = () => (
 
 // Маппинг из snake_case (БД) в camelCase (CarCard)
 function mapCar(c) {
+  const priceUSD = Number(c.price_usd) || 0
+  const commission = Number(c.commission ?? 200) || 200
+  const delivery = Number(c.delivery ?? 1750) || 1750
+  const loading = Number(c.loading) || 0
+  const unloading = Number(c.unloading ?? 100) || 100
+  const storage = Number(c.storage ?? 310) || 310
+  const vatRefund = Number(c.vat_refund) || Math.round(priceUSD * 0.07)
+  const total = Number(c.total) || Math.round(priceUSD + commission + delivery + loading + unloading + storage - vatRefund)
+
   return {
     id: c.id,
     name: c.name,
@@ -51,21 +60,21 @@ function mapCar(c) {
     year: c.year,
     mileage: c.mileage || 0,
     tags: c.tags || [],
-    bodyColor: c.body_color,
+    bodyColor: c.body_color || '-',
     bodyColorDots: c.body_color_dots || [],
-    interiorColor: c.interior_color,
+    interiorColor: c.interior_color || c.body_color || '-',
     interiorColorDots: c.interior_color_dots || [],
-    location: c.location,
+    location: c.location || 'Корея',
     vin: c.vin,
     priceKRW: Number(c.price_krw) || 0,
-    priceUSD: Number(c.price_usd) || 0,
-    commission: Number(c.commission) || 200,
-    delivery: Number(c.delivery) || 0,
-    loading: Number(c.loading) || 0,
-    unloading: Number(c.unloading) || 0,
-    storage: Number(c.storage) || 0,
-    vatRefund: Number(c.vat_refund) || 0,
-    total: Number(c.total) || 0,
+    priceUSD,
+    commission,
+    delivery,
+    loading,
+    unloading,
+    storage,
+    vatRefund,
+    total,
     encarUrl: c.encar_url,
     canNegotiate: c.can_negotiate,
     imageCount: (c.images || []).length || 1,

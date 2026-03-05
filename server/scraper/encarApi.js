@@ -6,6 +6,13 @@ export function jitter(min = 1500, max = 3500) {
   return sleep(min + Math.random() * (max - min))
 }
 
+function toAbsoluteEncarPhotoUrl(url) {
+  if (!url) return null
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('/')) return `https://ci.encar.com${url}`
+  return `https://ci.encar.com/${url}`
+}
+
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -98,6 +105,37 @@ export async function fetchCarList(offset = 0, limit = 20, retries = 3) {
       await sleep(3000 * attempt)
     }
   }
+}
+
+/**
+ * Extract photo URLs directly from Encar list payload.
+ * Prefers explicit Photos[] locations, then falls back to Photo prefix pattern.
+ */
+export function extractPhotoUrls(raw, maxPhotos = 8) {
+  const urls = []
+
+  if (Array.isArray(raw?.Photos)) {
+    const sorted = [...raw.Photos].sort((a, b) => (a?.ordering || 0) - (b?.ordering || 0))
+    for (const p of sorted) {
+      const abs = toAbsoluteEncarPhotoUrl(p?.location)
+      if (abs && !urls.includes(abs)) urls.push(abs)
+      if (urls.length >= maxPhotos) return urls
+    }
+    if (urls.length > 0) return urls
+  }
+
+  if (typeof raw?.Photo === 'string' && raw.Photo) {
+    const prefix = toAbsoluteEncarPhotoUrl(raw.Photo)
+    if (prefix) {
+      for (let i = 1; i <= maxPhotos; i++) {
+        const num = String(i).padStart(3, '0')
+        const candidate = `${prefix}${num}.jpg`
+        if (!urls.includes(candidate)) urls.push(candidate)
+      }
+    }
+  }
+
+  return urls.slice(0, maxPhotos)
 }
 
 /**

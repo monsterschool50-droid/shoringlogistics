@@ -1,5 +1,5 @@
 import pool from '../db.js'
-import { fetchCarList, probePhotoUrls, jitter, sleep } from './encarApi.js'
+import { fetchCarList, extractPhotoUrls, probePhotoUrls, jitter, sleep } from './encarApi.js'
 import { downloadPhotos } from './downloader.js'
 import {
   MANUFACTURER_MAP, FUEL_MAP, GEAR_MAP, COLOR_MAP,
@@ -11,18 +11,22 @@ const PAGE_SIZE = 20
 
 // ─── Map raw Encar car to our DB shape ───────────────────────────────────────
 function mapCar(raw) {
-  const manufacturer = tr(MANUFACTURER_MAP, raw.Manufacturer || '')
-  const model        = raw.Model   || ''
-  const badge        = raw.Badge   || ''
-  const year         = parseYear(raw.Year)
-  const mileage      = Number(raw.Mileage) || 0
-  const price_krw    = priceToKRW(raw.Price)
-  const price_usd    = krwToUsd(price_krw)
-  const fuel_type    = tr(FUEL_MAP,  raw.FuelType  || '')
-  const gear_type    = tr(GEAR_MAP,  raw.GearType  || '')
-  const body_color   = tr(COLOR_MAP, raw.Color     || '')
-  const encar_id     = String(raw.Id || '')
-  const encar_url    = `https://www.encar.com/dc/dc_cardetailview.do?carid=${raw.Id}`
+  const rawManufacturer = String(raw.Manufacturer || '').trim()
+  const model = raw.Model || ''
+  const badge = raw.Badge || ''
+  const year = parseYear(raw.Year)
+  const mileage = Number(raw.Mileage) || 0
+  const price_krw = priceToKRW(raw.Price)
+  const price_usd = krwToUsd(price_krw)
+  const fuel_type = tr(FUEL_MAP, raw.FuelType || '')
+  const gear_type = tr(GEAR_MAP, raw.GearType || '')
+  const body_color = tr(COLOR_MAP, raw.Color || '')
+  const interior_raw = raw.InteriorColor || raw.InnerColor || raw.TrimColor || raw.Color || ''
+  const interior_color = tr(COLOR_MAP, interior_raw)
+  const encar_id = String(raw.Id || '')
+  const encar_url = `https://www.encar.com/dc/dc_cardetailview.do?carid=${raw.Id}`
+  const hasHangulInModel = /[\uAC00-\uD7A3]/.test(`${model} ${badge}`)
+  const manufacturer = hasHangulInModel ? rawManufacturer : tr(MANUFACTURER_MAP, rawManufacturer)
 
   const name = [manufacturer, model, badge].filter(Boolean).join(' ')
 
@@ -31,12 +35,27 @@ function mapCar(raw) {
   if (fuel_type) tags.push(fuel_type)
 
   return {
-    name, model: [model, badge].filter(Boolean).join(' '),
+    name,
+    model: [model, badge].filter(Boolean).join(' '),
     year: year ? String(year) : null,
-    mileage, price_krw, price_usd,
-    fuel_type, body_color, location: 'Корея',
-    encar_url, encar_id, tags,
+    mileage,
+    price_krw,
+    price_usd,
+    fuel_type,
+    body_color,
+    interior_color,
+    location: 'Корея',
+    encar_url,
+    encar_id,
+    tags,
     can_negotiate: true,
+    commission: 200,
+    delivery: 1750,
+    loading: 0,
+    unloading: 100,
+    storage: 310,
+    vat_refund: Math.round(price_usd * 0.07),
+    total: 0,
     thumbnail: raw.Thumbnail || raw.Photo || null,
   }
 }
@@ -51,17 +70,29 @@ async function getExistingId(encarId) {
 }
 
 async function insertCar(car, photoUrls) {
+  const total = Math.round(
+    Number(car.price_usd || 0) +
+    Number(car.commission || 0) +
+    Number(car.delivery || 0) +
+    Number(car.loading || 0) +
+    Number(car.unloading || 0) +
+    Number(car.storage || 0) -
+    Number(car.vat_refund || 0)
+  )
+
   const res = await pool.query(
     `INSERT INTO cars
        (name, model, year, mileage, price_krw, price_usd, fuel_type,
-        body_color, location, encar_url, encar_id, tags, can_negotiate)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        body_color, interior_color, location, encar_url, encar_id, tags, can_negotiate,
+        commission, delivery, loading, unloading, storage, vat_refund, total)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
      RETURNING id`,
     [
       car.name, car.model, car.year, car.mileage,
       car.price_krw, car.price_usd, car.fuel_type,
-      car.body_color, car.location, car.encar_url,
+      car.body_color, car.interior_color, car.location, car.encar_url,
       car.encar_id, car.tags, car.can_negotiate,
+      car.commission, car.delivery, car.loading, car.unloading, car.storage, car.vat_refund, total,
     ]
   )
   const carId = res.rows[0].id
@@ -152,14 +183,17 @@ export async function runScrapeJob(limit = 100) {
         // ── Probe + download photos ────────────────────────────────────────
         let photoUrls = []
         try {
-          const validUrls = await probePhotoUrls(raw.Id, 8)
+          const extracted = extractPhotoUrls(raw, 8)
+          const validUrls = extracted.length ? extracted : await probePhotoUrls(raw.Id, 8)
           if (validUrls.length) {
-            state.info(`📸 Скачиваю ${validUrls.length} фото для ${car.name}...`)
-            photoUrls = await downloadPhotos(validUrls, raw.Id, 8)
+            state.info(`Processing ${validUrls.length} photos for ${car.name}...`)
+            const downloaded = await downloadPhotos(validUrls, raw.Id, 8)
+            // On Railway local filesystem can be ephemeral. Keep CDN URLs as fallback.
+            photoUrls = downloaded.length ? downloaded : validUrls
             state.setProgress({ photos: state.progress.photos + photoUrls.length })
           }
         } catch (photoErr) {
-          state.warn(`⚠️ Ошибка фото: ${photoErr.message}`)
+          state.warn(`Photo error: ${photoErr.message}`)
         }
 
         // ── Save to DB ─────────────────────────────────────────────────────
