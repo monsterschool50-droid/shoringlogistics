@@ -189,9 +189,9 @@ export async function runScrapeJob(limit = 100) {
           const validUrls = extracted.length ? extracted : await probePhotoUrls(raw.Id, 8)
           if (validUrls.length) {
             state.info(`Processing ${validUrls.length} photos for ${car.name}...`)
-            const downloaded = await downloadPhotos(validUrls, raw.Id, 8)
-            // On Railway local filesystem can be ephemeral. Keep CDN URLs as fallback.
-            photoUrls = downloaded.length ? downloaded : validUrls
+            // Keep local download as warm cache, but persist stable Encar CDN URLs in DB.
+            await downloadPhotos(validUrls, raw.Id, 8)
+            photoUrls = validUrls
             state.setProgress({ photos: state.progress.photos + photoUrls.length })
           }
         } catch (photoErr) {

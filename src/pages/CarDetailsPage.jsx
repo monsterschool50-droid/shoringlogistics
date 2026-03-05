@@ -94,13 +94,38 @@ function formatDate(value) {
   return d.toLocaleDateString('ru-RU')
 }
 
+function hasHangulText(value) {
+  return /[\uAC00-\uD7A3]/u.test(String(value || ''))
+}
+
+function shouldReplaceText(value) {
+  const text = String(value || '').trim()
+  return !text || text === '-' || hasHangulText(text)
+}
+
+function toAbsoluteImageUrl(raw) {
+  if (!raw) return ''
+  const url = String(raw).trim()
+  if (!url) return ''
+  if (/^https?:\/\//i.test(url)) return url
+  if (url.startsWith('/carpicture') || url.startsWith('carpicture')) {
+    return `https://ci.encar.com${url.startsWith('/') ? '' : '/'}${url}`
+  }
+  return url
+}
+
 function normalizeImages(rawImages) {
   if (!Array.isArray(rawImages)) return []
   return rawImages
     .map((img, idx) => {
       if (!img) return null
-      if (typeof img === 'string') return { id: `img-${idx}`, url: img }
-      return { id: img.id ?? `img-${idx}`, url: img.url }
+      if (typeof img === 'string') {
+        return { id: `img-${idx}`, url: toAbsoluteImageUrl(img) }
+      }
+      return {
+        id: img.id ?? `img-${idx}`,
+        url: toAbsoluteImageUrl(img.url || img.path || img.location || ''),
+      }
     })
     .filter((img) => img?.url)
 }
@@ -158,26 +183,27 @@ function mapCar(c) {
 
 function mergeCarWithEncar(baseCar, detail) {
   const detailImages = normalizeImages(detail?.photos?.length ? detail.photos : detail?.images)
-  const images = baseCar.images.length ? baseCar.images : detailImages
+  const baseImages = normalizeImages(baseCar.images)
+  const images = detailImages.length ? detailImages : baseImages
   const year = baseCar.year === '-' && detail?.year ? detail.year : baseCar.year
 
   return {
     ...baseCar,
-    name: baseCar.name || detail?.name || baseCar.name,
-    model: baseCar.model || detail?.model || baseCar.model,
+    name: shouldReplaceText(baseCar.name) ? (detail?.name || baseCar.name) : baseCar.name,
+    model: shouldReplaceText(baseCar.model) ? (detail?.model || baseCar.model) : baseCar.model,
     year,
     yearNum: parseYear(year),
     mileage: baseCar.mileage || Number(detail?.mileage || 0),
-    bodyColor: baseCar.bodyColor === '-' ? (detail?.body_color || '-') : baseCar.bodyColor,
-    interiorColor: baseCar.interiorColor === '-' ? (detail?.interior_color || '-') : baseCar.interiorColor,
-    location: baseCar.location === 'Корея' ? (detail?.location || baseCar.location) : baseCar.location,
+    bodyColor: shouldReplaceText(baseCar.bodyColor) ? (detail?.body_color || baseCar.bodyColor || '-') : baseCar.bodyColor,
+    interiorColor: shouldReplaceText(baseCar.interiorColor) ? (detail?.interior_color || baseCar.interiorColor || '-') : baseCar.interiorColor,
+    location: (baseCar.location === 'Корея' || shouldReplaceText(baseCar.location)) ? (detail?.location || baseCar.location) : baseCar.location,
     vin: baseCar.vin === '-' ? (detail?.vin || detail?.vehicle_no || '-') : baseCar.vin,
-    fuelType: baseCar.fuelType || detail?.fuel_type || '',
+    fuelType: shouldReplaceText(baseCar.fuelType) ? (detail?.fuel_type || baseCar.fuelType || '') : baseCar.fuelType,
     images,
     createdAt: detail?.manage?.firstAdvertisedDateTime || baseCar.createdAt,
     updatedAt: detail?.manage?.modifyDateTime || baseCar.updatedAt,
-    bodyType: detail?.body_type || baseCar.bodyType || '-',
-    transmission: detail?.transmission || baseCar.transmission || '-',
+    bodyType: shouldReplaceText(baseCar.bodyType) ? (detail?.body_type || baseCar.bodyType || '-') : baseCar.bodyType,
+    transmission: shouldReplaceText(baseCar.transmission) ? (detail?.transmission || baseCar.transmission || '-') : baseCar.transmission,
     seatCount: Number(detail?.seat_count) || baseCar.seatCount || null,
     displacement: Number(detail?.displacement) || baseCar.displacement || 0,
     vehicleNo: detail?.vehicle_no || baseCar.vehicleNo || '-',

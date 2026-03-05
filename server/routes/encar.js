@@ -1,5 +1,6 @@
-import { Router } from 'express'
+﻿import { Router } from 'express'
 import axios from 'axios'
+import { hasHangul, translateVehicleText } from '../scraper/translator.js'
 
 const router = Router()
 const KRW_PER_USD = 1340
@@ -21,6 +22,78 @@ function toAbsolutePhotoUrl(path) {
   if (!path) return null
   if (/^https?:\/\//i.test(path)) return path
   return `https://ci.encar.com${path.startsWith('/') ? '' : '/'}${path}`
+}
+
+function normalizeText(value) {
+  if (!value) return ''
+  const text = String(value).trim()
+  if (!text) return ''
+  return hasHangul(text) ? translateVehicleText(text) : text
+}
+
+function normalizeManufacturer(value) {
+  const text = normalizeText(value)
+  if (!text) return ''
+  if (/kgmobilriti/i.test(text) || /kg mobility/i.test(text)) return 'KG Mobility (SsangYong)'
+  if (/ssangyong/i.test(text)) return 'SsangYong'
+  return text
+}
+
+function normalizeFuel(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const low = text.toLowerCase()
+  if (low.includes('diesel') || text.includes('디젤')) return 'Дизель'
+  if (low.includes('electric') || text.includes('전기')) return 'Электро'
+  if (low.includes('lpg') || text.includes('엘피지')) return 'Газ (LPG)'
+  if (low.includes('hybrid') || text.includes('하이브리드')) return 'Гибрид'
+  if (low.includes('gasoline') || text.includes('가솔린') || text.includes('휘발유')) return 'Бензин'
+  return normalizeText(text)
+}
+
+function normalizeTransmission(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const low = text.toLowerCase()
+  if (low.includes('cvt')) return 'CVT'
+  if (low.includes('dct') || low.includes('dual')) return 'Робот'
+  if (low.includes('auto') || text.includes('오토') || text.includes('자동')) return 'Автомат'
+  if (low.includes('manual') || text.includes('수동')) return 'Механика'
+  return normalizeText(text)
+}
+
+function normalizeColor(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const low = text.toLowerCase()
+
+  if (low.includes('black') || text.includes('검정') || text.includes('블랙')) return 'Черный'
+  if (low.includes('white') || text.includes('흰') || text.includes('백색') || text.includes('화이트')) return 'Белый'
+  if (low.includes('silver') || text.includes('실버') || text.includes('은색')) return 'Серебристый'
+  if (low.includes('gray') || low.includes('grey') || text.includes('회색') || text.includes('그레이')) return 'Серый'
+  if (low.includes('blue') || text.includes('파랑') || text.includes('블루')) return 'Синий'
+  if (low.includes('red') || text.includes('빨강') || text.includes('레드')) return 'Красный'
+  if (low.includes('green') || text.includes('녹색') || text.includes('그린')) return 'Зеленый'
+  if (low.includes('brown') || text.includes('갈색') || text.includes('브라운')) return 'Коричневый'
+  if (low.includes('beige') || text.includes('베이지')) return 'Бежевый'
+  if (low.includes('yellow') || text.includes('노랑') || text.includes('옐로')) return 'Желтый'
+  if (low.includes('orange') || text.includes('주황') || text.includes('오렌지')) return 'Оранжевый'
+  if (low.includes('purple') || text.includes('보라') || text.includes('퍼플')) return 'Фиолетовый'
+  return normalizeText(text)
+}
+
+function normalizeBodyType(value) {
+  const text = String(value || '').trim()
+  if (!text) return ''
+  const low = text.toLowerCase()
+  if (low.includes('suv')) return 'SUV'
+  if (low.includes('sedan') || text.includes('세단')) return 'Седан'
+  if (low.includes('coupe') || text.includes('쿠페')) return 'Купе'
+  if (low.includes('hatch') || text.includes('해치백')) return 'Хэтчбек'
+  if (low.includes('wagon') || text.includes('왜건')) return 'Универсал'
+  if (low.includes('van') || low.includes('minivan') || text.includes('밴')) return 'Вэн'
+  if (low.includes('truck') || text.includes('화물')) return 'Грузовик'
+  return normalizeText(text)
 }
 
 router.get('/:encarId', async (req, res) => {
@@ -47,9 +120,13 @@ router.get('/:encarId', async (req, res) => {
       ? `${yearMonth.slice(0, 4)}-${yearMonth.slice(4, 6)}`
       : (yearMonth.slice(0, 4) || '')
 
-    const modelGroup = category.modelGroupEnglishName || category.modelGroupName || category.modelName || ''
-    const gradeName = category.gradeDetailEnglishName || category.gradeDetailName || category.gradeName || ''
-    const manufacturer = category.manufacturerEnglishName || category.manufacturerName || ''
+    const manufacturerRaw = category.manufacturerEnglishName || category.manufacturerName || ''
+    const modelGroupRaw = category.modelGroupEnglishName || category.modelGroupName || category.modelName || ''
+    const gradeNameRaw = category.gradeDetailEnglishName || category.gradeDetailName || category.gradeName || ''
+
+    const manufacturer = normalizeManufacturer(manufacturerRaw)
+    const modelGroup = normalizeText(modelGroupRaw)
+    const gradeName = normalizeText(gradeNameRaw)
 
     const name = [manufacturer, modelGroup, gradeName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
     const model = [modelGroup, gradeName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
@@ -57,7 +134,8 @@ router.get('/:encarId', async (req, res) => {
     const photos = Array.isArray(data?.photos) ? data.photos : []
     const normalizedPhotos = photos
       .map((p, idx) => {
-        const abs = toAbsolutePhotoUrl(p?.path)
+        const rawPath = p?.path || p?.location || p?.url
+        const abs = toAbsolutePhotoUrl(rawPath)
         if (!abs) return null
         return {
           id: `${p?.code || 'photo'}-${idx}`,
@@ -82,16 +160,16 @@ router.get('/:encarId', async (req, res) => {
       model,
       year,
       mileage: Number(spec.mileage) || 0,
-      body_color: spec.colorName || '',
-      interior_color: spec?.customColor?.interiorColorName || spec?.customColor?.interiorColor || '',
-      location: contact.address || '',
+      body_color: normalizeColor(spec.colorName),
+      interior_color: normalizeColor(spec?.customColor?.interiorColorName || spec?.customColor?.interiorColor || ''),
+      location: normalizeText(contact.address),
       vin: data?.vin || '',
       vehicle_no: data?.vehicleNo || '',
       price_krw: priceKRW,
       price_usd: priceUSD,
-      fuel_type: spec.fuelName || '',
-      transmission: spec.transmissionName || '',
-      body_type: spec.bodyName || '',
+      fuel_type: normalizeFuel(spec.fuelName),
+      transmission: normalizeTransmission(spec.transmissionName),
+      body_type: normalizeBodyType(spec.bodyName),
       seat_count: Number(spec.seatCount) || null,
       displacement: Number(spec.displacement) || 0,
       images: imageUrls,
