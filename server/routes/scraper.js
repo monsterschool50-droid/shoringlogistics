@@ -32,7 +32,7 @@ router.post('/start', (req, res) => {
     return res.status(409).json({ error: 'Парсер уже работает' })
   }
 
-  const limit = Math.max(1, Math.min(parseInt(req.body.limit) || state.config.dailyLimit, 1000))
+  const limit = Math.max(1, Math.min(parseInt(req.body.limit) || state.config.dailyLimit, 5000))
 
   // Fire-and-forget
   runScrapeJob(limit).catch(err => state.error(`Необработанная ошибка: ${err.message}`))
@@ -59,7 +59,7 @@ router.put('/config', async (req, res) => {
     state.config.schedule = schedule
   }
   if (dailyLimit !== undefined)
-    state.config.dailyLimit = Math.max(1, Math.min(parseInt(dailyLimit) || 100, 1000))
+    state.config.dailyLimit = Math.max(1, Math.min(parseInt(dailyLimit) || 100, 5000))
   if (hour !== undefined)
     state.config.hour = Math.max(0, Math.min(23, parseInt(hour) || 10))
   if (intervalHours !== undefined)

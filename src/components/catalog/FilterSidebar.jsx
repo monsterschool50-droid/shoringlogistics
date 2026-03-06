@@ -235,16 +235,17 @@ function CheckboxList({ items, selected, onToggle }) {
   return (
     <>
       {visible.map(({ name, count }) => (
-        <label className="filter-brand-item" key={name + count}>
-          <input
-            type="checkbox"
-            checked={selectedValues.includes(name)}
-            onChange={() => onToggle(name)}
-            className="filter-checkbox"
-          />
+        <button
+          key={name + count}
+          type="button"
+          className={`filter-brand-item${selectedValues.includes(name) ? ' is-selected' : ''}`}
+          onClick={() => onToggle(name)}
+          aria-pressed={selectedValues.includes(name)}
+        >
+          <span className={`filter-checkbox${selectedValues.includes(name) ? ' is-checked' : ''}`} aria-hidden="true" />
           <span className="filter-brand-name">{name}</span>
           {count > 0 && <span className="filter-brand-count">{count.toLocaleString()}</span>}
-        </label>
+        </button>
       ))}
       {items.length > SHOW_MORE_THRESHOLD && (
         <button type="button" className="filter-show-more-btn" onClick={() => setExpanded(e => !e)}>

@@ -80,6 +80,14 @@ function normalizeDrive(value) {
   return ''
 }
 
+function inferDrive(...values) {
+  for (const value of values) {
+    const normalized = normalizeDrive(value)
+    if (normalized) return normalized
+  }
+  return ''
+}
+
 function normalizeColor(value) {
   const text = String(value || '').trim()
   if (!text) return ''
@@ -174,6 +182,13 @@ router.get('/:encarId', async (req, res) => {
       category.gradeDetailName,
       category.gradeEnglishName,
       category.gradeName,
+      category.modelGroupEnglishName,
+      category.modelGroupName,
+      category.modelEnglishName,
+      category.modelName,
+      ad.title,
+      ad.subTitle,
+      ad.memo,
     ].filter(Boolean).join(' ')
 
     const manufacturer = normalizeManufacturer(manufacturerRaw)
@@ -230,7 +245,7 @@ router.get('/:encarId', async (req, res) => {
       price_usd: priceUSD,
       fuel_type: normalizeFuel(spec.fuelName),
       transmission: normalizeTransmission(spec.transmissionName),
-      drive_type: normalizeDrive(driveRaw),
+      drive_type: inferDrive(driveRaw, name, model),
       body_type: normalizeBodyType(spec.bodyName),
       seat_count: Number(spec.seatCount) || null,
       displacement: Number(spec.displacement) || 0,

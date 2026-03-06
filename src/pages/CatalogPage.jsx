@@ -193,6 +193,14 @@ function normalizeDriveLabel(value) {
   return ''
 }
 
+function inferDriveType(...values) {
+  for (const value of values) {
+    const normalized = normalizeDriveLabel(value)
+    if (normalized) return normalized
+  }
+  return ''
+}
+
 function normalizeBodyTypeLabel(value) {
   const text = String(value || '').trim()
   if (!text) return ''
@@ -497,7 +505,14 @@ function mapCar(c) {
   const fuelType = normalizeTagLabel(c.fuel_type || '') || pickFuelFromTags(tags) || '-'
   const transmission = normalizeTagLabel(c.transmission || '') || pickTransmissionFromTags(tags) || '-'
   const driveSource = c.drive_type || pickDriveFromTags(tags)
-  const driveType = normalizeDriveLabel(driveSource) || normalizeDisplayText(driveSource) || '-'
+  const driveType = inferDriveType(
+    driveSource,
+    c.name,
+    c.model,
+    normalizedName,
+    normalizedModel,
+    ...(Array.isArray(c.tags) ? c.tags : []),
+  ) || normalizeDisplayText(driveSource) || '-'
   const bodyType = normalizeBodyTypeLabel(c.body_type || '') || '-'
   const displacement = Number(c.displacement) || 0
   const engineVolume = resolveEngineVolume({
@@ -612,7 +627,16 @@ export default function CatalogPage() {
             }
             if ((!car.fuelType || car.fuelType === '-') && detail.fuelType) next.fuelType = detail.fuelType
             if ((!car.transmission || car.transmission === '-') && detail.transmission) next.transmission = detail.transmission
-            if ((!car.driveType || car.driveType === '-') && detail.driveType) next.driveType = detail.driveType
+            if (!next.driveType || next.driveType === '-') {
+              const inferredDrive = detail.driveType || inferDriveType(
+                car.name,
+                car.model,
+                detail.name,
+                detail.model,
+                ...(Array.isArray(car.tags) ? car.tags : []),
+              )
+              if (inferredDrive) next.driveType = inferredDrive
+            }
             if ((!car.bodyType || car.bodyType === '-') && detail.bodyType) next.bodyType = detail.bodyType
             if ((!car.displacement || !car.engineVolume) && detail.displacement) {
               next.displacement = detail.displacement

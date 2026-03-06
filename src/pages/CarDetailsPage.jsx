@@ -329,6 +329,14 @@ function normalizeDriveLabel(value) {
   return ''
 }
 
+function inferDriveType(...values) {
+  for (const value of values) {
+    const normalized = normalizeDriveLabel(value)
+    if (normalized) return normalized
+  }
+  return ''
+}
+
 function normalizeBodyTypeLabel(value) {
   const text = String(value || '').trim()
   if (!text) return ''
@@ -452,7 +460,14 @@ function mapCar(c) {
     updatedAt: c.updated_at,
     bodyType: normalizeDisplayText(c.body_type || '-') || '-',
     transmission: tags.find((t) => /автомат|механика|робот|cvt/i.test(String(t))) || '-',
-    driveType: normalizeDriveLabel(driveSource) || normalizeDisplayText(driveSource) || '-',
+    driveType: inferDriveType(
+      driveSource,
+      c.name,
+      c.model,
+      normalizedName,
+      normalizedModel,
+      ...(Array.isArray(c.tags) ? c.tags : []),
+    ) || normalizeDisplayText(driveSource) || '-',
     seatCount: null,
     displacement: 0,
     vehicleNo: '-',
@@ -472,7 +487,14 @@ function mapCarWithNormalizedSpecs(c) {
     ...base,
     bodyType: normalizeBodyTypeLabel(c?.body_type || base.bodyType || '-') || '-',
     transmission: normalizeTagLabel(c?.transmission || '') || pickTransmissionFromTags(tags) || base.transmission || '-',
-    driveType: normalizeDriveLabel(driveSource) || normalizeDisplayText(driveSource) || base.driveType || '-',
+    driveType: inferDriveType(
+      driveSource,
+      c?.name,
+      c?.model,
+      base.name,
+      base.model,
+      ...tags,
+    ) || normalizeDisplayText(driveSource) || base.driveType || '-',
     displacement: Number(c?.displacement) || base.displacement || 0,
   }
 }
@@ -506,9 +528,14 @@ function mergeCarWithEncar(baseCar, detail) {
     transmission: shouldReplaceText(baseCar.transmission)
       ? (normalizeTagLabel(detail?.transmission || '') || baseCar.transmission || '-')
       : baseCar.transmission,
-    driveType: detail?.drive_type
-      ? (normalizeDisplayText(detail.drive_type) || baseCar.driveType || '-')
-      : baseCar.driveType,
+    driveType: inferDriveType(
+      detail?.drive_type,
+      detail?.name,
+      detail?.model,
+      baseCar.name,
+      baseCar.model,
+      ...(Array.isArray(baseCar.tags) ? baseCar.tags : []),
+    ) || baseCar.driveType,
     seatCount: Number(detail?.seat_count) || baseCar.seatCount || null,
     displacement: Number(detail?.displacement) || baseCar.displacement || 0,
     vehicleNo: detail?.vehicle_no || baseCar.vehicleNo || '-',
@@ -526,7 +553,14 @@ function mergeCarWithNormalizedEncar(baseCar, detail) {
     ...merged,
     bodyType: normalizeBodyTypeLabel(detail?.body_type || merged.bodyType || '-') || merged.bodyType || '-',
     transmission: normalizeTagLabel(detail?.transmission || '') || merged.transmission || '-',
-    driveType: normalizeDriveLabel(detail?.drive_type || merged.driveType || '') || merged.driveType || '-',
+    driveType: inferDriveType(
+      detail?.drive_type,
+      detail?.name,
+      detail?.model,
+      merged.name,
+      merged.model,
+      ...(Array.isArray(merged.tags) ? merged.tags : []),
+    ) || merged.driveType || '-',
   }
 }
 

@@ -20,6 +20,14 @@ function normalizeDriveType(value) {
   return ''
 }
 
+function inferDriveType(...values) {
+  for (const value of values) {
+    const normalized = normalizeDriveType(value)
+    if (normalized) return normalized
+  }
+  return ''
+}
+
 // ─── Map raw Encar car to our DB shape ───────────────────────────────────────
 function mapCar(raw) {
   const rawManufacturer = String(raw.Manufacturer || '').trim()
@@ -31,7 +39,13 @@ function mapCar(raw) {
   const price_usd = krwToUsd(price_krw)
   const fuel_type = tr(FUEL_MAP, raw.FuelType || '')
   const gear_type = tr(GEAR_MAP, raw.Transmission || raw.GearType || '')
-  const drive_type = normalizeDriveType([raw.Badge, raw.BadgeDetail, raw.Model].filter(Boolean).join(' '))
+  const drive_type = inferDriveType(
+    [raw.Badge, raw.BadgeDetail, raw.Model].filter(Boolean).join(' '),
+    raw.Grade,
+    raw.GradeDetail,
+    raw.SubModel,
+    raw.Name,
+  )
   const body_color = tr(COLOR_MAP, raw.Color || '')
   const interior_raw = raw.InteriorColor || raw.InnerColor || raw.TrimColor || raw.Color || ''
   const interior_color = tr(COLOR_MAP, interior_raw)

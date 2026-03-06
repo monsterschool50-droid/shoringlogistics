@@ -453,10 +453,10 @@ export default function AdminEncar() {
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             {[
-              { value: 100,  label: 'Стандарт' },
-              { value: 200,  label: 'Быстро' },
-              { value: 300,  label: 'Интенсив' },
-              { value: 500,  label: 'Максимум' },
+              { value: 100,  label: 'Старт' },
+              { value: 500,  label: 'Стандарт' },
+              { value: 1000, label: 'Быстро' },
+              { value: 5000, label: 'Максимум' },
             ].map(({ value, label }) => (
               <PowerBtn
                 key={value}
@@ -470,7 +470,7 @@ export default function AdminEncar() {
           <div style={{ marginTop: '12px' }}>
             <input
               type="range"
-              min="50" max="1000" step="50"
+              min="50" max="5000" step="50"
               value={cfgLimit}
               onChange={e => setCfgLimit(Number(e.target.value))}
               style={{ width: '100%', accentColor: '#00b894', cursor: 'pointer' }}
@@ -478,7 +478,7 @@ export default function AdminEncar() {
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#475569' }}>
               <span>50</span>
               <span style={{ color: '#00b894', fontWeight: '600' }}>Выбрано: {cfgLimit} машин</span>
-              <span>1000</span>
+              <span>5000</span>
             </div>
           </div>
         </div>

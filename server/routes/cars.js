@@ -344,6 +344,8 @@ router.get('/', async (req, res) => {
       const patterns = uniqPatterns(driveValues.flatMap(drivePatterns))
       conditions.push(`(
         COALESCE(c.drive_type, '') ILIKE ANY($${p}::text[])
+        OR COALESCE(c.name, '') ILIKE ANY($${p}::text[])
+        OR COALESCE(c.model, '') ILIKE ANY($${p}::text[])
         OR EXISTS (SELECT 1 FROM UNNEST(c.tags) AS t WHERE t ILIKE ANY($${p}::text[]))
       )`)
       params.push(patterns)
