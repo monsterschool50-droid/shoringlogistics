@@ -92,9 +92,10 @@ const FALLBACK = {
 
 /* Цветовая карта для цветов кузова/салона (для отображения кружочков) */
 const COLOR_MAP = {
+  'черный': { color: '#1a1a1a' },
+  'чёрный': { color: '#1a1a1a' },
   'белый': { color: '#f0f0f0', border: '#d1d5db' },
   'белоснежный': { color: '#fafafa', border: '#d1d5db' },
-  'чёрный': { color: '#1a1a1a' },
   'серый': { color: '#6b7280' },
   'тёмно-серый': { color: '#4b5563' },
   'светло-серый': { color: '#e5e7eb', border: '#9ca3af' },
@@ -102,33 +103,42 @@ const COLOR_MAP = {
   'синий': { color: '#1d4ed8' },
   'голубой': { color: '#60a5fa' },
   'красный': { color: '#dc2626' },
+  'зеленый': { color: '#16a34a' },
   'зелёный': { color: '#16a34a' },
   'бирюзовый': { color: '#0d9488' },
+  'желтый': { color: '#eab308' },
   'жёлтый': { color: '#eab308' },
   'бежевый': { color: '#d4a96a' },
   'оранжевый': { color: '#f97316' },
   'коричневый': { color: '#92400e' },
   'фиолетовый': { color: '#7c3aed' },
-  'black': { color: '#1a1a1a' },
-  'white': { color: '#f0f0f0', border: '#d1d5db' },
-  'gray': { color: '#6b7280' },
-  'grey': { color: '#6b7280' },
-  'silver': { color: '#d1d5db', border: '#9ca3af' },
-  'blue': { color: '#1d4ed8' },
-  'red': { color: '#dc2626' },
-  'green': { color: '#16a34a' },
-  'brown': { color: '#92400e' },
-  'beige': { color: '#d4a96a' },
-  'orange': { color: '#f97316' },
-  'yellow': { color: '#eab308' },
-  'purple': { color: '#7c3aed' },
-  'jwiseak': { color: '#6b7280' },
-  'hoesaek': { color: '#6b7280' },
-  'eunsaek': { color: '#d1d5db', border: '#9ca3af' },
-  'cheongsaek': { color: '#1d4ed8' },
-  'parangsaek': { color: '#1d4ed8' },
-  'heugsaek': { color: '#1a1a1a' },
-  'geomjeongsaek': { color: '#1a1a1a' },
+  black: { color: '#1a1a1a' },
+  white: { color: '#f0f0f0', border: '#d1d5db' },
+  gray: { color: '#6b7280' },
+  grey: { color: '#6b7280' },
+  silver: { color: '#d1d5db', border: '#9ca3af' },
+  blue: { color: '#1d4ed8' },
+  red: { color: '#dc2626' },
+  green: { color: '#16a34a' },
+  brown: { color: '#92400e' },
+  beige: { color: '#d4a96a' },
+  orange: { color: '#f97316' },
+  yellow: { color: '#eab308' },
+  purple: { color: '#7c3aed' },
+  jwiseak: { color: '#6b7280' },
+  hoesaek: { color: '#6b7280' },
+  eunsaek: { color: '#d1d5db', border: '#9ca3af' },
+  cheongsaek: { color: '#1d4ed8' },
+  parangsaek: { color: '#1d4ed8' },
+  ppalgangsaek: { color: '#dc2626' },
+  hongsaek: { color: '#dc2626' },
+  noksaek: { color: '#16a34a' },
+  choroksaek: { color: '#16a34a' },
+  baegsaek: { color: '#f0f0f0', border: '#d1d5db' },
+  huinsaek: { color: '#f0f0f0', border: '#d1d5db' },
+  geomeunsaek: { color: '#1a1a1a' },
+  heugsaek: { color: '#1a1a1a' },
+  geomjeongsaek: { color: '#1a1a1a' },
 }
 
 function getColorStyle(name) {
@@ -228,7 +238,7 @@ const YEARS = Array.from({ length: 2026 - 1990 + 1 }, (_, i) => 2026 - i)
 function buildLiveColorOptions(cars, field) {
   const acc = new Map()
   for (const car of cars || []) {
-    const name = String(car?.[field] || '').trim()
+    const name = normalizeColorName(String(car?.[field] || '').trim())
     if (!name || name === '-') continue
     acc.set(name, (acc.get(name) || 0) + 1)
   }

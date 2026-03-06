@@ -94,6 +94,16 @@ function formatDate(value) {
   return d.toLocaleDateString('ru-RU')
 }
 
+function groupInspectionRows(rows) {
+  const groups = new Map()
+  for (const row of rows || []) {
+    const key = row.section || 'Прочее'
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key).push(row)
+  }
+  return [...groups.entries()].map(([title, items]) => ({ title, items }))
+}
+
 function hasHangulText(value) {
   return /[\uAC00-\uD7A3]/u.test(String(value || ''))
 }
@@ -284,6 +294,7 @@ function mapCar(c) {
     detailFlags: {},
     detailCondition: {},
     detailManage: {},
+    inspection: null,
   }
 }
 
@@ -322,6 +333,7 @@ function mergeCarWithEncar(baseCar, detail) {
     detailFlags: detail?.flags || {},
     detailCondition: detail?.condition || {},
     detailManage: detail?.manage || {},
+    inspection: detail?.inspection || baseCar.inspection || null,
   }
 }
 
@@ -354,7 +366,7 @@ export default function CarDetailsPage() {
 
         if (mapped.encarId && mapped.encarId !== '-') {
           try {
-            const detailRes = await fetch(`/api/encar/${mapped.encarId}`)
+            const detailRes = await fetch(`/api/encar/${mapped.encarId}?includeInspection=1`)
             if (!detailRes.ok) return
             const detail = await detailRes.json()
             if (!active) return
@@ -386,6 +398,7 @@ export default function CarDetailsPage() {
   const imageCount = car?.images?.length || 1
   const boundedIdx = Math.min(imgIdx, imageCount - 1)
   const imageSrc = car?.images?.[boundedIdx]?.url || ''
+  const inspectionGroups = useMemo(() => groupInspectionRows(car?.inspection?.detailStatus || []), [car?.inspection])
 
   const customsDuty = useMemo(() => estimateCustomsDuty(calc), [calc])
 
@@ -556,19 +569,151 @@ export default function CarDetailsPage() {
           </aside>
         </div>
 
-        <section className="car-details-card car-details-bottom-card">
-          <h3 className="car-details-card-title">Инспекция и диагностика автомобиля</h3>
+                <section className="car-details-card car-details-bottom-card">
+          <h3 className="car-details-card-title">Inspection and diagnostics</h3>
           <p className="car-details-muted">
-            Диагностика Encar: {car.detailFlags?.diagnosis ? 'доступна' : 'данные ограничены'}.
-            Просмотры: {Number(car.detailManage?.viewCount || 0).toLocaleString()} • Подписки: {Number(car.detailManage?.subscribeCount || 0).toLocaleString()}.
+            Diagnosis Encar: {car.detailFlags?.diagnosis ? 'available' : 'limited'}.
+            Views: {Number(car.detailManage?.viewCount || 0).toLocaleString()} • Subscribers: {Number(car.detailManage?.subscribeCount || 0).toLocaleString()}.
           </p>
           <div className="car-details-actions">
-            <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-primary">Открыть в Encar</a>
-            <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-green">Скачать диагностику (PDF, RU)</a>
+            <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-primary">Open in Encar</a>
+            {car.inspection?.sourceUrl && (
+              <a href={car.inspection.sourceUrl} target="_blank" rel="noreferrer" className="btn-car-green">Open inspection</a>
+            )}
           </div>
+
+          {car.inspection ? (
+            <div className="car-inspection-stack">
+              {!!car.inspection.photos?.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Inspection photos</h4>
+                  <div className="car-inspection-photos">
+                    {car.inspection.photos.map((photo, index) => (
+                      <a key={`${photo.url}-${index}`} href={photo.url} target="_blank" rel="noreferrer" className="car-inspection-photo">
+                        <img src={photo.url} alt={photo.label || `Inspection ${index + 1}`} loading="lazy" />
+                        <span>{photo.label || `Photo ${index + 1}`}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!car.inspection.summary?.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Overall condition</h4>
+                  <div className="car-inspection-grid">
+                    {car.inspection.summary.map((item, index) => (
+                      <div key={`${item.label}-${index}`} className="car-inspection-item">
+                        <span>{item.label}</span>
+                        <strong>{item.states?.join(', ') || item.detail || '-'}</strong>
+                        {item.detail && item.states?.join(', ') !== item.detail && <small>{item.detail}</small>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!car.inspection.repairHistory?.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Repair history</h4>
+                  <div className="car-inspection-grid">
+                    {car.inspection.repairHistory.map((item, index) => (
+                      <div key={`${item.label}-${index}`} className="car-inspection-item">
+                        <span>{item.label}</span>
+                        <strong>{item.value || '-'}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!car.inspection.exteriorStatus?.sections?.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Body and frame inspection</h4>
+                  <div className="car-inspection-groups">
+                    {car.inspection.exteriorStatus.sections.map((section) => (
+                      <div key={section.title} className="car-inspection-group">
+                        <h5>{section.title}</h5>
+                        <div className="car-inspection-group-list">
+                          {section.ranks.map((rank) => (
+                            <div key={`${section.title}-${rank.rank}`} className="car-inspection-line">
+                              <div>
+                                <span>{rank.rank}</span>
+                              </div>
+                              <strong>{rank.items?.join(', ') || '-'}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!inspectionGroups.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Detailed technical check</h4>
+                  <div className="car-inspection-groups">
+                    {inspectionGroups.map((group) => (
+                      <div key={group.title} className="car-inspection-group">
+                        <h5>{group.title}</h5>
+                        <div className="car-inspection-group-list">
+                          {group.items.map((item, index) => (
+                            <div key={`${group.title}-${item.label}-${index}`} className="car-inspection-line">
+                              <div>
+                                <span>{item.label}</span>
+                                {item.note && <small>{item.note}</small>}
+                              </div>
+                              <strong>{item.states?.join(', ') || item.detail || '-'}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!car.inspection.opinion?.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Inspector comments</h4>
+                  <div className="car-inspection-opinion">
+                    {car.inspection.opinion.map((item, index) => (
+                      <div key={`${item.label}-${index}`} className="car-inspection-opinion-item">
+                        <span>{item.label}</span>
+                        <p>{item.text || '-'}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!car.inspection.signatures?.signers?.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Signatures and confirmation</h4>
+                  <div className="car-inspection-grid">
+                    {car.inspection.signatures.signers.map((item, index) => (
+                      <div key={`${item.label}-${index}`} className="car-inspection-item">
+                        <span>{item.label}</span>
+                        <strong>{item.value}</strong>
+                      </div>
+                    ))}
+                    {car.inspection.signatures.date && (
+                      <div className="car-inspection-item">
+                        <span>Report date</span>
+                        <strong>{car.inspection.signatures.date}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="car-inspection-empty">Full Encar inspection report is not available for this car right now.</div>
+          )}
         </section>
 
-        <section className="car-details-card car-details-bottom-card">
+<section className="car-details-card car-details-bottom-card">
           <h3 className="car-details-card-title">История регистрации</h3>
           <div className="car-details-history-grid">
             <div><span>Год</span><strong>{car.year || '-'}</strong></div>

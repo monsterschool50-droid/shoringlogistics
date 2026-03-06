@@ -1,6 +1,7 @@
 ﻿import { Router } from 'express'
 import axios from 'axios'
 import { hasHangul, translateVehicleText } from '../scraper/translator.js'
+import { fetchEncarInspection } from '../lib/encarInspection.js'
 
 const router = Router()
 const KRW_PER_USD = 1340
@@ -115,6 +116,7 @@ function normalizeBodyType(value) {
 router.get('/:encarId', async (req, res) => {
   try {
     const { encarId } = req.params
+    const includeInspection = req.query.includeInspection === '1' || req.query.includeInspection === 'true'
     const url = `https://www.encar.com/dc/dc_cardetailview.do?carid=${encarId}`
 
     const { data } = await apiClient.get(`/v1/readside/vehicle/${encodeURIComponent(encarId)}`)
@@ -167,6 +169,15 @@ router.get('/:encarId', async (req, res) => {
 
     const vatRefund = Math.round(priceUSD * 0.07)
     const total = Math.round(priceUSD + 200 + 1750 + 100 + 310 - vatRefund)
+    let inspection = null
+
+    if (includeInspection && (Boolean(ad.diagnosisCar || view.encarDiagnosis) || Array.isArray(condition?.inspection?.formats))) {
+      try {
+        inspection = await fetchEncarInspection(encarId)
+      } catch (inspectionError) {
+        console.warn('Encar inspection parse warning:', inspectionError.message)
+      }
+    }
 
     res.json({
       encar_id: String(encarId),
@@ -210,6 +221,7 @@ router.get('/:encarId', async (req, res) => {
         hasEvBatteryInfo: Boolean(view.hasEvBatteryInfo),
         isPartneredVehicle: Boolean(partnership.isPartneredVehicle),
       },
+      inspection,
       commission: 200,
       delivery: 1750,
       loading: 0,
