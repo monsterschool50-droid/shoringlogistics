@@ -64,6 +64,13 @@ const FuelIcon = () => (
   </svg>
 )
 
+const EngineIcon = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 8h8a2 2 0 012 2v4a2 2 0 01-2 2H6V8z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 10H2m2 4H2m12-6h2l2 2v4l-2 2h-2m-6 0v2m4-2v2m-4-12V4m4 2V4" />
+  </svg>
+)
+
 const PulseIcon = () => (
   <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12h4l2-5 4 10 2-5h6" />
@@ -145,6 +152,9 @@ function buildFeatureItems(car) {
   }
   if (car.fuelType && car.fuelType !== '-') {
     items.push({ key: 'fuel', label: car.fuelType, icon: <FuelIcon /> })
+  }
+  if (car.engineVolume) {
+    items.push({ key: 'engine', label: car.engineVolume, icon: <EngineIcon /> })
   }
   return items
 }

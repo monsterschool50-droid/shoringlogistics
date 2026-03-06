@@ -87,13 +87,32 @@ const SUSPICIOUS_NAME_PATTERNS = [
   /\b[2-9]\s*sedae\b/i,
 ]
 
+const TITLE_MARKETING_PREFIXES = ['The New', 'All New', 'New Rise', 'The Bold']
+
+function stripVehicleTitleNoise(value) {
+  let text = String(value || '').trim()
+  if (!text) return ''
+
+  text = text
+    .replace(/\bRenault Korea\s*\((?:Samseong|Samsung)\)/gi, 'Renault Korea')
+    .replace(/\b(KG Mobility)\s*\((?:SsangYong)\)/gi, '$1')
+
+  const prefixGroup = TITLE_MARKETING_PREFIXES.map((item) => item.replace(/\s+/g, '\\s+')).join('|')
+  const leadingMarketingRe = new RegExp(`^(?:${prefixGroup})\\s+`, 'i')
+  const marketingAfterBrandRe = new RegExp(`^((?:[A-Z0-9][A-Za-z0-9&.+/-]*\\s+){0,3})(?:${prefixGroup})\\s+`, 'i')
+
+  text = text.replace(leadingMarketingRe, '')
+  text = text.replace(marketingAfterBrandRe, '$1')
+  return text.replace(/\s+/g, ' ').trim()
+}
+
 function normalizeVehicleTitle(value) {
   let text = normalizeDisplayText(value)
   if (!text) return ''
   for (const [pattern, replacement] of VEHICLE_NAME_FIXES) {
     text = text.replace(pattern, replacement)
   }
-  return text.replace(/\s+/g, ' ').trim()
+  return stripVehicleTitleNoise(text)
 }
 
 function shouldUpgradeVehicleTitle(value) {
@@ -157,12 +176,12 @@ function normalizeBodyTypeLabel(value) {
   if (/daehyeongcha/i.test(text) || text.includes('\uB300\uD615\uCC28')) return '\u0411\u0438\u0437\u043D\u0435\u0441-\u043A\u043B\u0430\u0441\u0441'
   if (low.includes('pickup') || text.includes('\uD53D\uC5C5')) return '\u041F\u0438\u043A\u0430\u043F'
   if (low.includes('truck') || low.includes('cargo') || low.includes('\u0433\u0440\u0443\u0437') || hasAnyToken(text, [KO.truck, KO.cargo])) return '\u0413\u0440\u0443\u0437\u043E\u0432\u043E\u0439 / \u043F\u0438\u043A\u0430\u043F'
-  if (low === 'rv') return 'SUV'
-  if (low.includes('suv') || low.includes('\u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436') || low.includes('\u043a\u0440\u043e\u0441\u0441') || hasAnyToken(text, [KO.crossover])) return 'SUV'
+  if (low === 'rv') return '\u041A\u0440\u043E\u0441\u0441\u043E\u0432\u0435\u0440 / \u0432\u043D\u0435\u0434\u043E\u0440\u043E\u0436\u043D\u0438\u043A'
+  if (low.includes('suv') || low.includes('\u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436') || low.includes('\u043a\u0440\u043e\u0441\u0441') || hasAnyToken(text, [KO.crossover])) return '\u041A\u0440\u043E\u0441\u0441\u043E\u0432\u0435\u0440 / \u0432\u043D\u0435\u0434\u043E\u0440\u043E\u0436\u043D\u0438\u043A'
   if (low.includes('sedan') || low.includes('\u0441\u0435\u0434\u0430\u043d') || hasAnyToken(text, [KO.sedan])) return '\u0421\u0435\u0434\u0430\u043d'
   if (low.includes('hatch') || low.includes('\u0445\u044d\u0442\u0447') || hasAnyToken(text, [KO.hatchback])) return '\u0425\u044d\u0442\u0447\u0431\u0435\u043a'
   if (low.includes('wagon') || low.includes('\u0443\u043d\u0438\u0432\u0435\u0440\u0441') || hasAnyToken(text, [KO.wagon])) return '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b'
-  if (low.includes('van') || low.includes('minivan') || low.includes('\u0432\u044d\u043d') || low.includes('\u043c\u0438\u043d\u0438\u0432') || hasAnyToken(text, [KO.minivan, KO.van])) return '\u0412\u044d\u043d'
+  if (low.includes('van') || low.includes('minivan') || low.includes('\u0432\u044d\u043d') || low.includes('\u043c\u0438\u043d\u0438\u0432') || hasAnyToken(text, [KO.minivan, KO.van])) return '\u041C\u0438\u043D\u0438\u0432\u044D\u043D'
   if (low.includes('coupe') || low.includes('\u043a\u0443\u043f\u0435') || hasAnyToken(text, [KO.coupe])) return '\u041a\u0443\u043f\u0435'
 
   return normalizeDisplayText(text)
@@ -215,6 +234,42 @@ function normalizeSearchText(value) {
     .trim()
 }
 
+function normalizeDisplacementValue(value) {
+  const num = Number(value) || 0
+  if (num >= 800) return Number((num / 1000).toFixed(1))
+  if (num >= 0.8 && num <= 8.0) return Number(num.toFixed(1))
+  return 0
+}
+
+function inferEngineLiters(...values) {
+  const text = values
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(' ')
+
+  if (!text) return 0
+
+  const decimalMatches = [...text.matchAll(/\b([0-7]\.\d)\b/g)]
+  for (const match of decimalMatches) {
+    const candidate = Number(match[1])
+    if (candidate >= 0.8 && candidate <= 8.0) return candidate
+  }
+
+  return 0
+}
+
+function formatEngineVolume(value) {
+  const liters = normalizeDisplacementValue(value)
+  if (!liters) return ''
+  return `${liters.toFixed(1)} л`
+}
+
+function resolveEngineVolume({ displacement, fuelType, name, model }) {
+  if (String(fuelType || '').toLowerCase().includes('электро')) return ''
+  const liters = normalizeDisplacementValue(displacement) || inferEngineLiters(name, model)
+  return formatEngineVolume(liters)
+}
+
 function carMatchesSearch(car, query) {
   const normalizedQuery = normalizeSearchText(query)
   if (!normalizedQuery) return true
@@ -249,6 +304,7 @@ function buildCarUpdatePatch(prevCar, nextCar) {
   if (nextCar.model && nextCar.model !== prevCar.model) patch.model = nextCar.model
   if (nextCar.transmission && nextCar.transmission !== prevCar.transmission) patch.transmission = nextCar.transmission
   if (nextCar.bodyType && nextCar.bodyType !== prevCar.bodyType) patch.body_type = nextCar.bodyType
+  if (nextCar.displacement && nextCar.displacement !== prevCar.displacement) patch.displacement = nextCar.displacement
   if (nextCar.bodyColor && nextCar.bodyColor !== prevCar.bodyColor) patch.body_color = nextCar.bodyColor
   if (nextCar.interiorColor && nextCar.interiorColor !== prevCar.interiorColor) patch.interior_color = nextCar.interiorColor
   if (nextCar.location && nextCar.location !== prevCar.location) patch.location = nextCar.location
@@ -297,6 +353,7 @@ function needsEncarEnrichment(car) {
   return (
     !car.transmission || car.transmission === '-' ||
     !car.bodyType || car.bodyType === '-' ||
+    (!car.engineVolume && !String(car.fuelType || '').toLowerCase().includes('электро')) ||
     hasWeakImages(car) ||
     shouldUpgradeVehicleTitle(car.name) ||
     shouldUpgradeVehicleTitle(car.model) ||
@@ -326,6 +383,7 @@ async function fetchEncarDetail(encarId) {
         fuelType: normalizeTagLabel(detail?.fuel_type || ''),
         transmission: normalizeTagLabel(detail?.transmission || ''),
         bodyType: normalizeBodyTypeLabel(detail?.body_type || ''),
+        displacement: Number(detail?.displacement) || 0,
         bodyColor: normalizeColorLabel(detail?.body_color || ''),
         interiorColor: normalizeColorLabel(detail?.interior_color || ''),
         location: normalizeDisplayText(detail?.location || ''),
@@ -333,6 +391,7 @@ async function fetchEncarDetail(encarId) {
         flags: detail?.flags || {},
         inspectionFormats: detail?.condition?.inspectionFormats || [],
       }
+      normalized.engineVolume = resolveEngineVolume(normalized)
       encarDetailCache.set(key, normalized)
       return normalized
     } catch {
@@ -402,6 +461,13 @@ function mapCar(c) {
   const fuelType = normalizeTagLabel(c.fuel_type || '') || pickFuelFromTags(tags) || '-'
   const transmission = normalizeTagLabel(c.transmission || '') || pickTransmissionFromTags(tags) || '-'
   const bodyType = normalizeBodyTypeLabel(c.body_type || '') || '-'
+  const displacement = Number(c.displacement) || 0
+  const engineVolume = resolveEngineVolume({
+    displacement,
+    fuelType,
+    name: normalizedName,
+    model: normalizedModel,
+  })
 
   return {
     id: c.id,
@@ -413,6 +479,8 @@ function mapCar(c) {
     fuelType,
     transmission,
     bodyType,
+    displacement,
+    engineVolume,
     bodyColor: normalizeColorLabel(c.body_color || '-'),
     bodyColorDots: c.body_color_dots || [],
     interiorColor: normalizeColorLabel(c.interior_color || c.body_color || '-'),
@@ -506,11 +574,28 @@ export default function CatalogPage() {
             if ((!car.fuelType || car.fuelType === '-') && detail.fuelType) next.fuelType = detail.fuelType
             if ((!car.transmission || car.transmission === '-') && detail.transmission) next.transmission = detail.transmission
             if ((!car.bodyType || car.bodyType === '-') && detail.bodyType) next.bodyType = detail.bodyType
+            if ((!car.displacement || !car.engineVolume) && detail.displacement) {
+              next.displacement = detail.displacement
+              next.engineVolume = detail.engineVolume || resolveEngineVolume({
+                displacement: detail.displacement,
+                fuelType: next.fuelType || detail.fuelType,
+                name: next.name,
+                model: next.model,
+              })
+            }
             if (hasWeakImages(car) && detail.images.length) next.images = detail.images
             if (shouldReplaceColor(car.bodyColor) && detail.bodyColor) next.bodyColor = detail.bodyColor
             if (shouldReplaceColor(car.interiorColor) && detail.interiorColor) next.interiorColor = detail.interiorColor
             if (shouldReplaceText(car.location) && detail.location) next.location = detail.location
             if (shouldReplaceText(car.vin) && detail.vin) next.vin = detail.vin
+            if (!next.engineVolume) {
+              next.engineVolume = resolveEngineVolume({
+                displacement: next.displacement,
+                fuelType: next.fuelType,
+                name: next.name,
+                model: next.model,
+              })
+            }
             next.detailFlags = detail.flags || next.detailFlags
             next.inspectionFormats = detail.inspectionFormats || next.inspectionFormats
             next.imageCount = next.images.length || 1

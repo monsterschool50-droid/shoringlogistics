@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS cars (
   fuel_type        VARCHAR(100),
   transmission     VARCHAR(100),
   body_type        VARCHAR(100),
+  displacement     INTEGER DEFAULT 0,
   body_color       VARCHAR(100),
   body_color_dots  TEXT[]  DEFAULT '{}',
   interior_color   VARCHAR(100),
@@ -44,6 +45,7 @@ CREATE TABLE IF NOT EXISTS car_images (
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS fuel_type VARCHAR(100);
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS transmission VARCHAR(100);
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS body_type VARCHAR(100);
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS displacement INTEGER DEFAULT 0;
 
 -- Индексы для быстрых фильтров
 CREATE INDEX IF NOT EXISTS idx_cars_price_usd  ON cars(price_usd);

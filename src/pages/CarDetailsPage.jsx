@@ -227,13 +227,32 @@ const SUSPICIOUS_NAME_PATTERNS = [
   /\b[2-9]\s*sedae\b/i,
 ]
 
+const TITLE_MARKETING_PREFIXES = ['The New', 'All New', 'New Rise', 'The Bold']
+
+function stripVehicleTitleNoise(value) {
+  let text = String(value || '').trim()
+  if (!text) return ''
+
+  text = text
+    .replace(/\bRenault Korea\s*\((?:Samseong|Samsung)\)/gi, 'Renault Korea')
+    .replace(/\b(KG Mobility)\s*\((?:SsangYong)\)/gi, '$1')
+
+  const prefixGroup = TITLE_MARKETING_PREFIXES.map((item) => item.replace(/\s+/g, '\\s+')).join('|')
+  const leadingMarketingRe = new RegExp(`^(?:${prefixGroup})\\s+`, 'i')
+  const marketingAfterBrandRe = new RegExp(`^((?:[A-Z0-9][A-Za-z0-9&.+/-]*\\s+){0,3})(?:${prefixGroup})\\s+`, 'i')
+
+  text = text.replace(leadingMarketingRe, '')
+  text = text.replace(marketingAfterBrandRe, '$1')
+  return text.replace(/\s+/g, ' ').trim()
+}
+
 function normalizeVehicleTitle(value) {
   let text = normalizeDisplayText(value)
   if (!text) return ''
   for (const [pattern, replacement] of VEHICLE_NAME_FIXES) {
     text = text.replace(pattern, replacement)
   }
-  return text.replace(/\s+/g, ' ').trim()
+  return stripVehicleTitleNoise(text)
 }
 
 function shouldUpgradeVehicleTitle(value) {
@@ -287,12 +306,12 @@ function normalizeBodyTypeLabel(value) {
   if (/daehyeongcha/i.test(text) || text.includes('\uB300\uD615\uCC28')) return '\u0411\u0438\u0437\u043D\u0435\u0441-\u043A\u043B\u0430\u0441\u0441'
   if (low.includes('pickup') || text.includes('\uD53D\uC5C5')) return '\u041F\u0438\u043A\u0430\u043F'
   if (low.includes('truck') || low.includes('cargo') || text.includes('\uD654\uBB3C')) return '\u0413\u0440\u0443\u0437\u043E\u0432\u043E\u0439 / \u043F\u0438\u043A\u0430\u043F'
-  if (low === 'rv' || low.includes('suv')) return 'SUV'
+  if (low === 'rv' || low.includes('suv')) return '\u041A\u0440\u043E\u0441\u0441\u043E\u0432\u0435\u0440 / \u0432\u043D\u0435\u0434\u043E\u0440\u043E\u0436\u043D\u0438\u043A'
   if (low.includes('sedan') || text.includes('\uC138\uB2E8')) return '\u0421\u0435\u0434\u0430\u043D'
   if (low.includes('coupe') || text.includes('\uCFE0\uD398')) return '\u041A\u0443\u043F\u0435'
   if (low.includes('hatch') || text.includes('\uD574\uCE58\uBC31')) return '\u0425\u044D\u0442\u0447\u0431\u0435\u043A'
   if (low.includes('wagon') || text.includes('\uC65C\uAC74')) return '\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B'
-  if (low.includes('van') || low.includes('minivan') || text.includes('\uBC34')) return '\u0412\u044D\u043D'
+  if (low.includes('van') || low.includes('minivan') || text.includes('\uBC34')) return '\u041C\u0438\u043D\u0438\u0432\u044D\u043D'
 
   return normalizeDisplayText(text)
 }
@@ -415,6 +434,7 @@ function mapCarWithNormalizedSpecs(c) {
     ...base,
     bodyType: normalizeBodyTypeLabel(c?.body_type || base.bodyType || '-') || '-',
     transmission: normalizeTagLabel(c?.transmission || '') || pickTransmissionFromTags(tags) || base.transmission || '-',
+    displacement: Number(c?.displacement) || base.displacement || 0,
   }
 }
 
