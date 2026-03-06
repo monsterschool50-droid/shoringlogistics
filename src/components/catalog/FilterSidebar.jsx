@@ -262,6 +262,9 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
     ...(filters || {}),
   })
 
+  const liveBodyColors = useMemo(() => buildLiveColorOptions(catalogCars, 'bodyColor'), [catalogCars])
+  const liveInteriorColors = useMemo(() => buildLiveColorOptions(catalogCars, 'interiorColor'), [catalogCars])
+
   // Fetch filter options from backend
   useEffect(() => {
     fetch('/api/admin/filter-options')

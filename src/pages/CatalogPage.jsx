@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import FilterSidebar from '../components/catalog/FilterSidebar'
 import CarCard from '../components/catalog/CarCard'
 
@@ -353,12 +353,15 @@ export default function CatalogPage() {
   const [meta, setMeta] = useState({ total: 0, page: 1, pages: 1 })
   const [filters, setFilters] = useState({})
   const [page, setPage] = useState(1)
+  const location = useLocation()
+  const searchQuery = new URLSearchParams(location.search).get('q')?.trim() || ''
 
   const fetchCars = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const params = new URLSearchParams({ sort, page, limit: 20, ...filters })
+      if (searchQuery) params.set('q', searchQuery)
       const res = await fetch(`/api/cars?${params}`)
       if (!res.ok) throw new Error('Ошибка загрузки')
       const data = await res.json()
@@ -423,11 +426,15 @@ export default function CatalogPage() {
     } finally {
       setLoading(false)
     }
-  }, [sort, page, filters])
+  }, [sort, page, filters, searchQuery])
 
   useEffect(() => {
     fetchCars()
   }, [fetchCars])
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchQuery])
 
   return (
     <div className="catalog-page">

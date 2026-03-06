@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
 import logoImg from '../../assets/logo.png'
 
@@ -57,7 +57,9 @@ const navLinks = [
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const location = useLocation()
+  const navigate = useNavigate()
   const { theme, toggle } = useTheme()
 
   useEffect(() => {
@@ -65,6 +67,20 @@ export default function Header() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    setSearchTerm(params.get('q') || '')
+  }, [location.search])
+
+  const submitSearch = (e) => {
+    e.preventDefault()
+    const query = searchTerm.trim()
+    const params = new URLSearchParams()
+    if (query) params.set('q', query)
+    navigate(`/catalog${params.toString() ? `?${params}` : ''}`)
+    setMobileOpen(false)
+  }
 
   return (
     <header className={`site-header${scrolled ? ' site-header-scrolled' : ''}`}>
@@ -87,16 +103,18 @@ export default function Header() {
         </nav>
 
         {/* Desktop Search */}
-        <div className="header-search">
+        <form className="header-search" onSubmit={submitSearch}>
           <span className="header-search-icon">
             <SearchIcon />
           </span>
           <input
             type="text"
-            placeholder="VIN / Encar ID"
+            placeholder="Марка / VIN / Encar ID"
             className="search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
+        </form>
 
         {/* Theme toggle — desktop */}
         <button
@@ -136,17 +154,19 @@ export default function Header() {
       {/* Mobile search dropdown */}
       {mobileOpen === 'search' && (
         <div className="header-mobile-menu">
-          <div className="mobile-search-wrap">
+          <form className="mobile-search-wrap" onSubmit={submitSearch}>
             <span className="header-search-icon" style={{ top: '50%' }}>
               <SearchIcon />
             </span>
             <input
               autoFocus
               type="text"
-              placeholder="VIN / Encar ID"
+              placeholder="Марка / VIN / Encar ID"
               className="search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          </form>
         </div>
       )}
 

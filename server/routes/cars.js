@@ -166,7 +166,7 @@ function colorPatterns(value) {
 router.get('/', async (req, res) => {
   try {
     const {
-      brand, minPrice, maxPrice,
+      brand, q, minPrice, maxPrice,
       minYear, maxYear,
       minMileage, maxMileage,
       fuel, drive, body, color, interiorColor,
@@ -177,6 +177,17 @@ router.get('/', async (req, res) => {
     const conditions = []
     const params = []
     let p = 1
+
+    if (q) {
+      conditions.push(`(
+        c.name ILIKE $${p}
+        OR c.model ILIKE $${p}
+        OR COALESCE(c.vin, '') ILIKE $${p}
+        OR COALESCE(c.encar_id, '') ILIKE $${p}
+      )`)
+      params.push(`%${String(q).trim()}%`)
+      p++
+    }
 
     if (brand) {
       const patterns = uniqPatterns(brandPatterns(brand))
