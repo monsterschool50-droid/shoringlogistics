@@ -44,7 +44,16 @@ function mapCar(raw, exchangeSnapshot) {
     raw.Name,
   )
   const body_color = normalizeColorName(raw.Color || '')
-  const interior_raw = raw.InteriorColor || raw.InnerColor || raw.TrimColor || raw.Color || ''
+  const interior_raw =
+    raw.InteriorColor ||
+    raw.InteriorColorName ||
+    raw.InnerColor ||
+    raw.InnerColorName ||
+    raw.TrimColor ||
+    raw.TrimColorName ||
+    raw.SeatColor ||
+    raw.SeatColorName ||
+    ''
   const interior_color = normalizeColorName(interior_raw)
   const encar_id = String(raw.Id || '')
   const encar_url = `https://www.encar.com/dc/dc_cardetailview.do?carid=${raw.Id}`

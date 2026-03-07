@@ -266,6 +266,19 @@ export function normalizeColorName(value) {
   if (/회/.test(raw) && /(짙|진|다크)/.test(raw)) return 'Темно-серый'
 
   const low = raw.toLowerCase()
+  if (/^(geomeunsaek|geomjeongsaek|heugsaek)$/.test(low)) return 'Черный'
+  if (/^(baegsaek|huinsaek)$/.test(low)) return 'Белый'
+  if (/^eunsaek$/.test(low)) return 'Серебристый'
+  if (/^(hoesaek|jwisaek|jwiseak)$/.test(low)) return /^(jwisaek|jwiseak)$/.test(low) ? 'Мокрый асфальт' : 'Серый'
+  if (/^(cheongsaek|parangsaek)$/.test(low)) return 'Синий'
+  if (/^(ppalgangsaek|ppalgansaek|hongsaek)$/.test(low)) return 'Красный'
+  if (/^(noksaek|choroksaek)$/.test(low)) return 'Зеленый'
+  if (/^galsaek$/.test(low)) return 'Коричневый'
+  if (/^beijisaek$/.test(low)) return 'Бежевый'
+  if (/^juhwangsaek$/.test(low)) return 'Оранжевый'
+  if (/^norangsaek$/.test(low)) return 'Желтый'
+  if (/^borasaek$/.test(low)) return 'Фиолетовый'
+
   if (/wet asphalt|jwisaek|jwiseak/.test(low)) return 'Мокрый асфальт'
   if (/graphite|charcoal/.test(low)) return 'Графитовый'
   if (/pearl/.test(low) && /white/.test(low)) return 'Жемчужно-белый'

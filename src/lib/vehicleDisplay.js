@@ -63,6 +63,22 @@ const TRIM_REPLACEMENTS = [
   ['elite', 'Элит'],
 ]
 
+const SUSPICIOUS_DUPLICATE_INTERIOR_COLORS = new Set([
+  'Белый',
+  'Серебристый',
+  'Красный',
+  'Синий',
+  'Зеленый',
+  'Желтый',
+  'Оранжевый',
+  'Фиолетовый',
+  'Жемчужно-белый',
+  'Снежный белый',
+  'Золотой',
+  'Мокрый асфальт',
+  'Графитовый',
+])
+
 function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim()
 }
@@ -89,6 +105,19 @@ export function normalizeColorLabel(value) {
   if (GENERIC_COLOR_LABELS.has(raw)) return raw
 
   const low = raw.toLowerCase()
+
+  if (/^(geomeunsaek|geomjeongsaek|heugsaek)$/.test(low)) return 'Черный'
+  if (/^(baegsaek|huinsaek)$/.test(low)) return 'Белый'
+  if (/^eunsaek$/.test(low)) return 'Серебристый'
+  if (/^(hoesaek|jwisaek|jwiseak)$/.test(low)) return /^(jwisaek|jwiseak)$/.test(low) ? 'Мокрый асфальт' : 'Серый'
+  if (/^(cheongsaek|parangsaek)$/.test(low)) return 'Синий'
+  if (/^(ppalgangsaek|ppalgansaek|hongsaek)$/.test(low)) return 'Красный'
+  if (/^(noksaek|choroksaek)$/.test(low)) return 'Зеленый'
+  if (/^galsaek$/.test(low)) return 'Коричневый'
+  if (/^beijisaek$/.test(low)) return 'Бежевый'
+  if (/^juhwangsaek$/.test(low)) return 'Оранжевый'
+  if (/^norangsaek$/.test(low)) return 'Желтый'
+  if (/^borasaek$/.test(low)) return 'Фиолетовый'
 
   if (/쥐색|wet asphalt|jwisaek|jwiseak/i.test(raw)) return 'Мокрый асфальт'
   if (/은회색|silver\s*(gray|grey)/i.test(raw)) return 'Серебристо-серый'
@@ -143,6 +172,26 @@ export function getShortLocationLabel(value, fallback = 'Корея') {
 
 export function normalizeKeyInfoLabel(value) {
   return cleanText(value)
+}
+
+export function normalizeInteriorColorLabel(interiorValue, bodyValue = '') {
+  const interiorRaw = cleanText(interiorValue)
+  if (!interiorRaw) return ''
+
+  const normalizedInterior = normalizeColorLabel(interiorRaw)
+  const normalizedBody = normalizeColorLabel(bodyValue)
+
+  if (
+    interiorRaw &&
+    bodyValue &&
+    interiorRaw.toLowerCase() === cleanText(bodyValue).toLowerCase() &&
+    normalizedInterior === normalizedBody &&
+    SUSPICIOUS_DUPLICATE_INTERIOR_COLORS.has(normalizedInterior)
+  ) {
+    return ''
+  }
+
+  return normalizedInterior
 }
 
 export function getColorSwatch(value) {

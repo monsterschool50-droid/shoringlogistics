@@ -7,6 +7,7 @@ import {
   getShortLocationLabel,
   isWeakColorValue,
   normalizeColorLabel as normalizeVehicleColorLabel,
+  normalizeInteriorColorLabel,
   normalizeKeyInfoLabel,
   normalizeTrimLabel,
 } from '../lib/vehicleDisplay'
@@ -452,7 +453,7 @@ function mapCar(c) {
     trimLevel: normalizeTrimLabel(c.trim_level || ''),
     keyInfo: normalizeKeyInfoLabel(c.key_info || ''),
     bodyColor: normalizeColorLabel(c.body_color || '-'),
-    interiorColor: normalizeColorLabel(c.interior_color || c.body_color || '-'),
+    interiorColor: normalizeInteriorColorLabel(c.interior_color || '', c.body_color || ''),
     location: normalizedLocation || 'Корея',
     vin: c.vin || c.vehicle_no || '-',
     tags,

@@ -140,7 +140,19 @@ router.get('/:encarId', async (req, res) => {
       year,
       mileage: Number(spec.mileage) || 0,
       body_color: normalizeColorName(spec.colorName),
-      interior_color: normalizeColorName(spec?.customColor?.interiorColorName || spec?.customColor?.interiorColor || ''),
+      interior_color: normalizeColorName(
+        spec?.customColor?.interiorColorName ||
+        spec?.customColor?.interiorColor ||
+        spec?.interiorColorName ||
+        spec?.interiorColor ||
+        spec?.innerColorName ||
+        spec?.innerColor ||
+        spec?.trimColorName ||
+        spec?.trimColor ||
+        spec?.seatColorName ||
+        spec?.seatColor ||
+        ''
+      ),
       location: locationRaw,
       location_short: extractShortLocation(locationRaw),
       vin: data?.vin || '',

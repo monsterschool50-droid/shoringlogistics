@@ -246,7 +246,9 @@ function CheckboxList({ items, selected, onToggle }) {
           onClick={() => onToggle(name)}
           aria-pressed={selectedValues.includes(name)}
         >
-          <span className={`filter-checkbox${selectedValues.includes(name) ? ' is-checked' : ''}`} aria-hidden="true" />
+          <span className={`filter-checkbox${selectedValues.includes(name) ? ' is-checked' : ''}`} aria-hidden="true">
+            {selectedValues.includes(name) ? <span className="filter-checkbox-icon">✓</span> : null}
+          </span>
           <span className="filter-brand-name">{name}</span>
           {count > 0 && <span className="filter-brand-count">{count.toLocaleString()}</span>}
         </button>
