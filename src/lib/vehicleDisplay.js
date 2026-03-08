@@ -1,3 +1,5 @@
+import { applyTrimFixes, normalizeRequestedRomanizedColorAlias } from '../../shared/vehicleTextFixes.js'
+
 export const VAT_REFUND_RATE = 0.063
 export const VEHICLE_ORIGIN_LABELS = Object.freeze({
   korean: 'Корейские авто',
@@ -248,6 +250,7 @@ export function normalizeTrimLabel(value) {
     text = text.replace(pattern, target)
   }
 
+  text = applyTrimFixes(text)
   text = text.replace(/\s+/g, ' ').trim()
   return isTrimNoise(text) ? '' : text
 }
@@ -367,6 +370,9 @@ export function normalizeColorLabel(value) {
   if (!raw) return ''
   if (GENERIC_COLOR_LABELS.has(raw)) return raw
 
+  const requestedAlias = normalizeRequestedRomanizedColorAlias(raw)
+  if (requestedAlias) return requestedAlias
+
   const romanizedAlias = normalizeRomanizedColorAlias(raw)
   if (romanizedAlias) return romanizedAlias
 
@@ -464,6 +470,10 @@ export function normalizeInteriorColorLabel(interiorValue, bodyValue = '') {
 
 export function getColorSwatch(value) {
   const text = normalizeColorLabel(value).toLowerCase()
+  if (/\u043d\u0435\u0431\u0435\u0441\u043d\u043e-\u0433\u043e\u043b\u0443\u0431/i.test(text)) return '#60a5fa'
+  if (/\u0431\u043e\u0440\u0434\u043e\u0432|wine/i.test(text)) return '#7f1d1d'
+  if (/\u0441\u0432\u0435\u0442\u043b\u043e-\u0437\u0435\u043b\u0435\u043d/i.test(text)) return '#86efac'
+  if (/\u0437\u043e\u043b\u043e\u0442\u0438\u0441\u0442/i.test(text)) return '#d4a72c'
   if (/\u0436\u0435\u043c\u0447\u0443\u0436|pearl/i.test(text)) return '#e7eaef'
   if (/\u0430\u0439\u0432\u043e\u0440\u0438|ivory/i.test(text)) return '#f3ead8'
   if (/\u0432\u0438\u043d\u043d|wine/i.test(text)) return '#7f1d1d'

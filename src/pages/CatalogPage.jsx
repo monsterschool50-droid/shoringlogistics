@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
 import FilterSidebar from '../components/catalog/FilterSidebar'
 import CarCard from '../components/catalog/CarCard'
 import {
@@ -151,6 +152,7 @@ function normalizeVehicleTitle(value) {
   for (const [pattern, replacement] of VEHICLE_NAME_FIXES) {
     text = text.replace(pattern, replacement)
   }
+  text = applyVehicleTitleFixes(text)
   text = stripVehicleTitleNoise(text)
   const signal = text.replace(/[\s()[\]{}\\/|+_.:-]+/g, '')
   if (!signal || !/[A-Za-zА-Яа-я0-9]/u.test(signal) || signal.length < 2) return ''

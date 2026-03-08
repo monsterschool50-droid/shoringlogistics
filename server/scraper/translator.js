@@ -1,3 +1,5 @@
+import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
+
 export const MANUFACTURER_MAP = {
   '현대': 'Hyundai',
   '기아': 'Kia',
@@ -239,7 +241,7 @@ export function translateVehicleText(value) {
     text = text.replace(pattern, replacement)
   }
 
-  return text.replace(/\s+/g, ' ').trim()
+  return applyVehicleTitleFixes(text)
 }
 
 /** Parse Encar year "202001" → 2020 */

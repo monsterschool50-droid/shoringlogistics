@@ -1,4 +1,5 @@
 import { hasHangul, translateVehicleText } from '../scraper/translator.js'
+import { applyTrimFixes, normalizeRequestedRomanizedColorAlias } from '../../shared/vehicleTextFixes.js'
 
 export const PARKING_ADDRESS_KO = '인천 서구 오류동 1550'
 export const PARKING_ADDRESS_EN = '1550 Oryu-dong, Seo-gu, Incheon'
@@ -581,7 +582,7 @@ function translateTrimWords(value) {
     text = text.replace(pattern, target)
   }
 
-  return text.replace(/\s+/g, ' ').trim()
+  return applyTrimFixes(text).replace(/\s+/g, ' ').trim()
 }
 
 export function normalizeTrimLevel(...values) {
@@ -649,6 +650,9 @@ export function normalizeColorName(value) {
   if (!raw) return ''
   if (GENERIC_COLOR_LABELS.has(raw)) return raw
 
+  const requestedAlias = normalizeRequestedRomanizedColorAlias(raw)
+  if (requestedAlias) return requestedAlias
+
   const romanizedAlias = normalizeRomanizedColorAlias(raw)
   if (romanizedAlias) return romanizedAlias
 
@@ -707,7 +711,10 @@ export function normalizeColorName(value) {
   if (/(purple|violet)/.test(low)) return 'Фиолетовый'
   if (/gold/.test(low)) return 'Золотой'
 
-  return hasHangul(raw) ? normalizeText(raw) : raw
+  if (!hasHangul(raw)) return raw
+
+  const translated = normalizeText(raw)
+  return normalizeRequestedRomanizedColorAlias(translated) || translated
 }
 
 export function normalizeInteriorColorName(value, bodyValue = '') {

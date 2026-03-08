@@ -413,6 +413,18 @@ function normalizeColor(value) {
   return HANGUL_RE.test(src) ? '' : src
 }
 
+function inferAdditionalColorSwatch(name) {
+  const text = String(name || '').toLowerCase()
+  if (!text) return null
+
+  if (/\u043d\u0435\u0431\u0435\u0441\u043d\u043e-\u0433\u043e\u043b\u0443\u0431/i.test(text)) return { color: '#60a5fa' }
+  if (/\u0431\u043e\u0440\u0434\u043e\u0432|\u0432\u0438\u043d\u043d/i.test(text)) return { color: '#7f1d1d' }
+  if (/\u0441\u0432\u0435\u0442\u043b\u043e-\u0437\u0435\u043b\u0435\u043d/i.test(text)) return { color: '#86efac', border: '#16a34a' }
+  if (/\u0437\u043e\u043b\u043e\u0442\u0438\u0441\u0442/i.test(text)) return { color: '#d4a72c' }
+
+  return null
+}
+
 function aggregate(rows, normalizer) {
   const acc = new Map()
   for (const row of rows || []) {
@@ -461,7 +473,7 @@ function aggregateColors(rows) {
     .map(([name, count]) => ({
       name,
       count,
-      ...(COLOR_SWATCH[name] || EXTRA_COLOR_SWATCH[name] || { color: '#9ca3af' }),
+      ...(COLOR_SWATCH[name] || EXTRA_COLOR_SWATCH[name] || inferAdditionalColorSwatch(name) || { color: '#9ca3af' }),
     }))
 }
 

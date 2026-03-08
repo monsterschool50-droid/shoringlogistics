@@ -35,6 +35,7 @@ const IC = {
 const fmtU = n => '$' + Number(n || 0).toLocaleString('ru-RU')
 const fmtK = n => Number(n || 0).toLocaleString('ko-KR') + ' ₩'
 const LEGACY_RENAULT_SAMSUNG_MODEL_RE = /\b(?:sm3|sm5|sm6|sm7|qm3|qm5|qm6|xm3)\b/i
+const ENRICH_REPORT_VISIBILITY_KEY = 'tlv-admin-enrich-report-open'
 
 function normalizeAdminVehicleTitle(value, { keepBrand = true } = {}) {
     let text = String(value || '').trim().replace(/\s+/g, ' ')
@@ -793,6 +794,11 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
         last_error: '',
         report: [],
     })
+    const [isEnrichReportOpen, setIsEnrichReportOpen] = useState(() => {
+        if (typeof window === 'undefined') return true
+        const saved = window.localStorage.getItem(ENRICH_REPORT_VISIBILITY_KEY)
+        return saved !== '0'
+    })
     const [selected, setSelected] = useState(new Set())
     const prevEnrichRunningRef = useRef(false)
 
@@ -831,6 +837,11 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
         }
         prevEnrichRunningRef.current = enrichStatus.running
     }, [enrichStatus, load, page, search, sort, toast])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        window.localStorage.setItem(ENRICH_REPORT_VISIBILITY_KEY, isEnrichReportOpen ? '1' : '0')
+    }, [isEnrichReportOpen])
 
     const doSearch = e => { e.preventDefault(); setPage(1); load(1, search, sort) }
     const reset = () => { setSearch(''); setPage(1); load(1, '', sort) }
@@ -963,42 +974,55 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
             )}
             {!!enrichStatus.report?.length && (
                 <div className="adm-chart-box" style={{ marginBottom: 16 }}>
-                    <div className="adm-chart-title">Что изменило обогащение</div>
-                    <div className="adm-car-sub" style={{ marginBottom: 12 }}>
-                        Показаны последние {enrichStatus.report.length} изменений и ошибок текущего/последнего запуска.
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: isEnrichReportOpen ? 12 : 0 }}>
+                        <div className="adm-chart-title" style={{ margin: 0 }}>Что изменило обогащение</div>
+                        <button
+                            className="adm-btn adm-btn-sm adm-btn-ghost"
+                            type="button"
+                            onClick={() => setIsEnrichReportOpen(open => !open)}
+                        >
+                            {isEnrichReportOpen ? 'Скрыть' : 'Показать'}
+                        </button>
                     </div>
-                    <div style={{ display: 'grid', gap: 10 }}>
-                        {enrichStatus.report.map((item, index) => (
-                            <div key={`${item.id}-${item.encar_id}-${item.finished_at || index}`} className="adm-settings-card" style={{ padding: 12 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 8 }}>
-                                    <div style={{ fontWeight: 700, color: '#e2e8f0' }}>
-                                        {item.name || `ID ${item.id}`}
-                                    </div>
-                                    <span className={`adm-tag-sm ${item.status === 'error' ? 'adm-tag-more' : ''}`}>
-                                        {item.status === 'error' ? 'Ошибка' : 'Обновлено'}
-                                    </span>
-                                </div>
-                                <div className="adm-car-sub" style={{ marginBottom: 8 }}>
-                                    ID: {item.id} • Encar: {item.encar_id}
-                                </div>
-                                {item.status === 'error' ? (
-                                    <div className="adm-car-sub" style={{ color: '#fca5a5' }}>
-                                        {item.error}
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'grid', gap: 6 }}>
-                                        {(item.changes || []).map((change, changeIndex) => (
-                                            <div key={`${item.id}-${change.field}-${changeIndex}`} className="adm-car-sub">
-                                                <strong>{change.field}</strong>: `{change.before || '-'}`
-                                                {' -> '}
-                                                `{change.after || '-'}`
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                    {isEnrichReportOpen && (
+                        <>
+                            <div className="adm-car-sub" style={{ marginBottom: 12 }}>
+                                Показаны последние {enrichStatus.report.length} изменений и ошибок текущего/последнего запуска.
                             </div>
-                        ))}
-                    </div>
+                            <div style={{ display: 'grid', gap: 10 }}>
+                                {enrichStatus.report.map((item, index) => (
+                                    <div key={`${item.id}-${item.encar_id}-${item.finished_at || index}`} className="adm-settings-card" style={{ padding: 12 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+                                            <div style={{ fontWeight: 700, color: '#e2e8f0' }}>
+                                                {item.name || `ID ${item.id}`}
+                                            </div>
+                                            <span className={`adm-tag-sm ${item.status === 'error' ? 'adm-tag-more' : ''}`}>
+                                                {item.status === 'error' ? 'Ошибка' : 'Обновлено'}
+                                            </span>
+                                        </div>
+                                        <div className="adm-car-sub" style={{ marginBottom: 8 }}>
+                                            ID: {item.id} • Encar: {item.encar_id}
+                                        </div>
+                                        {item.status === 'error' ? (
+                                            <div className="adm-car-sub" style={{ color: '#fca5a5' }}>
+                                                {item.error}
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'grid', gap: 6 }}>
+                                                {(item.changes || []).map((change, changeIndex) => (
+                                                    <div key={`${item.id}-${change.field}-${changeIndex}`} className="adm-car-sub">
+                                                        <strong>{change.field}</strong>: `{change.before || '-'}`
+                                                        {' -> '}
+                                                        `{change.after || '-'}`
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
