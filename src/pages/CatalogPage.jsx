@@ -83,6 +83,7 @@ const VEHICLE_NAME_FIXES = [
   [/kaeseupeo/gi, 'Casper'],
   [/geuraenjeo/gi, 'Grandeur'],
   [/mohabi/gi, 'Mohave'],
+  [/santa[\s-]*fe/gi, 'Santafe'],
   [/ssonata/gi, 'Sonata'],
   [/\b([2-9])\s*sedae\b/gi, (_, n) => `${n}th Gen`],
 ]
@@ -305,7 +306,7 @@ function carMatchesSearch(car, query) {
   const normalizedQuery = normalizeSearchText(query)
   if (!normalizedQuery) return true
 
-  const haystack = [
+  const searchValues = [
     car.name,
     car.model,
     car.year,
@@ -326,12 +327,17 @@ function carMatchesSearch(car, query) {
   ]
     .map((value) => normalizeSearchText(value))
     .filter(Boolean)
+
+  const haystack = searchValues.join(' ')
+  const compactHaystack = searchValues
+    .map((value) => value.replace(/\s+/g, ''))
+    .filter(Boolean)
     .join(' ')
 
   return normalizedQuery
     .split(' ')
     .filter(Boolean)
-    .every((token) => haystack.includes(token))
+    .every((token) => haystack.includes(token) || compactHaystack.includes(token.replace(/\s+/g, '')))
 }
 
 function buildCarUpdatePatch(prevCar, nextCar) {

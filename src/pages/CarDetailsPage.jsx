@@ -112,6 +112,25 @@ function formatDate(value) {
   return d.toLocaleDateString('ru-RU')
 }
 
+function getLegalStatusLabel(condition) {
+  if (!condition || !Object.keys(condition).length) return '-'
+
+  const seizingCount = Number(condition.seizingCount || 0)
+  const pledgeCount = Number(condition.pledgeCount || 0)
+  const parts = []
+
+  parts.push(pledgeCount > 0 ? `Есть залог: ${pledgeCount}` : 'Без залога')
+  parts.push(seizingCount > 0 ? `Есть арест / ограничения: ${seizingCount}` : 'Без ареста')
+
+  return parts.join(', ')
+}
+
+function getAccidentHistoryLabel(condition) {
+  if (!condition || !Object.keys(condition).length) return '-'
+  if (condition.accidentRecordView || condition.accidentResumeView) return 'Есть запись'
+  return 'Без отметок'
+}
+
 const INSPECTION_RU_MAP = {
   'Inspection and diagnostics': 'Инспекция и диагностика',
   'Inspection photos': 'Фотографии инспекции',
@@ -275,6 +294,7 @@ const VEHICLE_NAME_FIXES = [
   [/geuraenjejo/gi, 'Grandeur'],
   [/geuraenjeo/gi, 'Grandeur'],
   [/mohabi/gi, 'Mohave'],
+  [/santa[\s-]*fe/gi, 'Santafe'],
   [/ssonata/gi, 'Sonata'],
   [/\b([2-9])\s*sedae\b/gi, (_, n) => `${n}th Gen`],
 ]
@@ -846,11 +866,11 @@ export default function CarDetailsPage() {
                 <div><span>Местоположение</span><strong>{car.location || '-'}</strong></div>
                 <div><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
                 <div><span>Ключи</span><strong>{car.keyInfo || '-'}</strong></div>
-                <div><span>Мест</span><strong>{car.seatCount || '-'}</strong></div>
+                <div><span>Количество мест</span><strong>{car.seatCount || '-'}</strong></div>
                 <div><span>Объем двигателя</span><strong>{car.displacement ? `${car.displacement} cc` : '-'}</strong></div>
                 <div><span>Encar ID</span><strong>{car.encarId || '-'}</strong></div>
-                <div><span>Дата добавления</span><strong>{formatDate(car.createdAt)}</strong></div>
-                <div><span>Последнее изменение</span><strong>{formatDate(car.updatedAt)}</strong></div>
+                <div><span>На Encar с</span><strong>{formatDate(car.detailManage?.firstAdvertisedDateTime || car.createdAt)}</strong></div>
+                <div><span>Обновлено на Encar</span><strong>{formatDate(car.detailManage?.modifyDateTime || car.updatedAt)}</strong></div>
                 <div><span>Стоянка (KR)</span><strong>{PARKING_ADDRESS_KO}</strong></div>
                 <div><span>Стоянка (EN)</span><strong>{PARKING_ADDRESS_EN}</strong></div>
               </div>
@@ -1031,15 +1051,14 @@ export default function CarDetailsPage() {
           )}
         </section>
 
-<section className="car-details-card car-details-bottom-card">
-          <h3 className="car-details-card-title">История регистрации</h3>
+        <section className="car-details-card car-details-bottom-card">
+          <h3 className="car-details-card-title">Статус объявления Encar</h3>
           <div className="car-details-history-grid">
             <div><span>Год</span><strong>{car.year || '-'}</strong></div>
             <div><span>Номер авто</span><strong>{car.vehicleNo || '—'}</strong></div>
             <div><span>VIN</span><strong>{car.vin || '—'}</strong></div>
-            <div><span>Ограничения</span><strong>{Number(car.detailCondition?.seizingCount || 0)}</strong></div>
-            <div><span>Залог</span><strong>{Number(car.detailCondition?.pledgeCount || 0)}</strong></div>
-            <div><span>Аварийная история</span><strong>{car.detailCondition?.accidentRecordView ? 'Есть запись' : 'Нет данных'}</strong></div>
+            <div><span>Юридический статус</span><strong>{getLegalStatusLabel(car.detailCondition)}</strong></div>
+            <div><span>Аварийная история</span><strong>{getAccidentHistoryLabel(car.detailCondition)}</strong></div>
           </div>
         </section>
       </div>

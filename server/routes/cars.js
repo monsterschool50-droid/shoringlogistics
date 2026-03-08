@@ -318,6 +318,8 @@ router.get('/', async (req, res) => {
       conditions.push(`(
         c.name ILIKE ANY($${p}::text[])
         OR c.model ILIKE ANY($${p}::text[])
+        OR REPLACE(COALESCE(c.name, ''), ' ', '') ILIKE ANY($${p}::text[])
+        OR REPLACE(COALESCE(c.model, ''), ' ', '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.vin::text, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.encar_id::text, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.body_type, '') ILIKE ANY($${p}::text[])
@@ -340,6 +342,8 @@ router.get('/', async (req, res) => {
         conditions.push(`(
           c.name ILIKE $${p}
           OR c.model ILIKE $${p}
+          OR REPLACE(COALESCE(c.name, ''), ' ', '') ILIKE $${p}
+          OR REPLACE(COALESCE(c.model, ''), ' ', '') ILIKE $${p}
           OR COALESCE(c.vin::text, '') ILIKE $${p}
           OR COALESCE(c.encar_id::text, '') ILIKE $${p}
           OR COALESCE(c.body_type, '') ILIKE $${p}
