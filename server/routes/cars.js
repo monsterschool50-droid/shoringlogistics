@@ -483,6 +483,7 @@ router.get('/', async (req, res) => {
       price_asc: `${priceUsdSql} ASC`,
       price_desc: `${priceUsdSql} DESC`,
       mileage: 'c.mileage ASC',
+      mileage_desc: 'c.mileage DESC',
       year_desc: 'c.year DESC',
       year_asc: 'c.year ASC',
     }

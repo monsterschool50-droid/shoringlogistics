@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
 import FilterSidebar from '../components/catalog/FilterSidebar'
@@ -511,10 +511,14 @@ const FilterIcon = () => (
     <line x1="11" y1="18" x2="13" y2="18" strokeWidth={2} strokeLinecap="round" />
   </svg>
 )
-const SortIcon = () => (
-  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-      d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+const ChevronDownIcon = () => (
+  <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <polyline points="6 9 12 15 18 9" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+const CheckIcon = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <polyline points="4 12 9 17 20 6" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 )
 const EncarIcon = () => (
@@ -607,17 +611,30 @@ function mapCar(c) {
   }
 }
 
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Новые объявления' },
+  { value: 'price_asc', label: 'Цена: от дешевых' },
+  { value: 'price_desc', label: 'Цена: от дорогих' },
+  { value: 'year_desc', label: 'Год: новые' },
+  { value: 'year_asc', label: 'Год: старые' },
+  { value: 'mileage', label: 'Пробег: меньше' },
+  { value: 'mileage_desc', label: 'Пробег: больше' },
+]
+
 export default function CatalogPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sort, setSort] = useState('newest')
+  const [sortOpen, setSortOpen] = useState(false)
   const [cars, setCars] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [meta, setMeta] = useState({ total: 0, page: 1, pages: 1 })
   const [filters, setFilters] = useState({})
   const [page, setPage] = useState(1)
+  const sortRef = useRef(null)
   const location = useLocation()
   const searchQuery = new URLSearchParams(location.search).get('q')?.trim() || ''
+  const activeSortOption = SORT_OPTIONS.find((option) => option.value === sort) || SORT_OPTIONS[0]
 
   const fetchCarsFallback = useCallback(async () => {
     const params = new URLSearchParams({ sort, page: 1, limit: 1000, ...filters })
@@ -767,6 +784,30 @@ export default function CatalogPage() {
     setPage(1)
   }, [searchQuery])
 
+  useEffect(() => {
+    if (!sortOpen) return undefined
+
+    const handlePointerDown = (event) => {
+      if (sortRef.current && !sortRef.current.contains(event.target)) {
+        setSortOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setSortOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [sortOpen])
+
   return (
     <div className="catalog-page">
       <div className="cat-breadcrumb">
@@ -813,15 +854,43 @@ export default function CatalogPage() {
                 {loading ? 'Загрузка...' : `Найдено: ${meta.total.toLocaleString()} • Стр. ${meta.page} из ${meta.pages}`}
               </div>
             </div>
-            <div className="cat-sort-wrap">
-              <SortIcon />
-              <select className="cat-sort" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1) }}>
-                <option value="newest">Новые объявления</option>
-                <option value="price_asc">Цена ↑</option>
-                <option value="price_desc">Цена ↓</option>
-                <option value="mileage">Пробег ↑</option>
-                <option value="year_desc">Год ↓</option>
-              </select>
+            <div className={`cat-sort-wrap${sortOpen ? ' is-open' : ''}`} ref={sortRef}>
+              <button
+                type="button"
+                className="cat-sort-trigger"
+                aria-haspopup="listbox"
+                aria-expanded={sortOpen}
+                onClick={() => setSortOpen((open) => !open)}
+              >
+                <span className="cat-sort-trigger-label">{activeSortOption.label}</span>
+                <span className="cat-sort-trigger-icon" aria-hidden="true"><ChevronDownIcon /></span>
+              </button>
+              {sortOpen && (
+                <div className="cat-sort-menu" role="listbox" aria-label="Сортировка">
+                  {SORT_OPTIONS.map((option) => {
+                    const isActive = option.value === sort
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        className={`cat-sort-option${isActive ? ' is-active' : ''}`}
+                        onClick={() => {
+                          setSort(option.value)
+                          setPage(1)
+                          setSortOpen(false)
+                        }}
+                      >
+                        <span className="cat-sort-option-check" aria-hidden="true">
+                          {isActive ? <CheckIcon /> : null}
+                        </span>
+                        <span className="cat-sort-option-label">{option.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
