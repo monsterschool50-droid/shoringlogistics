@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   classifyVehicleOrigin,
   getColorSwatch,
@@ -450,6 +450,78 @@ function ColorGrid({ colors, selected, onToggle, showMoreLabel }) {
   )
 }
 
+function FilterYearSelect({ label, value, years = [], onChange }) {
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
+  const options = useMemo(
+    () => [{ value: '', label: 'Любой' }, ...years.map((year) => ({ value: String(year), label: String(year) }))],
+    [years]
+  )
+  const selectedLabel = options.find((option) => option.value === String(value || ''))?.label || 'Любой'
+
+  useEffect(() => {
+    if (!open) return undefined
+
+    const handlePointerDown = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open])
+
+  return (
+    <div className={`filter-year-select${open ? ' is-open' : ''}`} ref={rootRef}>
+      <button
+        type="button"
+        className="filter-year-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="filter-year-trigger-label">{selectedLabel}</span>
+        <span className="filter-year-trigger-icon" aria-hidden="true"><ChevronDownSmall /></span>
+      </button>
+      {open && (
+        <div className="filter-year-menu" role="listbox" aria-label={label}>
+          {options.map((option) => {
+            const isSelected = option.value === String(value || '')
+            return (
+              <button
+                key={option.value || 'any'}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                className={`filter-year-option${isSelected ? ' is-selected' : ''}`}
+                onClick={() => {
+                  onChange(option.value)
+                  setOpen(false)
+                }}
+              >
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function buildLiveColorOptions(cars, field) {
   const acc = new Map()
   for (const car of cars || []) {
@@ -683,17 +755,21 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
             <div className="filter-range">
               <div className="filter-range-col">
                 <label className="filter-label">От</label>
-                <select className="filter-select" value={local.minYear} onChange={e => setL('minYear', e.target.value)}>
-                  <option value="">Любой</option>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                <FilterYearSelect
+                  label="Год от"
+                  value={local.minYear}
+                  years={years}
+                  onChange={(nextValue) => setL('minYear', nextValue)}
+                />
               </div>
               <div className="filter-range-col">
                 <label className="filter-label">До</label>
-                <select className="filter-select" value={local.maxYear} onChange={e => setL('maxYear', e.target.value)}>
-                  <option value="">Любой</option>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
+                <FilterYearSelect
+                  label="Год до"
+                  value={local.maxYear}
+                  years={years}
+                  onChange={(nextValue) => setL('maxYear', nextValue)}
+                />
               </div>
             </div>
           </div>

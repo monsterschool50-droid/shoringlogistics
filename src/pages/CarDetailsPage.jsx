@@ -110,6 +110,62 @@ function estimateCustomsDuty({ year, engine, fuel }) {
   return Math.round(usd)
 }
 
+const DEFAULT_CALC_YEAR = new Date().getFullYear()
+const DEFAULT_CALC_ENGINE = 2.0
+
+function formatCalcYearInput(value) {
+  const year = parseYear(value)
+  return year ? String(year) : ''
+}
+
+function formatCalcEngineInput(value) {
+  const engine = Number(value)
+  if (!Number.isFinite(engine) || engine <= 0) return String(DEFAULT_CALC_ENGINE)
+  return String(engine).replace(/\.0$/, '')
+}
+
+function sanitizeYearInput(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 4)
+}
+
+function sanitizeEngineInput(value) {
+  const source = String(value || '').replace(/[^\d.,]/g, '')
+  let separatorSeen = false
+  let out = ''
+
+  for (const char of source) {
+    if (/\d/.test(char)) {
+      out += char
+      continue
+    }
+
+    if ((char === '.' || char === ',') && !separatorSeen) {
+      out += char
+      separatorSeen = true
+    }
+  }
+
+  return out
+}
+
+function parseCalcYearInput(value, fallback = DEFAULT_CALC_YEAR) {
+  const digits = sanitizeYearInput(value)
+  if (digits.length !== 4) return fallback
+
+  const year = Number(digits)
+  return Number.isFinite(year) && year >= 1900 && year <= DEFAULT_CALC_YEAR + 1
+    ? year
+    : fallback
+}
+
+function parseCalcEngineInput(value, fallback = DEFAULT_CALC_ENGINE) {
+  const normalized = sanitizeEngineInput(value).replace(',', '.')
+  if (!normalized || normalized === '.') return fallback
+
+  const engine = Number(normalized)
+  return Number.isFinite(engine) && engine > 0 ? engine : fallback
+}
+
 function formatDate(value) {
   if (!value) return '-'
   const d = new Date(value)
@@ -702,7 +758,12 @@ export default function CarDetailsPage() {
   const [error, setError] = useState('')
   const [car, setCar] = useState(null)
   const [imgIdx, setImgIdx] = useState(0)
-  const [calc, setCalc] = useState({ year: new Date().getFullYear(), engine: 2.0, fuel: 'gasoline' })
+  const [calc, setCalc] = useState({
+    year: String(DEFAULT_CALC_YEAR),
+    engine: formatCalcEngineInput(DEFAULT_CALC_ENGINE),
+    fuel: 'gasoline',
+  })
+  const [calcDefaults, setCalcDefaults] = useState({ year: DEFAULT_CALC_YEAR, engine: DEFAULT_CALC_ENGINE })
 
   useEffect(() => {
     let active = true
@@ -720,9 +781,14 @@ export default function CarDetailsPage() {
         setCar(mapped)
         setImgIdx(0)
         setError('')
+        const nextCalcDefaults = {
+          year: mapped.yearNum || DEFAULT_CALC_YEAR,
+          engine: resolveEngineLiters({ displacement: mapped.displacement, name: mapped.name, model: mapped.model }) || DEFAULT_CALC_ENGINE,
+        }
+        setCalcDefaults(nextCalcDefaults)
         setCalc({
-          year: mapped.yearNum,
-          engine: resolveEngineLiters({ displacement: mapped.displacement, name: mapped.name, model: mapped.model }),
+          year: formatCalcYearInput(nextCalcDefaults.year),
+          engine: formatCalcEngineInput(nextCalcDefaults.engine),
           fuel,
         })
 
@@ -735,16 +801,20 @@ export default function CarDetailsPage() {
 
             setCar((prev) => (prev ? mergeCarWithNormalizedEncar(prev, detail) : prev))
             setImgIdx(0)
-            setCalc((prev) => ({
-              ...prev,
+            const nextCalcDefaults = {
               year: parseYear(detail?.year || mapped.year),
               engine: resolveEngineLiters({
                 displacement: detail?.displacement || mapped.displacement,
                 name: detail?.name || mapped.name,
                 model: detail?.model || mapped.model,
-              }),
+              }) || DEFAULT_CALC_ENGINE,
+            }
+            setCalcDefaults(nextCalcDefaults)
+            setCalc({
+              year: formatCalcYearInput(nextCalcDefaults.year),
+              engine: formatCalcEngineInput(nextCalcDefaults.engine),
               fuel: detectFuel({ fuel_type: detail?.fuel_type || mapped.fuelType, tags: mapped.tags }),
-            }))
+            })
           } catch {
             // Ignore detail enrichment errors, base card remains available.
           }
@@ -766,15 +836,20 @@ export default function CarDetailsPage() {
   const imageSrc = car?.images?.[boundedIdx]?.url || ''
   const inspectionGroups = useMemo(() => groupInspectionRows(car?.inspection?.detailStatus || []), [car?.inspection])
 
-  const customsDuty = useMemo(() => estimateCustomsDuty(calc), [calc])
+  const calcYearValue = useMemo(() => parseCalcYearInput(calc.year, calcDefaults.year), [calc.year, calcDefaults.year])
+  const calcEngineValue = useMemo(() => parseCalcEngineInput(calc.engine, calcDefaults.engine), [calc.engine, calcDefaults.engine])
+  const customsDuty = useMemo(
+    () => estimateCustomsDuty({ year: calcYearValue, engine: calcEngineValue, fuel: calc.fuel }),
+    [calc.fuel, calcEngineValue, calcYearValue]
+  )
 
   const customsNote = useMemo(() => {
-    const age = Math.max(0, new Date().getFullYear() - Number(calc.year || new Date().getFullYear()))
+    const age = Math.max(0, new Date().getFullYear() - calcYearValue)
     if (calc.fuel === 'electric') return 'Электромобили считаются по отдельной льготной сетке.'
-    if (age > 5 && Number(calc.engine) > 2) return 'Автомобили старше 5 лет с объемом > 2.0 обычно считают по повышенной ставке.'
+    if (age > 5 && calcEngineValue > 2) return 'Автомобили старше 5 лет с объемом > 2.0 обычно считают по повышенной ставке.'
     if (age <= 3) return 'Для авто до 3 лет применяется базовая ставка.'
     return 'Расчет оценочный. Точную сумму подтвердит брокер.'
-  }, [calc])
+  }, [calc.fuel, calcEngineValue, calcYearValue])
 
   if (loading) {
     return (
@@ -918,11 +993,22 @@ export default function CarDetailsPage() {
               <div className="car-details-customs-grid">
                 <label>
                   <span>Год выпуска</span>
-                  <input type="number" value={calc.year} onChange={(e) => setCalc((p) => ({ ...p, year: Number(e.target.value) || p.year }))} />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={calc.year}
+                    onChange={(e) => setCalc((p) => ({ ...p, year: sanitizeYearInput(e.target.value) }))}
+                  />
                 </label>
                 <label>
                   <span>Объем двигателя (л)</span>
-                  <input type="number" step="0.1" value={calc.engine} onChange={(e) => setCalc((p) => ({ ...p, engine: Number(e.target.value) || p.engine }))} />
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={calc.engine}
+                    onChange={(e) => setCalc((p) => ({ ...p, engine: sanitizeEngineInput(e.target.value) }))}
+                  />
                 </label>
                 <label>
                   <span>Тип топлива</span>
@@ -936,8 +1022,8 @@ export default function CarDetailsPage() {
               </div>
               <div className="car-details-customs-result"><span>Пошлина по сетке (оценка)</span><strong>${customsDuty.toLocaleString()}</strong></div>
               <div className="car-details-customs-meta">
-                <span>Год: {calc.year}</span>
-                <span>Объем: {Number(calc.engine).toFixed(1)} л</span>
+                <span>Год: {calcYearValue}</span>
+                <span>Объем: {calcEngineValue.toFixed(1)} л</span>
                 <span>Топливо: {fuelLabel(calc.fuel)}</span>
               </div>
               <p className="car-details-customs-note">{customsNote}</p>
