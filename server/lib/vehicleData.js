@@ -251,6 +251,19 @@ export function inferDrive(...values) {
   return ''
 }
 
+const BODY_CLASS_LABELS = new Set([
+  'Малый класс',
+  'Компактный класс',
+  'Средний класс',
+  'Бизнес-класс',
+])
+
+const SEDAN_BODY_HINT_RE = /\b(k3|k5|k7|k8|k9|avante|elantra|sonata|grandeur|g70|g80|g90|eq900|sm3|sm5|sm6|sm7|malibu|impala|cts|s80|s90|camry|accord)\b/i
+const HATCH_BODY_HINT_RE = /\b(i30|ceed|cee['’ -]?d|picanto|morning|spark|matiz|golf|polo|veloster|brio)\b/i
+const WAGON_BODY_HINT_RE = /\b(wagon|estate|touring|shooting\s*brake)\b/i
+const COUPE_BODY_HINT_RE = /\b(coupe|genesis\s+coupe|86|brz)\b/i
+const CABRIO_BODY_HINT_RE = /\b(cabrio|cabriolet|convertible|roadster)\b/i
+
 export function normalizeBodyType(value) {
   const raw = cleanText(value)
   if (!raw) return ''
@@ -261,6 +274,7 @@ export function normalizeBodyType(value) {
   if (low.includes('suv') || low === 'rv') return 'Кроссовер / внедорожник'
   if (low.includes('sedan') || raw.includes('세단')) return 'Седан'
   if (low.includes('coupe') || raw.includes('쿠페')) return 'Купе'
+  if (low.includes('cabrio') || low.includes('cabriolet') || low.includes('convertible') || raw.includes('컨버터블')) return 'Кабриолет'
   if (low.includes('hatch') || raw.includes('해치백')) return 'Хэтчбек'
   if (low.includes('wagon') || raw.includes('왜건')) return 'Универсал'
   if (low.includes('van') || low.includes('minivan') || raw.includes('밴') || raw.includes('승합')) return 'Минивэн'
@@ -273,6 +287,53 @@ export function normalizeBodyType(value) {
   if (/daehyeongcha/i.test(text) || raw.includes('대형차')) return 'Бизнес-класс'
 
   return text
+}
+
+function inferPassengerBodyTypeFromText(...values) {
+  const text = values
+    .map((value) => cleanText(value))
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (!text) return ''
+  if (CABRIO_BODY_HINT_RE.test(text)) return 'Кабриолет'
+  if (WAGON_BODY_HINT_RE.test(text)) return 'Универсал'
+  if (COUPE_BODY_HINT_RE.test(text)) return 'Купе'
+  if (HATCH_BODY_HINT_RE.test(text) || /\bhatch|sportback|fastback|liftback\b/i.test(text)) return 'Хэтчбек'
+  if (SEDAN_BODY_HINT_RE.test(text) || /\bsedan\b/i.test(text)) return 'Седан'
+  return ''
+}
+
+export function isWeakBodyType(value) {
+  const text = cleanText(value)
+  if (!text || text === '-') return true
+  return BODY_CLASS_LABELS.has(text)
+}
+
+export function resolveBodyType(...values) {
+  const [bodyValue, ...contextValues] = values
+  const normalized = normalizeBodyType(bodyValue)
+  const inferred = inferPassengerBodyTypeFromText(normalized, ...contextValues)
+
+  if (
+    normalized === 'Мини' ||
+    normalized === 'Кроссовер / внедорожник' ||
+    normalized === 'Пикап' ||
+    normalized === 'Грузовой / пикап' ||
+    normalized === 'Минивэн' ||
+    normalized === 'Седан' ||
+    normalized === 'Купе' ||
+    normalized === 'Кабриолет' ||
+    normalized === 'Хэтчбек' ||
+    normalized === 'Универсал'
+  ) {
+    return normalized
+  }
+
+  if (inferred) return inferred
+  if (BODY_CLASS_LABELS.has(normalized)) return ''
+  return normalized
 }
 
 function translateTrimWords(value) {

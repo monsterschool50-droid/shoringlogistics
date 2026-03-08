@@ -6,11 +6,13 @@ import {
   extractTrimLabelFromTitle,
   VAT_REFUND_RATE,
   getShortLocationLabel,
+  isWeakBodyTypeLabel,
   isWeakColorValue,
   normalizeColorLabel as normalizeVehicleColorLabel,
   normalizeInteriorColorLabel,
   normalizeKeyInfoLabel,
   normalizeTrimLabel,
+  resolveDisplayBodyTypeLabel,
   stripTrailingTrimLabel,
 } from '../lib/vehicleDisplay'
 
@@ -239,6 +241,7 @@ function normalizeBodyTypeLabel(value) {
   if (low === 'rv') return '\u041A\u0440\u043E\u0441\u0441\u043E\u0432\u0435\u0440 / \u0432\u043D\u0435\u0434\u043E\u0440\u043E\u0436\u043D\u0438\u043A'
   if (low.includes('suv') || low.includes('\u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436') || low.includes('\u043a\u0440\u043e\u0441\u0441') || hasAnyToken(text, [KO.crossover])) return '\u041A\u0440\u043E\u0441\u0441\u043E\u0432\u0435\u0440 / \u0432\u043D\u0435\u0434\u043E\u0440\u043E\u0436\u043D\u0438\u043A'
   if (low.includes('sedan') || low.includes('\u0441\u0435\u0434\u0430\u043d') || hasAnyToken(text, [KO.sedan])) return '\u0421\u0435\u0434\u0430\u043d'
+  if (low.includes('cabrio') || low.includes('cabriolet') || low.includes('convertible') || low.includes('\u043a\u0430\u0431\u0440\u0438\u043e\u043b\u0435\u0442') || text.includes('\uCEE8\uBC84\uD130\uBE14')) return '\u041A\u0430\u0431\u0440\u0438\u043E\u043B\u0435\u0442'
   if (low.includes('hatch') || low.includes('\u0445\u044d\u0442\u0447') || hasAnyToken(text, [KO.hatchback])) return '\u0425\u044d\u0442\u0447\u0431\u0435\u043a'
   if (low.includes('wagon') || low.includes('\u0443\u043d\u0438\u0432\u0435\u0440\u0441') || hasAnyToken(text, [KO.wagon])) return '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b'
   if (low.includes('van') || low.includes('minivan') || low.includes('\u0432\u044d\u043d') || low.includes('\u043c\u0438\u043d\u0438\u0432') || hasAnyToken(text, [KO.minivan, KO.van])) return '\u041C\u0438\u043D\u0438\u0432\u044D\u043D'
@@ -349,7 +352,7 @@ function buildCarUpdatePatch(prevCar, nextCar) {
   if (nextCar.model && nextCar.model !== prevCar.model) patch.model = nextCar.model
   if (nextCar.transmission && nextCar.transmission !== prevCar.transmission) patch.transmission = nextCar.transmission
   if (nextCar.driveType && nextCar.driveType !== prevCar.driveType) patch.drive_type = nextCar.driveType
-  if (nextCar.bodyType && nextCar.bodyType !== prevCar.bodyType) patch.body_type = nextCar.bodyType
+  if (nextCar.bodyType && nextCar.bodyType !== (prevCar.rawBodyType || prevCar.bodyType)) patch.body_type = nextCar.bodyType
   if (nextCar.displacement && nextCar.displacement !== prevCar.displacement) patch.displacement = nextCar.displacement
   if (nextCar.trimLevel && nextCar.trimLevel !== prevCar.trimLevel) patch.trim_level = nextCar.trimLevel
   if (nextCar.keyInfo && nextCar.keyInfo !== prevCar.keyInfo) patch.key_info = nextCar.keyInfo
@@ -405,7 +408,7 @@ function needsEncarEnrichment(car) {
   return (
     !car.transmission || car.transmission === '-' ||
     !car.driveType || car.driveType === '-' ||
-    !car.bodyType || car.bodyType === '-' ||
+    isWeakBodyTypeLabel(car.rawBodyType || car.bodyType) ||
     !car.trimLevel ||
     !car.keyInfo ||
     (!car.engineVolume && !String(car.fuelType || '').toLowerCase().includes('электро')) ||
@@ -439,7 +442,7 @@ async function fetchEncarDetail(encarId) {
         fuelType: normalizeTagLabel(detail?.fuel_type || ''),
         transmission: normalizeTagLabel(detail?.transmission || ''),
         driveType: normalizeDriveLabel(detail?.drive_type || ''),
-        bodyType: normalizeBodyTypeLabel(detail?.body_type || ''),
+        bodyType: resolveDisplayBodyTypeLabel(detail?.body_type || '', detail?.name || '', detail?.model || ''),
         trimLevel: detailTrim,
         keyInfo: normalizeKeyInfoLabel(detail?.key_info || ''),
         displacement: Number(detail?.displacement) || 0,
@@ -528,7 +531,7 @@ function mapCar(c) {
     normalizedModel,
     ...(Array.isArray(c.tags) ? c.tags : []),
   ) || normalizeDisplayText(driveSource) || '-'
-  const bodyType = normalizeBodyTypeLabel(c.body_type || '') || '-'
+  const bodyType = resolveDisplayBodyTypeLabel(c.body_type || '', normalizedName, normalizedModel, c.name || '', c.model || '') || '-'
   const displacement = Number(c.displacement) || 0
   const engineVolume = resolveEngineVolume({
     displacement,
@@ -548,6 +551,7 @@ function mapCar(c) {
     transmission,
     driveType,
     bodyType,
+    rawBodyType: String(c.body_type || '').trim(),
     trimLevel: normalizeTrimLabel(c.trim_level || '') || extractTrimLabelFromTitle(normalizedName, normalizedModel, c.name || '', c.model || ''),
     keyInfo: normalizeKeyInfoLabel(c.key_info || ''),
     displacement,
@@ -654,7 +658,10 @@ export default function CatalogPage() {
               )
               if (inferredDrive) next.driveType = inferredDrive
             }
-            if ((!car.bodyType || car.bodyType === '-') && detail.bodyType) next.bodyType = detail.bodyType
+            if (isWeakBodyTypeLabel(car.rawBodyType || car.bodyType) && detail.bodyType) {
+              next.bodyType = detail.bodyType
+              next.rawBodyType = detail.bodyType
+            }
             if (!car.trimLevel && detail.trimLevel) next.trimLevel = detail.trimLevel
             if (!car.keyInfo && detail.keyInfo) next.keyInfo = detail.keyInfo
             if ((!car.displacement || !car.engineVolume) && detail.displacement) {

@@ -6,11 +6,13 @@ import {
   VAT_REFUND_RATE,
   extractTrimLabelFromTitle,
   getShortLocationLabel,
+  isWeakBodyTypeLabel,
   isWeakColorValue,
   normalizeColorLabel as normalizeVehicleColorLabel,
   normalizeInteriorColorLabel,
   normalizeKeyInfoLabel,
   normalizeTrimLabel,
+  resolveDisplayBodyTypeLabel,
   stripTrailingTrimLabel,
 } from '../lib/vehicleDisplay'
 
@@ -442,6 +444,7 @@ function normalizeBodyTypeLabel(value) {
   if (low.includes('truck') || low.includes('cargo') || text.includes('\uD654\uBB3C')) return '\u0413\u0440\u0443\u0437\u043E\u0432\u043E\u0439 / \u043F\u0438\u043A\u0430\u043F'
   if (low === 'rv' || low.includes('suv')) return '\u041A\u0440\u043E\u0441\u0441\u043E\u0432\u0435\u0440 / \u0432\u043D\u0435\u0434\u043E\u0440\u043E\u0436\u043D\u0438\u043A'
   if (low.includes('sedan') || text.includes('\uC138\uB2E8')) return '\u0421\u0435\u0434\u0430\u043D'
+  if (low.includes('cabrio') || low.includes('cabriolet') || low.includes('convertible') || low.includes('\u043a\u0430\u0431\u0440\u0438\u043e\u043b\u0435\u0442') || text.includes('\uCEE8\uBC84\uD130\uBE14')) return '\u041A\u0430\u0431\u0440\u0438\u043E\u043B\u0435\u0442'
   if (low.includes('coupe') || text.includes('\uCFE0\uD398')) return '\u041A\u0443\u043F\u0435'
   if (low.includes('hatch') || text.includes('\uD574\uCE58\uBC31')) return '\u0425\u044D\u0442\u0447\u0431\u0435\u043A'
   if (low.includes('wagon') || text.includes('\uC65C\uAC74')) return '\u0423\u043D\u0438\u0432\u0435\u0440\u0441\u0430\u043B'
@@ -555,7 +558,7 @@ function mapCar(c) {
     encarId: c.encar_id || '-',
     createdAt: c.created_at,
     updatedAt: c.updated_at,
-    bodyType: normalizeDisplayText(c.body_type || '-') || '-',
+    bodyType: resolveDisplayBodyTypeLabel(c.body_type || '', normalizedName, normalizedModel, c.name || '', c.model || '') || '-',
     transmission: tags.find((t) => /автомат|механика|робот|cvt/i.test(String(t))) || '-',
     driveType: inferDriveType(
       driveSource,
@@ -582,7 +585,7 @@ function mapCarWithNormalizedSpecs(c) {
 
   return {
     ...base,
-    bodyType: normalizeBodyTypeLabel(c?.body_type || base.bodyType || '-') || '-',
+    bodyType: resolveDisplayBodyTypeLabel(c?.body_type || '', base.name, base.model, c?.name || '', c?.model || '') || base.bodyType || '-',
     transmission: normalizeTagLabel(c?.transmission || '') || pickTransmissionFromTags(tags) || base.transmission || '-',
     driveType: inferDriveType(
       driveSource,
@@ -624,8 +627,8 @@ function mergeCarWithEncar(baseCar, detail) {
     images,
     createdAt: detail?.manage?.firstAdvertisedDateTime || baseCar.createdAt,
     updatedAt: detail?.manage?.modifyDateTime || baseCar.updatedAt,
-    bodyType: shouldReplaceText(baseCar.bodyType)
-      ? (normalizeDisplayText(detail?.body_type || '') || baseCar.bodyType || '-')
+    bodyType: (shouldReplaceText(baseCar.bodyType) || isWeakBodyTypeLabel(baseCar.bodyType))
+      ? (resolveDisplayBodyTypeLabel(detail?.body_type || '', detail?.name || '', detail?.model || '', baseCar.name, baseCar.model) || baseCar.bodyType || '-')
       : baseCar.bodyType,
     transmission: shouldReplaceText(baseCar.transmission)
       ? (normalizeTagLabel(detail?.transmission || '') || baseCar.transmission || '-')
@@ -653,7 +656,7 @@ function mergeCarWithNormalizedEncar(baseCar, detail) {
 
   return {
     ...merged,
-    bodyType: normalizeBodyTypeLabel(detail?.body_type || merged.bodyType || '-') || merged.bodyType || '-',
+    bodyType: resolveDisplayBodyTypeLabel(detail?.body_type || '', detail?.name || '', detail?.model || '', merged.name, merged.model) || merged.bodyType || '-',
     transmission: normalizeTagLabel(detail?.transmission || '') || merged.transmission || '-',
     driveType: inferDriveType(
       detail?.drive_type,

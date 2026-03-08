@@ -125,6 +125,9 @@ function bodyPatterns(value) {
     return ['%suv%', '%внедорож%', '%кроссов%', `%${KO.crossover}%`, '%rv%']
   }
   if (low.includes('седан') || low.includes('sedan')) return ['%sedan%', '%седан%', `%${KO.sedan}%`]
+  if (low.includes('кабриолет') || low.includes('cabrio') || low.includes('cabriolet') || low.includes('convertible')) {
+    return ['%кабриолет%', '%cabrio%', '%cabriolet%', '%convertible%', '%컨버터블%']
+  }
   if (low.includes('хэтч') || low.includes('hatch')) return ['%hatch%', '%хэтч%', `%${KO.hatchback}%`]
   if (low.includes('универсал') || low.includes('wagon')) return ['%wagon%', '%универсал%', `%${KO.wagon}%`]
   if (low.includes('минивэн') || low.includes('van')) return ['%van%', '%minivan%', '%минивэн%', `%${KO.minivan}%`, `%${KO.van}%`]

@@ -98,6 +98,44 @@ const EMPTY_LOCAL_FILTERS = {
   brands: [], drive: [], fuel: [], body: [], bodyColor: [], interiorColor: [],
 }
 
+const BODY_ORDER = [
+  'Кроссовер / внедорожник',
+  'Седан',
+  'Купе',
+  'Кабриолет',
+  'Хэтчбек',
+  'Универсал',
+  'Минивэн',
+  'Пикап',
+  'Грузовой / пикап',
+  'Малый класс',
+  'Компактный класс',
+  'Средний класс',
+  'Бизнес-класс',
+  'Мини',
+]
+
+const DRIVE_ORDER = ['Передний (FWD)', 'Полный (AWD)', 'Полный (4WD)', 'Задний (RWD)']
+const FUEL_ORDER = ['Бензин', 'Дизель', 'Бензин (гибрид)', 'Электро', 'Газ (LPG)', 'Водород']
+const BRAND_RULES = [
+  [/^renault korea\b/i, 'Renault Korea'],
+  [/^renault\b/i, 'Renault Korea'],
+  [/^kg mobility\b/i, 'KG Mobility (SsangYong)'],
+  [/^ssangyong\b/i, 'KG Mobility (SsangYong)'],
+  [/^mercedes[-\s]*benz\b/i, 'Mercedes-Benz'],
+  [/^chevrolet\b/i, 'Chevrolet'],
+  [/^hyundai\b/i, 'Hyundai'],
+  [/^genesis\b/i, 'Genesis'],
+  [/^kia\b/i, 'Kia'],
+  [/^bmw\b/i, 'BMW'],
+  [/^audi\b/i, 'Audi'],
+  [/^toyota\b/i, 'Toyota'],
+  [/^honda\b/i, 'Honda'],
+  [/^volkswagen\b/i, 'Volkswagen'],
+  [/^nissan\b/i, 'Nissan'],
+  [/^lexus\b/i, 'Lexus'],
+]
+
 function normalizeArrayFilterValue(value) {
   if (Array.isArray(value)) {
     return value
@@ -139,6 +177,62 @@ function normalizeRangePair(minValue, maxValue) {
   const max = String(maxValue || '').trim()
   if (!min || !max) return [min, max]
   return Number(min) <= Number(max) ? [min, max] : [max, min]
+}
+
+function sortOptionItems(items, order = []) {
+  if (!Array.isArray(items)) return []
+  const rank = new Map(order.map((name, index) => [name, index]))
+  return [...items].sort((a, b) => {
+    const aRank = rank.has(a.name) ? rank.get(a.name) : Number.MAX_SAFE_INTEGER
+    const bRank = rank.has(b.name) ? rank.get(b.name) : Number.MAX_SAFE_INTEGER
+    if (aRank !== bRank) return aRank - bRank
+    if (b.count !== a.count) return b.count - a.count
+    return String(a.name).localeCompare(String(b.name), 'ru')
+  })
+}
+
+function normalizeBrandName(value) {
+  const text = String(value || '').trim()
+  if (!text || text === '-') return ''
+
+  for (const [pattern, label] of BRAND_RULES) {
+    if (pattern.test(text)) return label
+  }
+
+  const firstToken = text.split(/\s+/).find(Boolean) || ''
+  return firstToken
+}
+
+function buildLiveOptionCounts(cars, getValue, sortOrder = []) {
+  const acc = new Map()
+
+  for (const car of cars || []) {
+    const raw = getValue(car)
+    const values = Array.isArray(raw) ? raw : [raw]
+    for (const value of values) {
+      const name = String(value || '').trim()
+      if (!name || name === '-') continue
+      acc.set(name, (acc.get(name) || 0) + 1)
+    }
+  }
+
+  return sortOptionItems(
+    [...acc.entries()].map(([name, count]) => ({ name, count })),
+    sortOrder
+  )
+}
+
+function getNumericRange(cars, getValue) {
+  const values = (cars || [])
+    .map((car) => Number(getValue(car)))
+    .filter((value) => Number.isFinite(value) && value > 0)
+
+  if (!values.length) return null
+
+  return {
+    min: Math.min(...values),
+    max: Math.max(...values),
+  }
 }
 
 /* Цветовая карта для цветов кузова/салона (для отображения кружочков) */
@@ -348,14 +442,57 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
   // Local filter state
   const [local, setLocal] = useState(() => buildLocalFilters(filters))
 
+  const liveBrands = useMemo(
+    () => buildLiveOptionCounts(catalogCars, (car) => normalizeBrandName(car?.name || car?.model || '')),
+    [catalogCars]
+  )
+  const liveDriveTypes = useMemo(
+    () => buildLiveOptionCounts(catalogCars, (car) => car?.driveType, DRIVE_ORDER),
+    [catalogCars]
+  )
+  const liveFuelTypes = useMemo(
+    () => buildLiveOptionCounts(catalogCars, (car) => car?.fuelType, FUEL_ORDER),
+    [catalogCars]
+  )
+  const liveBodyTypes = useMemo(
+    () => buildLiveOptionCounts(catalogCars, (car) => car?.bodyType, BODY_ORDER),
+    [catalogCars]
+  )
   const liveBodyColors = useMemo(() => buildLiveColorOptions(catalogCars, 'bodyColor'), [catalogCars])
   const liveInteriorColors = useMemo(() => buildLiveColorOptions(catalogCars, 'interiorColor'), [catalogCars])
+  const liveYearRange = useMemo(() => getNumericRange(catalogCars, (car) => car?.year), [catalogCars])
+  const livePriceRange = useMemo(() => getNumericRange(catalogCars, (car) => car?.priceUSD), [catalogCars])
+  const liveMileageRange = useMemo(() => getNumericRange(catalogCars, (car) => car?.mileage), [catalogCars])
+  const brandOptions = useMemo(
+    () => (liveBrands.length ? liveBrands : options.brands),
+    [liveBrands, options.brands]
+  )
+  const driveOptions = useMemo(
+    () => (liveDriveTypes.length ? liveDriveTypes : options.driveTypes),
+    [liveDriveTypes, options.driveTypes]
+  )
+  const fuelOptions = useMemo(
+    () => (liveFuelTypes.length ? liveFuelTypes : options.fuelTypes),
+    [liveFuelTypes, options.fuelTypes]
+  )
+  const bodyTypeOptions = useMemo(
+    () => (liveBodyTypes.length ? liveBodyTypes : options.bodyTypes),
+    [liveBodyTypes, options.bodyTypes]
+  )
+  const bodyColorOptions = useMemo(
+    () => (liveBodyColors.length ? liveBodyColors : options.bodyColors),
+    [liveBodyColors, options.bodyColors]
+  )
+  const interiorColorOptions = useMemo(
+    () => (liveInteriorColors.length ? liveInteriorColors : options.interiorColors),
+    [liveInteriorColors, options.interiorColors]
+  )
   const years = useMemo(() => {
-    const min = Number(options?.yearRange?.min_year) || 1990
-    const max = Number(options?.yearRange?.max_year) || new Date().getFullYear()
+    const min = liveYearRange?.min || Number(options?.yearRange?.min_year) || 1990
+    const max = liveYearRange?.max || Number(options?.yearRange?.max_year) || new Date().getFullYear()
     const length = Math.max(0, max - min + 1)
     return Array.from({ length }, (_, i) => max - i)
-  }, [options?.yearRange])
+  }, [liveYearRange, options?.yearRange])
 
   useEffect(() => {
     setLocal(buildLocalFilters(filters))
@@ -423,7 +560,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
     onFiltersChange({})
   }
 
-  const filteredBrands = options.brands.filter(b =>
+  const filteredBrands = brandOptions.filter(b =>
     b.name.toLowerCase().includes(brandSearch.toLowerCase())
   )
 
@@ -455,7 +592,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">От ($)</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={options.priceRange ? Math.round(options.priceRange.min_price) : '0'}
+                  placeholder={livePriceRange ? Math.round(livePriceRange.min) : (options.priceRange ? Math.round(options.priceRange.min_price) : '0')}
                   value={local.minPrice}
                   onChange={e => setL('minPrice', e.target.value)}
                 />
@@ -464,7 +601,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">До ($)</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={options.priceRange ? Math.round(options.priceRange.max_price) : '100000'}
+                  placeholder={livePriceRange ? Math.round(livePriceRange.max) : (options.priceRange ? Math.round(options.priceRange.max_price) : '100000')}
                   value={local.maxPrice}
                   onChange={e => setL('maxPrice', e.target.value)}
                 />
@@ -515,7 +652,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">От</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={options.mileageRange ? options.mileageRange.min_mileage : '0'}
+                  placeholder={liveMileageRange ? liveMileageRange.min : (options.mileageRange ? options.mileageRange.min_mileage : '0')}
                   value={local.minMileage}
                   onChange={e => setL('minMileage', e.target.value)}
                 />
@@ -524,7 +661,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">До</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={options.mileageRange ? options.mileageRange.max_mileage : '200000'}
+                  placeholder={liveMileageRange ? liveMileageRange.max : (options.mileageRange ? options.mileageRange.max_mileage : '200000')}
                   value={local.maxMileage}
                   onChange={e => setL('maxMileage', e.target.value)}
                 />
@@ -572,7 +709,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
         {open.drive && (
           <div className="filter-section-body">
             <CheckboxList
-              items={options.driveTypes}
+              items={driveOptions}
               selected={local.drive}
               onToggle={name => toggleItem('drive', name)}
             />
@@ -590,7 +727,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
           <div className="filter-section-body">
             <div className="filter-subsection-title">Топливо</div>
             <CheckboxList
-              items={options.fuelTypes}
+              items={fuelOptions}
               selected={local.fuel}
               onToggle={name => toggleItem('fuel', name)}
             />
@@ -607,7 +744,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
         {open.body && (
           <div className="filter-section-body">
             <CheckboxList
-              items={options.bodyTypes}
+              items={bodyTypeOptions}
               selected={local.body}
               onToggle={name => toggleItem('body', name)}
             />
@@ -624,7 +761,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
         {open.bodyColor && (
           <div className="filter-section-body">
             <ColorGrid
-              colors={liveBodyColors.length ? liveBodyColors : options.bodyColors}
+              colors={bodyColorOptions}
               selected={local.bodyColor}
               onToggle={name => toggleItem('bodyColor', name)}
               showMoreLabel="цветов"
@@ -642,7 +779,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
         {open.interiorColor && (
           <div className="filter-section-body">
             <ColorGrid
-              colors={liveInteriorColors.length ? liveInteriorColors : options.interiorColors}
+              colors={interiorColorOptions}
               selected={local.interiorColor}
               onToggle={name => toggleItem('interiorColor', name)}
               showMoreLabel="цветов"

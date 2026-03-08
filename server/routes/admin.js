@@ -194,13 +194,16 @@ function normalizeBody(value) {
   ) {
     return 'Внедорожники и кроссоверы'
   }
-  if (low.includes('sedan') || low.includes('седан') || src.includes(KO.sedan)) return 'Седаны'
+  if (low.includes('sedan') || low.includes('седан') || src.includes(KO.sedan)) return 'Седан'
+  if (low.includes('кабриолет') || low.includes('cabrio') || low.includes('cabriolet') || low.includes('convertible') || src.includes('컨버터블')) {
+    return 'Кабриолет'
+  }
   if (low.includes('hatch') || low.includes('хэтч') || src.includes(KO.hatchback)) return 'Хэтчбеки'
   if (low.includes('wagon') || low.includes('универсал') || src.includes(KO.wagon)) return 'Универсалы'
   if (low.includes('van') || low.includes('minivan') || low.includes('минивэн') || src.includes(KO.minivan) || src.includes(KO.van)) {
     return 'Минивэны'
   }
-  if (low.includes('coupe') || low.includes('купе') || low.includes('спорт') || src.includes(KO.coupe)) return 'Купе и спорткары'
+  if (low.includes('coupe') || low.includes('купе') || low.includes('спорт') || src.includes(KO.coupe)) return 'Купе'
   if (low.includes('truck') || low.includes('груз') || src.includes(KO.truck) || src.includes(KO.cargo)) return 'Грузовики'
 
   return ''

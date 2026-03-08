@@ -8,6 +8,7 @@ import {
   normalizeFuel,
   normalizeInteriorColorName,
   normalizeManufacturer,
+  resolveBodyType,
   normalizeTransmission,
   normalizeTrimLevel,
 } from '../lib/vehicleData.js'
@@ -60,6 +61,15 @@ function mapCar(raw, exchangeSnapshot) {
     raw.Name,
   )
   const body_color = normalizeColorName(raw.Color || '')
+  const body_type = resolveBodyType(
+    raw.BodyType || raw.Body || raw.Shape || '',
+    raw.Model,
+    raw.Badge,
+    raw.Name,
+    raw.SubModel,
+    raw.Grade,
+    raw.BadgeDetail,
+  )
   const interior_raw =
     raw.InteriorColor ||
     raw.InteriorColorName ||
@@ -118,7 +128,7 @@ function mapCar(raw, exchangeSnapshot) {
     fuel_type,
     transmission,
     drive_type,
-    body_type: '',
+    body_type: body_type || '',
     trim_level,
     key_info: '',
     body_color,

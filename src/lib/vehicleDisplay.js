@@ -117,6 +117,19 @@ const SUSPICIOUS_DUPLICATE_INTERIOR_COLORS = new Set([
   'Графитовый',
 ])
 
+const BODY_CLASS_LABELS = new Set([
+  'Малый класс',
+  'Компактный класс',
+  'Средний класс',
+  'Бизнес-класс',
+])
+
+const SEDAN_BODY_HINT_RE = /\b(k3|k5|k7|k8|k9|avante|elantra|sonata|grandeur|g70|g80|g90|eq900|sm3|sm5|sm6|sm7|malibu|impala|cts|s80|s90|camry|accord)\b/i
+const HATCH_BODY_HINT_RE = /\b(i30|ceed|cee['’ -]?d|picanto|morning|spark|matiz|golf|polo|veloster|brio)\b/i
+const WAGON_BODY_HINT_RE = /\b(wagon|estate|touring|shooting\s*brake)\b/i
+const COUPE_BODY_HINT_RE = /\b(coupe|genesis\s+coupe|86|brz)\b/i
+const CABRIO_BODY_HINT_RE = /\b(cabrio|cabriolet|convertible|roadster)\b/i
+
 function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim()
 }
@@ -195,6 +208,52 @@ export function stripTrailingTrimLabel(value, trimLabel) {
 
   const pattern = new RegExp(`(?:\\s+|[(/-])${escapeRegex(trim)}\\)?$`, 'i')
   return text.replace(pattern, '').replace(/\s+/g, ' ').trim()
+}
+
+function inferPassengerBodyTypeFromText(...values) {
+  const text = values
+    .map((value) => cleanText(value))
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  if (!text) return ''
+  if (CABRIO_BODY_HINT_RE.test(text)) return 'Кабриолет'
+  if (WAGON_BODY_HINT_RE.test(text)) return 'Универсал'
+  if (COUPE_BODY_HINT_RE.test(text)) return 'Купе'
+  if (HATCH_BODY_HINT_RE.test(text) || /\bhatch|sportback|fastback|liftback\b/i.test(text)) return 'Хэтчбек'
+  if (SEDAN_BODY_HINT_RE.test(text) || /\bsedan\b/i.test(text)) return 'Седан'
+  return ''
+}
+
+export function isWeakBodyTypeLabel(value) {
+  const text = cleanText(value)
+  if (!text || text === '-') return true
+  return BODY_CLASS_LABELS.has(text)
+}
+
+export function resolveDisplayBodyTypeLabel(bodyValue, ...contextValues) {
+  const normalized = cleanText(bodyValue)
+  const actual = inferPassengerBodyTypeFromText(normalized, ...contextValues)
+
+  if (
+    normalized === 'Мини' ||
+    normalized === 'Кроссовер / внедорожник' ||
+    normalized === 'Пикап' ||
+    normalized === 'Грузовой / пикап' ||
+    normalized === 'Минивэн' ||
+    normalized === 'Седан' ||
+    normalized === 'Купе' ||
+    normalized === 'Кабриолет' ||
+    normalized === 'Хэтчбек' ||
+    normalized === 'Универсал'
+  ) {
+    return normalized
+  }
+
+  if (actual) return actual
+  if (BODY_CLASS_LABELS.has(normalized)) return ''
+  return normalized
 }
 
 export function normalizeColorLabel(value) {

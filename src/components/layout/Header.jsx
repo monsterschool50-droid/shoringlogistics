@@ -95,7 +95,6 @@ export default function Header() {
       else params.delete('q')
 
       navigate(`/catalog${params.toString() ? `?${params}` : ''}`, { replace: true })
-      setMobileOpen(false)
       setSearchDirty(false)
     }, 250)
 
