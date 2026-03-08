@@ -171,8 +171,8 @@ const HATCH_BODY_HINT_RE = /\b(ioniq|aionik|i30|ceed|cee['’ -]?d|picanto|morni
 const WAGON_BODY_HINT_RE = /\b(wagon|estate|touring|shooting\s*brake)\b/i
 const COUPE_BODY_HINT_RE = /\b(coupe|genesis\s+coupe|86|brz)\b/i
 const CABRIO_BODY_HINT_RE = /\b(cabrio|cabriolet|convertible|roadster)\b/i
-const KOREAN_VEHICLE_ORIGIN_RE = /\b(kia|hyundai|genesis|chevrolet|daewoo|renault(?:\s+korea|\s+samsung)?|renault samsung|reunokoria|samsung|samseong|ssangyong|kg\s*mobility|kgmobilriti)\b/i
-const KOREAN_VEHICLE_MODEL_RE = /\b(sm3|sm5|sm6|sm7|qm3|qm5|qm6|xm3|k3|k5|k7|k8|k9|g70|g80|g90|gv60|gv70|gv80|eq900|avante|elantra|sonata|grandeur|azera|santafe|santa\s*fe|tucson|palisade|staria|starex|porter|bongo|casper|morning|ray|carnival|sorento|sportage|seltos|mohave|niro|kona|orlando|trax|malibu|spark|matiz|rexton|korando|tivoli|torres|musso|bolteu|bolt|ioniq|aionik|veloster)\b/i
+const KOREAN_VEHICLE_ORIGIN_RE = /\b(kia|gia|hyundai|hyeondae|genesis|jenesiseu|chevrolet|daewoo|renault(?:\s+korea|\s+samsung)?|renault samsung|reunokoria|samsung|samseong|ssangyong|kg\s*mobility|kgmobilriti)\b/i
+const KOREAN_VEHICLE_MODEL_RE = /\b(sm3|sm5|sm6|sm7|qm3|qm5|qm6|xm3|k3|k5|k7|k8|k9|g70|g80|g90|gv60|gv70|gv80|eq900|avante|elantra|sonata|grandeur|azera|santafe|santa\s*fe|tucson|palisade|staria|starex|porter|bongo|casper|morning|ray|carnival|sorento|sportage|seltos|mohave|niro|kona|orlando|trax|malibu|spark|matiz|rexton|korando|tivoli|torres|musso|bolteu|bolt|ioniq|aionik|veloster|soul|ssoul|ev3|ev4|ev5|ev6|ev9)\b/i
 
 function normalizeRawBodyLabel(value) {
   const raw = cleanText(value)

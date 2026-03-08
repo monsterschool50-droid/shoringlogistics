@@ -289,6 +289,13 @@ function normalizeDisplayText(value) {
 }
 
 const VEHICLE_NAME_FIXES = [
+  [/\bgia\b/gi, 'Kia'],
+  [/\bhyeondae\b/gi, 'Hyundai'],
+  [/\bjenesiseu\b/gi, 'Genesis'],
+  [/\bssoul\b/gi, 'Soul'],
+  [/\bev\s+ev\b/gi, 'EV'],
+  [/\(\s*sinhyeong\s*\)/gi, ''],
+  [/\bsinhyeong\b/gi, ''],
   [/renault[-\s]*korea\s*\(\s*samseong\s*\)/gi, 'Renault Korea'],
   [/renault[-\s]*korea\s*samsung/gi, 'Renault Korea'],
   [/renault samsung/gi, 'Renault Korea'],

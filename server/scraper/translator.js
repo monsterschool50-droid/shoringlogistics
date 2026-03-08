@@ -167,6 +167,13 @@ const MODEL_NAME_MAP = {
 }
 
 const VEHICLE_TITLE_FIXES = [
+  [/\bgia\b/gi, 'Kia'],
+  [/\bhyeondae\b/gi, 'Hyundai'],
+  [/\bjenesiseu\b/gi, 'Genesis'],
+  [/\bssoul\b/gi, 'Soul'],
+  [/\bev\s+ev\b/gi, 'EV'],
+  [/\(\s*sinhyeong\s*\)/gi, ''],
+  [/\bsinhyeong\b/gi, ''],
   [/kgmobilriti\s*\(\s*ssangyong\s*\)/gi, 'KG Mobility (SsangYong)'],
   [/kgmobilriti/gi, 'KG Mobility'],
   [/ssangyong/gi, 'SsangYong'],

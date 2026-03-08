@@ -495,7 +495,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
   const livePriceRange = useMemo(() => getNumericRange(catalogCars, (car) => car?.priceUSD), [catalogCars])
   const liveMileageRange = useMemo(() => getNumericRange(catalogCars, (car) => car?.mileage), [catalogCars])
   const brandOptions = useMemo(
-    () => (liveBrands.length ? liveBrands : options.brands),
+    () => (options.brands?.length ? mergeOptionItems(options.brands, liveBrands) : liveBrands),
     [liveBrands, options.brands]
   )
   const originOptions = useMemo(
@@ -503,31 +503,43 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
     [liveOrigins, options.originTypes]
   )
   const driveOptions = useMemo(
-    () => (liveDriveTypes.length ? liveDriveTypes : options.driveTypes),
+    () => (options.driveTypes?.length ? mergeOptionItems(options.driveTypes, liveDriveTypes, DRIVE_ORDER) : liveDriveTypes),
     [liveDriveTypes, options.driveTypes]
   )
   const fuelOptions = useMemo(
-    () => (liveFuelTypes.length ? liveFuelTypes : options.fuelTypes),
+    () => (options.fuelTypes?.length ? mergeOptionItems(options.fuelTypes, liveFuelTypes, FUEL_ORDER) : liveFuelTypes),
     [liveFuelTypes, options.fuelTypes]
   )
   const bodyTypeOptions = useMemo(
-    () => (liveBodyTypes.length ? liveBodyTypes : options.bodyTypes),
+    () => (options.bodyTypes?.length ? mergeOptionItems(options.bodyTypes, liveBodyTypes, BODY_ORDER) : liveBodyTypes),
     [liveBodyTypes, options.bodyTypes]
   )
   const bodyColorOptions = useMemo(
-    () => (liveBodyColors.length ? liveBodyColors : options.bodyColors),
+    () => (options.bodyColors?.length ? mergeOptionItems(options.bodyColors, liveBodyColors) : liveBodyColors),
     [liveBodyColors, options.bodyColors]
   )
   const interiorColorOptions = useMemo(
-    () => (liveInteriorColors.length ? liveInteriorColors : options.interiorColors),
+    () => (options.interiorColors?.length ? mergeOptionItems(options.interiorColors, liveInteriorColors) : liveInteriorColors),
     [liveInteriorColors, options.interiorColors]
   )
+  const effectiveYearRange = useMemo(() => ({
+    min: Number(options?.yearRange?.min_year) || liveYearRange?.min || 1990,
+    max: Number(options?.yearRange?.max_year) || liveYearRange?.max || new Date().getFullYear(),
+  }), [liveYearRange, options?.yearRange])
+  const effectivePriceRange = useMemo(() => ({
+    min: Number(options?.priceRange?.min_price) || livePriceRange?.min || 0,
+    max: Number(options?.priceRange?.max_price) || livePriceRange?.max || 100000,
+  }), [livePriceRange, options?.priceRange])
+  const effectiveMileageRange = useMemo(() => ({
+    min: Number(options?.mileageRange?.min_mileage) || liveMileageRange?.min || 0,
+    max: Number(options?.mileageRange?.max_mileage) || liveMileageRange?.max || 500000,
+  }), [liveMileageRange, options?.mileageRange])
   const years = useMemo(() => {
-    const min = liveYearRange?.min || Number(options?.yearRange?.min_year) || 1990
-    const max = liveYearRange?.max || Number(options?.yearRange?.max_year) || new Date().getFullYear()
+    const min = effectiveYearRange.min
+    const max = effectiveYearRange.max
     const length = Math.max(0, max - min + 1)
     return Array.from({ length }, (_, i) => max - i)
-  }, [liveYearRange, options?.yearRange])
+  }, [effectiveYearRange])
 
   useEffect(() => {
     setLocal(buildLocalFilters(filters))
@@ -629,7 +641,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">От ($)</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={livePriceRange ? Math.round(livePriceRange.min) : (options.priceRange ? Math.round(options.priceRange.min_price) : '0')}
+                  placeholder={Math.round(effectivePriceRange.min)}
                   value={local.minPrice}
                   onChange={e => setL('minPrice', e.target.value)}
                 />
@@ -638,7 +650,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">До ($)</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={livePriceRange ? Math.round(livePriceRange.max) : (options.priceRange ? Math.round(options.priceRange.max_price) : '100000')}
+                  placeholder={Math.round(effectivePriceRange.max)}
                   value={local.maxPrice}
                   onChange={e => setL('maxPrice', e.target.value)}
                 />
@@ -689,7 +701,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">От</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={liveMileageRange ? liveMileageRange.min : (options.mileageRange ? options.mileageRange.min_mileage : '0')}
+                  placeholder={effectiveMileageRange.min}
                   value={local.minMileage}
                   onChange={e => setL('minMileage', e.target.value)}
                 />
@@ -698,7 +710,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
                 <label className="filter-label">До</label>
                 <input
                   type="number" className="filter-input"
-                  placeholder={liveMileageRange ? liveMileageRange.max : (options.mileageRange ? options.mileageRange.max_mileage : '200000')}
+                  placeholder={effectiveMileageRange.max}
                   value={local.maxMileage}
                   onChange={e => setL('maxMileage', e.target.value)}
                 />
