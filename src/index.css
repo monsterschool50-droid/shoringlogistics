@@ -2893,6 +2893,13 @@ body {
   gap: 12px 18px;
 }
 
+.car-details-history-note {
+  margin: 10px 0 0;
+  color: #6d859d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 @media (max-width: 860px) {
   .car-details-history-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

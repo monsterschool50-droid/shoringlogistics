@@ -248,6 +248,104 @@ function formatInspectionDate(value) {
   return text
 }
 
+function formatInspectionDateRange(value) {
+  const text = String(value || '').trim()
+  if (!text) return '-'
+
+  const matches = [...text.matchAll(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/g)]
+  if (!matches.length) return text
+  if (matches.length === 1) return formatInspectionDate(matches[0][0])
+
+  return `${formatInspectionDate(matches[0][0])} - ${formatInspectionDate(matches[1][0])}`
+}
+
+function normalizeInspectionValue(value) {
+  const text = String(value || '').trim()
+  if (!text) return '-'
+
+  if (/\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일/.test(text)) {
+    return formatInspectionDateRange(text)
+  }
+
+  if (/^\uBCF4\uD5D8\uC0AC\uBCF4\uC99D$/u.test(text)) return 'Страховая гарантия'
+  if (/^\uC81C\uC870\uC0AC\uBCF4\uC99D$/u.test(text)) return 'Гарантия производителя'
+  if (/^\uC624\uD1A0$/u.test(text)) return 'Автомат'
+  if (/^\uC218\uB3D9$/u.test(text)) return 'Механика'
+  if (/^\uB514\uC824$/u.test(text)) return 'Дизель'
+  if (/^\uAC00\uC194\uB9B0$/u.test(text)) return 'Бензин'
+  if (/^\uC804\uAE30$/u.test(text)) return 'Электро'
+  if (/^\uD558\uC774\uBE0C\uB9AC\uB4DC$/u.test(text)) return 'Гибрид'
+  if (/^\uC788\uC74C$/u.test(text)) return 'Есть'
+  if (/^\uC5C6\uC74C$/u.test(text)) return 'Нет'
+  if (/^\uD574\uB2F9\uC5C6\uC74C$/u.test(text)) return 'Не применяется'
+  if (/^\uC774\uD589$/u.test(text)) return 'Выполнен'
+
+  return text
+}
+
+function getInspectionBasicValue(inspection, label) {
+  const items = Array.isArray(inspection?.basicInfo?.items) ? inspection.basicInfo.items : []
+  const match = items.find((item) => item?.label === label)
+  return normalizeInspectionValue(match?.value || '')
+}
+
+function getInspectionSummaryText(inspection, label) {
+  const rows = Array.isArray(inspection?.summary) ? inspection.summary : []
+  const row = rows.find((item) => item?.label === label)
+  if (!row) return '-'
+
+  const parts = [
+    ...(Array.isArray(row.states) ? row.states : []).map(normalizeInspectionValue),
+    normalizeInspectionValue(row.detail || ''),
+    normalizeInspectionValue(row.note || ''),
+  ]
+    .filter(Boolean)
+    .filter((item) => item !== '-')
+
+  return parts.length ? parts.join(', ') : '-'
+}
+
+function getDiagnosisLabel(flags) {
+  if (!flags || !Object.keys(flags).length) return '-'
+  return flags.diagnosis ? 'Доступна' : 'Нет'
+}
+
+function getReregistrationLabel(manage) {
+  if (!manage || typeof manage.reRegistered !== 'boolean') return '-'
+  return manage.reRegistered ? 'Да' : 'Нет'
+}
+
+function buildRegistrationHistoryEntries(car) {
+  const inspection = car?.inspection
+  const manage = car?.detailManage || {}
+  const condition = car?.detailCondition || {}
+
+  const entries = [
+    { label: 'Год', value: car?.year || '-' },
+    { label: 'Первая регистрация', value: getInspectionBasicValue(inspection, 'Первая регистрация') },
+    { label: 'Номер автомобиля', value: car?.vehicleNo || '—' },
+    { label: 'VIN', value: car?.vin || '—' },
+    { label: 'Срок осмотра', value: getInspectionBasicValue(inspection, 'Срок действия осмотра') },
+    { label: 'Тип гарантии', value: getInspectionBasicValue(inspection, 'Тип гарантии') },
+    { label: 'Перерегистрация', value: getReregistrationLabel(manage) },
+    { label: 'Юридический статус', value: getLegalStatusLabel(condition) },
+    { label: 'Аварийная история', value: getAccidentHistoryLabel(condition) },
+    { label: 'Состояние одометра', value: getInspectionSummaryText(inspection, 'Состояние одометра') },
+    { label: 'Пробег по отчёту', value: getInspectionSummaryText(inspection, 'Пробег') },
+    { label: 'Маркировка VIN', value: getInspectionSummaryText(inspection, 'Маркировка VIN') },
+    { label: 'Особая история', value: getInspectionSummaryText(inspection, 'Особая история') },
+    { label: 'Изменение назначения', value: getInspectionSummaryText(inspection, 'Изменение назначения') },
+    { label: 'Под отзыв', value: getInspectionSummaryText(inspection, 'Под отзыв') },
+    { label: 'Диагностика Encar', value: getDiagnosisLabel(car?.detailFlags) },
+    { label: 'На Encar с', value: formatDate(manage.firstAdvertisedDateTime || car?.createdAt) },
+    { label: 'Обновлено на Encar', value: formatDate(manage.modifyDateTime || car?.updatedAt) },
+    { label: 'Просмотры', value: Number.isFinite(Number(manage.viewCount)) ? String(Number(manage.viewCount)) : '-' },
+    { label: 'Подписчики', value: Number.isFinite(Number(manage.subscribeCount)) ? String(Number(manage.subscribeCount)) : '-' },
+  ]
+
+  return entries.filter((entry) => entry.value && entry.value !== '-' && entry.value !== '—')
+}
+
 function translateInspectionText(value) {
   const text = String(value || '').trim()
   if (!text) return ''
@@ -835,6 +933,7 @@ export default function CarDetailsPage() {
   const boundedIdx = Math.min(imgIdx, imageCount - 1)
   const imageSrc = car?.images?.[boundedIdx]?.url || ''
   const inspectionGroups = useMemo(() => groupInspectionRows(car?.inspection?.detailStatus || []), [car?.inspection])
+  const registrationHistoryEntries = useMemo(() => buildRegistrationHistoryEntries(car), [car])
 
   const calcYearValue = useMemo(() => parseCalcYearInput(calc.year, calcDefaults.year), [calc.year, calcDefaults.year])
   const calcEngineValue = useMemo(() => parseCalcEngineInput(calc.engine, calcDefaults.engine), [calc.engine, calcDefaults.engine])
@@ -1175,13 +1274,17 @@ export default function CarDetailsPage() {
         </section>
 
         <section className="car-details-card car-details-bottom-card">
-          <h3 className="car-details-card-title">Статус объявления Encar</h3>
+          <h3 className="car-details-card-title">История и регистрация Encar</h3>
+          <p className="car-details-history-note">
+            Показываем только подтвержденные данные Encar. Полная страховая история и смены владельцев доступны не для всех объявлений.
+          </p>
           <div className="car-details-history-grid">
-            <div><span>Год</span><strong>{car.year || '-'}</strong></div>
-            <div><span>Номер авто</span><strong>{car.vehicleNo || '—'}</strong></div>
-            <div><span>VIN</span><strong>{car.vin || '—'}</strong></div>
-            <div><span>Юридический статус</span><strong>{getLegalStatusLabel(car.detailCondition)}</strong></div>
-            <div><span>Аварийная история</span><strong>{getAccidentHistoryLabel(car.detailCondition)}</strong></div>
+            {registrationHistoryEntries.map((entry) => (
+              <div key={entry.label}>
+                <span>{entry.label}</span>
+                <strong>{entry.value}</strong>
+              </div>
+            ))}
           </div>
         </section>
       </div>
