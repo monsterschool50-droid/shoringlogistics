@@ -192,6 +192,12 @@ function getAccidentHistoryLabel(condition) {
   return 'Без отметок'
 }
 
+function formatCountLabel(value, emptyLabel) {
+  const count = Number(value || 0)
+  if (!Number.isFinite(count) || count <= 0) return emptyLabel
+  return `Количество: ${count}`
+}
+
 const INSPECTION_RU_MAP = {
   'Inspection and diagnostics': 'Инспекция и диагностика',
   'Inspection photos': 'Фотографии инспекции',
@@ -315,10 +321,16 @@ function getReregistrationLabel(manage) {
   return manage.reRegistered ? 'Да' : 'Нет'
 }
 
+function getInspectionReportDate(inspection) {
+  const signatureDate = inspection?.signatures?.date || ''
+  if (signatureDate) return formatInspectionDate(signatureDate)
+  const certificateDate = inspection?.basicInfo?.certificate || ''
+  return certificateDate ? formatInspectionDate(certificateDate) : '-'
+}
+
 function buildRegistrationHistoryEntries(car) {
   const inspection = car?.inspection
   const manage = car?.detailManage || {}
-  const condition = car?.detailCondition || {}
 
   const entries = [
     { label: 'Год', value: car?.year || '-' },
@@ -327,15 +339,11 @@ function buildRegistrationHistoryEntries(car) {
     { label: 'VIN', value: car?.vin || '—' },
     { label: 'Срок осмотра', value: getInspectionBasicValue(inspection, 'Срок действия осмотра') },
     { label: 'Тип гарантии', value: getInspectionBasicValue(inspection, 'Тип гарантии') },
+    { label: 'Дата отчета', value: getInspectionReportDate(inspection) },
     { label: 'Перерегистрация', value: getReregistrationLabel(manage) },
-    { label: 'Юридический статус', value: getLegalStatusLabel(condition) },
-    { label: 'Аварийная история', value: getAccidentHistoryLabel(condition) },
     { label: 'Состояние одометра', value: getInspectionSummaryText(inspection, 'Состояние одометра') },
     { label: 'Пробег по отчёту', value: getInspectionSummaryText(inspection, 'Пробег') },
     { label: 'Маркировка VIN', value: getInspectionSummaryText(inspection, 'Маркировка VIN') },
-    { label: 'Особая история', value: getInspectionSummaryText(inspection, 'Особая история') },
-    { label: 'Изменение назначения', value: getInspectionSummaryText(inspection, 'Изменение назначения') },
-    { label: 'Под отзыв', value: getInspectionSummaryText(inspection, 'Под отзыв') },
     { label: 'Диагностика Encar', value: getDiagnosisLabel(car?.detailFlags) },
     { label: 'На Encar с', value: formatDate(manage.firstAdvertisedDateTime || car?.createdAt) },
     { label: 'Обновлено на Encar', value: formatDate(manage.modifyDateTime || car?.updatedAt) },
@@ -344,6 +352,37 @@ function buildRegistrationHistoryEntries(car) {
   ]
 
   return entries.filter((entry) => entry.value && entry.value !== '-' && entry.value !== '—')
+}
+
+function buildAccidentHistoryEntries(car) {
+  const inspection = car?.inspection
+  const condition = car?.detailCondition || {}
+
+  const entries = [
+    { label: 'Аварийная запись Encar', value: getAccidentHistoryLabel(condition) },
+    { label: 'Детальная сводка аварий', value: condition.accidentResumeView ? 'Доступна' : 'Нет' },
+    { label: 'Залог', value: formatCountLabel(condition.pledgeCount, 'Без залога') },
+    { label: 'Арест / ограничения', value: formatCountLabel(condition.seizingCount, 'Без ограничений') },
+    { label: 'Юридический статус', value: getLegalStatusLabel(condition) },
+    { label: 'Особая история', value: getInspectionSummaryText(inspection, 'Особая история') },
+    { label: 'Изменение назначения', value: getInspectionSummaryText(inspection, 'Изменение назначения') },
+    { label: 'Под отзыв', value: getInspectionSummaryText(inspection, 'Под отзыв') },
+    { label: 'Маркировка VIN', value: getInspectionSummaryText(inspection, 'Маркировка VIN') },
+    { label: 'Состояние одометра', value: getInspectionSummaryText(inspection, 'Состояние одометра') },
+    { label: 'Тип окраса', value: getInspectionSummaryText(inspection, 'Тип окраса') },
+  ]
+
+  return entries.filter((entry) => entry.value && entry.value !== '-' && entry.value !== '—')
+}
+
+function buildRepairHistoryItems(car) {
+  const rows = Array.isArray(car?.inspection?.repairHistory) ? car.inspection.repairHistory : []
+  return rows
+    .map((item) => ({
+      label: translateInspectionText(item?.label || '-'),
+      value: translateInspectionText(item?.value || '-'),
+    }))
+    .filter((item) => item.label && item.label !== '-' && item.value && item.value !== '-')
 }
 
 function translateInspectionText(value) {
@@ -936,6 +975,8 @@ export default function CarDetailsPage() {
   const imageSrc = car?.images?.[boundedIdx]?.url || ''
   const inspectionGroups = useMemo(() => groupInspectionRows(car?.inspection?.detailStatus || []), [car?.inspection])
   const registrationHistoryEntries = useMemo(() => buildRegistrationHistoryEntries(car), [car])
+  const accidentHistoryEntries = useMemo(() => buildAccidentHistoryEntries(car), [car])
+  const repairHistoryItems = useMemo(() => buildRepairHistoryItems(car), [car])
   const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
   const inspectionSummary = Array.isArray(car?.inspection?.summary) ? car.inspection.summary : []
 
@@ -1305,6 +1346,43 @@ export default function CarDetailsPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="car-details-card car-details-bottom-card">
+          <h3 className="car-details-card-title">Аварийная история Encar</h3>
+          <p className="car-details-history-note">
+            Блок собран из официальных статусов объявления Encar и inspection-отчета: аварийные отметки, юридические ограничения и подтвержденные записи о ремонтах.
+          </p>
+          {accidentHistoryEntries.length ? (
+            <div className="car-details-history-grid">
+              {accidentHistoryEntries.map((entry) => (
+                <div key={entry.label}>
+                  <span>{entry.label}</span>
+                  <strong>{entry.value}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="car-details-muted">Подтвержденных аварийных или юридических записей Encar по этой машине сейчас нет.</p>
+          )}
+
+          {repairHistoryItems.length > 0 && (
+            <div className="car-inspection-block">
+              <h4 className="car-inspection-title">История ремонтов и замен</h4>
+              <div className="car-inspection-group">
+                <div className="car-inspection-group-list">
+                  {repairHistoryItems.map((item, index) => (
+                    <div key={`${item.label}-${index}`} className="car-inspection-line">
+                      <div>
+                        <span>{item.label}</span>
+                      </div>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
