@@ -188,8 +188,8 @@ function getLegalStatusLabel(condition) {
 
 function getAccidentHistoryLabel(condition) {
   if (!condition || !Object.keys(condition).length) return '-'
-  if (condition.accidentRecordView || condition.accidentResumeView) return 'Есть запись'
-  return 'Без отметок'
+  if (condition.accidentRecordView || condition.accidentResumeView) return 'Есть запись в истории Encar'
+  return 'Записей не найдено'
 }
 
 function formatCountLabel(value, emptyLabel) {
@@ -359,8 +359,8 @@ function buildAccidentHistoryEntries(car) {
   const condition = car?.detailCondition || {}
 
   const entries = [
-    { label: 'Аварийная запись Encar', value: getAccidentHistoryLabel(condition) },
-    { label: 'Детальная сводка аварий', value: condition.accidentResumeView ? 'Доступна' : 'Нет' },
+    { label: 'Записи в истории Encar', value: getAccidentHistoryLabel(condition) },
+    { label: 'Подробная запись', value: condition.accidentResumeView ? 'Доступна' : 'Нет' },
     { label: 'Залог', value: formatCountLabel(condition.pledgeCount, 'Без залога') },
     { label: 'Арест / ограничения', value: formatCountLabel(condition.seizingCount, 'Без ограничений') },
     { label: 'Юридический статус', value: getLegalStatusLabel(condition) },
@@ -405,6 +405,9 @@ function translateInspectionText(value) {
   if (text === '해당없음') return 'Не применяется'
   if (text === '미세누유' || text === '미세누수') return 'Незначительная течь'
   if (text === '누유' || text === '누수') return 'Утечка'
+  if (/일산화탄소/u.test(text) && /탄화수소/u.test(text)) return 'Оксид углерода (CO), углеводороды (HC)'
+  if (text === '일산화탄소') return 'Оксид углерода (CO)'
+  if (text === '탄화수소') return 'Углеводороды (HC)'
   if (text === '전면') return 'Передняя часть'
   if (text === '후면') return 'Задняя часть'
 
@@ -1351,7 +1354,7 @@ export default function CarDetailsPage() {
         <section className="car-details-card car-details-bottom-card">
           <h3 className="car-details-card-title">Аварийная история Encar</h3>
           <p className="car-details-history-note">
-            Блок собран из официальных статусов объявления Encar и inspection-отчета: аварийные отметки, юридические ограничения и подтвержденные записи о ремонтах.
+            Блок собран из официальных статусов объявления Encar и inspection-отчета. Запись в истории Encar не всегда означает сильное ДТП: это может быть страховая, ремонтная или другая подтвержденная отметка по машине.
           </p>
           {accidentHistoryEntries.length ? (
             <div className="car-details-history-grid">
