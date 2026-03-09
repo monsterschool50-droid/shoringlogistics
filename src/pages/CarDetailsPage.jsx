@@ -772,6 +772,11 @@ function normalizeImages(rawImages) {
     .filter((img) => img?.url)
 }
 
+function normalizeOptionFeatures(value) {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 12)
+}
+
 function mapCar(c) {
   const priceUSD = Number(c.price_usd) || 0
   const commission = Number(c.commission ?? 200) || 200
@@ -833,6 +838,7 @@ function mapCar(c) {
     ) || normalizeDisplayText(driveSource) || '-',
     seatCount: null,
     displacement: 0,
+    optionFeatures: [],
     vehicleNo: '-',
     detailFlags: {},
     detailCondition: {},
@@ -906,6 +912,7 @@ function mergeCarWithEncar(baseCar, detail) {
     ) || baseCar.driveType,
     seatCount: Number(detail?.seat_count) || baseCar.seatCount || null,
     displacement: Number(detail?.displacement) || baseCar.displacement || 0,
+    optionFeatures: normalizeOptionFeatures(detail?.option_features?.length ? detail.option_features : baseCar.optionFeatures),
     vehicleNo: detail?.vehicle_no || baseCar.vehicleNo || '-',
     detailFlags: detail?.flags || {},
     detailCondition: detail?.condition || {},
@@ -1176,6 +1183,17 @@ export default function CarDetailsPage() {
                 <div><span>Стоянка (EN)</span><strong>{PARKING_ADDRESS_EN}</strong></div>
               </div>
             </div>
+
+            {!!car.optionFeatures?.length && (
+              <div className="car-details-card">
+                <h3 className="car-details-card-title">Опции и оснащение</h3>
+                <div className="car-feature-row car-details-option-row">
+                  {car.optionFeatures.map((item) => (
+                    <span key={item} className="car-feature-pill">{item}</span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="car-details-card car-details-customs">
               <h3 className="car-details-card-title">Калькулятор растаможки (Кыргызстан)</h3>

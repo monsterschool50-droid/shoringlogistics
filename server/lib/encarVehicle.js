@@ -9,6 +9,7 @@ import {
   extractKeyInfo,
   extractInteriorColorFromText,
   extractShortLocation,
+  extractOptionFeatures,
   extractTrimLevelFromTitle,
   inferDrive,
   normalizeColorName,
@@ -234,6 +235,14 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     contentsText: contents.text,
     inspectionRows: inspection?.detailStatus || [],
   })
+  const optionFeatures = extractOptionFeatures({
+    contentsText: contents.text,
+    memoText: ad.memo,
+    titleText: ad.title,
+    subtitleText: ad.subTitle,
+    oneLineText: ad.oneLineText,
+    inspectionRows: inspection?.detailStatus || [],
+  })
 
   return {
     encar_id: String(encarId),
@@ -257,6 +266,7 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     body_type: bodyType,
     trim_level: trimLevel,
     key_info: keyInfo,
+    option_features: optionFeatures,
     seat_count: Number(spec.seatCount) || null,
     displacement: Number(spec.displacement) || 0,
     images: imageUrls,
@@ -362,6 +372,13 @@ export async function fetchEncarVehicleEnrichment(encarId) {
   )
 
   const bodyColor = normalizeColorName(spec.colorName)
+  const optionFeatures = extractOptionFeatures({
+    contentsText: contents.text,
+    memoText: ad.memo,
+    titleText: ad.title,
+    subtitleText: ad.subTitle,
+    oneLineText: ad.oneLineText,
+  })
 
   return {
     name,
@@ -375,6 +392,7 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     drive_type: inferDrive(driveRaw, name, model),
     body_color: bodyColor,
     interior_color: resolveInteriorColor(spec, bodyColor, ad.memo, contents.text, ad.title, ad.subTitle),
+    option_features: optionFeatures,
     body_type: resolveBodyType(
       spec.bodyName,
       name,

@@ -2740,6 +2740,10 @@ body {
   font-weight: 800;
 }
 
+.car-details-option-row {
+  margin-top: 14px;
+}
+
 .car-details-breakdown {
   margin-top: 14px;
   padding-top: 12px;
@@ -4970,6 +4974,10 @@ body {
 
 [data-theme="dark"] .car-details-chip-line strong {
   color: #ffd166;
+}
+
+[data-theme="dark"] .car-details-option-row {
+  color: #e2e8f0;
 }
 
 [data-theme="dark"] .car-details-breakdown {

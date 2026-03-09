@@ -130,6 +130,34 @@ const INTERIOR_COLOR_TEXT_PATTERNS = Object.freeze([
   { color: 'ivory', source: '(?:\\uC544\\uC774\\uBCF4\\uB9AC|ivory)' },
   { color: 'gray', source: '(?:\\uADF8\\uB808\\uC774|\\uD68C\\uC0C9|gray|grey)' },
   { color: 'red', source: '(?:\\uB808\\uB4DC|\\uC801\\uC0C9|red|wine|burgundy)' },
+  { color: 'blue', source: '(?:\\uB124\\uC774\\uBE44|\\uCCAD\\uC0C9|blue|navy)' },
+  { color: 'orange', source: '(?:\\uC624\\uB80C\\uC9C0|orange)' },
+  { color: 'green', source: '(?:\\uADF8\\uB9B0|green)' },
+])
+
+const OPTION_FEATURE_RULES = Object.freeze([
+  { label: 'HUD', patterns: [/\bHUD\b/i, /\uD5E4\uB4DC\uC5C5/u, /head[-\s]*up/i] },
+  { label: 'Камера 360', patterns: [/\uC5B4\uB77C\uC6B4\uB4DC\uBDF0/u, /360\s*(?:camera|cam|view)/i, /surround\s*view/i] },
+  { label: 'Built-in Cam', patterns: [/\uBE4C\uD2B8\uC778\s*\uCEA0/u, /built[-\s]*in\s*cam/i] },
+  { label: 'Панорамная крыша', patterns: [/\uD30C\uB178\uB77C\uB9C8(?:\s*\uC120\uB8E8\uD504|\s*\uC36C\uB8E8\uD504)?/u, /panoramic?\s*(?:sunroof|roof)/i] },
+  { label: 'Люк', patterns: [/\uC120\uB8E8\uD504|\uC36C\uB8E8\uD504/u, /\bsunroof\b/i] },
+  { label: 'Вентиляция сидений', patterns: [/\uD1B5\uD48D\s*\uC2DC\uD2B8/u, /ventilat(?:ed|ion)?\s*seats?/i] },
+  { label: 'Подогрев сидений', patterns: [/\uC5F4\uC120\s*\uC2DC\uD2B8/u, /heated?\s*seats?/i] },
+  { label: 'Память сидений', patterns: [/\uBA54\uBAA8\uB9AC\s*\uC2DC\uD2B8/u, /memory\s*seats?/i] },
+  { label: 'Электропривод сидений', patterns: [/\uC804\uB3D9\s*\uC2DC\uD2B8/u, /power\s*seats?/i] },
+  { label: 'Натуральная кожа Nappa', patterns: [/\uB098\uD30C/u, /\bnappa\b/i] },
+  { label: 'Адаптивный круиз', patterns: [/\uC2A4\uB9C8\uD2B8\s*\uD06C\uB8E8\uC988/u, /\bSCC\b/i, /adaptive\s*cruise/i] },
+  { label: 'Удержание полосы', patterns: [/\uCC28\uC120\s*(?:\uC720\uC9C0|\uBCF4\uC870|\uC774\uD0C8)/u, /lane\s*(?:keep|assist|departure)/i] },
+  { label: 'Мониторинг слепых зон', patterns: [/\uC0AC\uAC01\uC9C0\uB300/u, /blind\s*spot/i, /\bBSM\b/i] },
+  { label: 'Парктроники', patterns: [/\uC8FC\uCC28\s*\uAC10\uC9C0/u, /parking\s*sensors?/i, /parktronic/i] },
+  { label: 'Премиум-аудио Bang & Olufsen', patterns: [/\uBC45\uC564\uC62C\uB8F9\uC2A8/u, /bang\s*&?\s*olufsen/i] },
+  { label: 'Премиум-аудио Bose', patterns: [/\uBCF4\uC2A4/u, /\bBOSE\b/i] },
+  { label: 'Премиум-аудио Meridian', patterns: [/\uBA54\uB9AC\uB514\uC548/u, /\bMeridian\b/i] },
+  { label: 'Премиум-аудио Lexicon', patterns: [/\uB809\uC2DC\uCF58/u, /\bLexicon\b/i] },
+  { label: 'Премиум-аудио Krell', patterns: [/\uD06C\uB810/u, /\bKrell\b/i] },
+  { label: 'Пакет Popular', patterns: [/\uD30C\uD4E8\uB7EC\s*\uD328\uD0A4\uC9C0/u, /popular\s*package/i] },
+  { label: 'Пакет Built-in Cam', patterns: [/\uBE4C\uD2B8\uC778\s*\uCEA0\s*\uD328\uD0A4\uC9C0/u, /built[-\s]*in\s*cam\s*package/i] },
+  { label: 'Coupe Design Selection II', patterns: [/\uCFE0\uD398\s*\uB514\uC790\uC778\s*\uC140\uB809\uC158/u, /coupe\s*design\s*selection/i] },
 ])
 
 const TRIM_REPLACEMENTS = [
@@ -835,8 +863,8 @@ export function extractInteriorColorFromText(value, bodyValue = '') {
   if (!text) return ''
 
   for (const { color, source } of INTERIOR_COLOR_TEXT_PATTERNS) {
-    const beforeMarker = new RegExp(`${source}\\s*${INTERIOR_COLOR_TEXT_MARKERS}`, 'i')
-    const afterMarker = new RegExp(`${INTERIOR_COLOR_TEXT_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color))?\\s*[:：-]?\\s*${source}`, 'i')
+    const beforeMarker = new RegExp(`${source}[\\s\\S]{0,18}${INTERIOR_COLOR_TEXT_MARKERS}`, 'i')
+    const afterMarker = new RegExp(`${INTERIOR_COLOR_TEXT_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color))?[\\s\\S]{0,18}${source}`, 'i')
     if (beforeMarker.test(text) || afterMarker.test(text)) {
       return normalizeInteriorColorName(color, bodyValue)
     }
@@ -872,4 +900,40 @@ export function extractKeyInfo({ contentsText, inspectionRows = [] } = {}) {
   if (/열쇠|키\b|keys?\b/i.test(text)) return 'Ключи есть'
 
   return ''
+}
+
+export function extractOptionFeatures({
+  contentsText = '',
+  memoText = '',
+  titleText = '',
+  subtitleText = '',
+  oneLineText = '',
+  inspectionRows = [],
+} = {}) {
+  const text = [
+    cleanText(titleText),
+    cleanText(subtitleText),
+    cleanText(oneLineText),
+    cleanText(memoText),
+    cleanText(contentsText),
+    ...inspectionRows.map((row) => cleanText([row?.label, row?.detail, row?.note, ...(row?.states || [])].join(' '))),
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  if (!text) return []
+
+  const features = []
+  for (const rule of OPTION_FEATURE_RULES) {
+    if (rule.patterns.some((pattern) => pattern.test(text))) {
+      features.push(rule.label)
+    }
+  }
+
+  if (features.includes('Панорамная крыша')) {
+    const next = features.filter((item) => item !== 'Люк')
+    return [...new Set(next)].slice(0, 12)
+  }
+
+  return [...new Set(features)].slice(0, 12)
 }
