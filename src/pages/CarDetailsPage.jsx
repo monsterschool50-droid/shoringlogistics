@@ -856,6 +856,7 @@ export default function CarDetailsPage() {
   const [error, setError] = useState('')
   const [car, setCar] = useState(null)
   const [imgIdx, setImgIdx] = useState(0)
+  const [inspectionOpen, setInspectionOpen] = useState(false)
   const [calc, setCalc] = useState({
     year: String(DEFAULT_CALC_YEAR),
     engine: formatCalcEngineInput(DEFAULT_CALC_ENGINE),
@@ -865,6 +866,7 @@ export default function CarDetailsPage() {
 
   useEffect(() => {
     let active = true
+    setInspectionOpen(false)
 
     const run = async () => {
       try {
@@ -934,6 +936,8 @@ export default function CarDetailsPage() {
   const imageSrc = car?.images?.[boundedIdx]?.url || ''
   const inspectionGroups = useMemo(() => groupInspectionRows(car?.inspection?.detailStatus || []), [car?.inspection])
   const registrationHistoryEntries = useMemo(() => buildRegistrationHistoryEntries(car), [car])
+  const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
+  const inspectionSummary = Array.isArray(car?.inspection?.summary) ? car.inspection.summary : []
 
   const calcYearValue = useMemo(() => parseCalcYearInput(calc.year, calcDefaults.year), [calc.year, calcDefaults.year])
   const calcEngineValue = useMemo(() => parseCalcEngineInput(calc.engine, calcDefaults.engine), [calc.engine, calcDefaults.engine])
@@ -1131,10 +1135,25 @@ export default function CarDetailsPage() {
         </div>
 
                 <section className="car-details-card car-details-bottom-card">
-          <h3 className="car-details-card-title">{translateInspectionText('Inspection and diagnostics')}</h3>
-          <p className="car-details-muted">
-            {translateInspectionText(`Diagnosis Encar: ${car.detailFlags?.diagnosis ? 'available' : 'limited'}.`)} {translateInspectionText('Views')}: {Number(car.detailManage?.viewCount || 0).toLocaleString()} | {translateInspectionText('Subscribers')}: {Number(car.detailManage?.subscribeCount || 0).toLocaleString()}.
-          </p>
+          <div className="car-inspection-header">
+            <div>
+              <h3 className="car-details-card-title">{translateInspectionText('Inspection and diagnostics')}</h3>
+              <p className="car-details-muted">
+                {translateInspectionText(`Diagnosis Encar: ${car.detailFlags?.diagnosis ? 'available' : 'limited'}.`)} {translateInspectionText('Views')}: {Number(car.detailManage?.viewCount || 0).toLocaleString()} | {translateInspectionText('Subscribers')}: {Number(car.detailManage?.subscribeCount || 0).toLocaleString()}.
+              </p>
+            </div>
+            {car.inspection && (
+              <button
+                type="button"
+                className={`car-inspection-toggle${inspectionOpen ? ' is-open' : ''}`}
+                onClick={() => setInspectionOpen((prev) => !prev)}
+                aria-expanded={inspectionOpen}
+              >
+                <span>{inspectionOpen ? 'Скрыть детали' : 'Показать все'}</span>
+                <ChevronRightIcon />
+              </button>
+            )}
+          </div>
           <div className="car-details-actions">
             <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-primary">{translateInspectionText('Open in Encar')}</a>
             {car.inspection?.sourceUrl && (
@@ -1144,11 +1163,11 @@ export default function CarDetailsPage() {
 
           {car.inspection ? (
             <div className="car-inspection-stack">
-              {!!car.inspection.photos?.length && (
+              {!!inspectionPhotos.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Inspection photos')}</h4>
                   <div className="car-inspection-photos">
-                    {car.inspection.photos.map((photo, index) => (
+                    {inspectionPhotos.map((photo, index) => (
                       <a key={`${photo.url}-${index}`} href={photo.url} target="_blank" rel="noreferrer" className="car-inspection-photo">
                         <img src={photo.url} alt={translateInspectionText(photo.label || `Inspection ${index + 1}`)} loading="lazy" />
                         <span>{translateInspectionText(photo.label || `Photo ${index + 1}`)}</span>
@@ -1158,11 +1177,11 @@ export default function CarDetailsPage() {
                 </div>
               )}
 
-              {!!car.inspection.summary?.length && (
+              {!!inspectionSummary.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Overall condition')}</h4>
                   <div className="car-inspection-grid">
-                    {car.inspection.summary.map((item, index) => (
+                    {inspectionSummary.map((item, index) => (
                       <div key={`${item.label}-${index}`} className="car-inspection-item">
                         <span>{translateInspectionText(item.label)}</span>
                         <strong>{(item.states?.map(translateInspectionText).join(', ')) || translateInspectionText(item.detail) || '-'}</strong>
@@ -1173,7 +1192,7 @@ export default function CarDetailsPage() {
                 </div>
               )}
 
-              {!!car.inspection.repairHistory?.length && (
+              {inspectionOpen && !!car.inspection.repairHistory?.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Repair history')}</h4>
                   <div className="car-inspection-grid">
@@ -1187,7 +1206,7 @@ export default function CarDetailsPage() {
                 </div>
               )}
 
-              {!!car.inspection.exteriorStatus?.sections?.length && (
+              {inspectionOpen && !!car.inspection.exteriorStatus?.sections?.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Body and frame inspection')}</h4>
                   <div className="car-inspection-groups">
@@ -1210,7 +1229,7 @@ export default function CarDetailsPage() {
                 </div>
               )}
 
-              {!!inspectionGroups.length && (
+              {inspectionOpen && !!inspectionGroups.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Detailed technical check')}</h4>
                   <div className="car-inspection-groups">
@@ -1234,7 +1253,7 @@ export default function CarDetailsPage() {
                 </div>
               )}
 
-              {!!car.inspection.opinion?.length && (
+              {inspectionOpen && !!car.inspection.opinion?.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Inspector comments')}</h4>
                   <div className="car-inspection-opinion">
@@ -1248,7 +1267,7 @@ export default function CarDetailsPage() {
                 </div>
               )}
 
-              {!!car.inspection.signatures?.signers?.length && (
+              {inspectionOpen && !!car.inspection.signatures?.signers?.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Signatures and confirmation')}</h4>
                   <div className="car-inspection-grid">

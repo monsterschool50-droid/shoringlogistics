@@ -7201,6 +7201,42 @@ body {
   gap: 18px;
 }
 
+.car-inspection-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.car-inspection-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d9e5f0;
+  background: #f8fbff;
+  color: #173754;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.car-inspection-toggle:hover {
+  background: #eef6ff;
+  border-color: #c7d8ea;
+}
+
+.car-inspection-toggle svg {
+  transition: transform 0.18s ease;
+}
+
+.car-inspection-toggle.is-open svg {
+  transform: rotate(90deg);
+}
+
 .car-inspection-block {
   border-top: 1px solid #e5ecf4;
   padding-top: 18px;
@@ -7346,6 +7382,16 @@ body {
 }
 
 @media (max-width: 767px) {
+  .car-inspection-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .car-inspection-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
   .car-inspection-grid,
   .car-inspection-photos {
     grid-template-columns: 1fr;
@@ -7363,6 +7409,17 @@ body {
 [data-theme="dark"] .car-inspection-photo span,
 [data-theme="dark"] .car-inspection-opinion-item p {
   color: #e2e8f0;
+}
+
+[data-theme="dark"] .car-inspection-toggle {
+  background: #102235;
+  border-color: #1f3952;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .car-inspection-toggle:hover {
+  background: #143049;
+  border-color: #2a4d6d;
 }
 
 [data-theme="dark"] .car-inspection-item,
