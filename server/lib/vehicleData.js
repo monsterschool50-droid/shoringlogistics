@@ -122,8 +122,11 @@ const SUSPICIOUS_DUPLICATE_INTERIOR_COLORS = new Set([
   'Графитовый',
 ])
 
-const INTERIOR_COLOR_TEXT_MARKERS = '(?:\\uC2DC\\uD2B8|\\uB0B4\\uC7A5|\\uC778\\uD14C\\uB9AC\\uC5B4|seat(?:\\s*color)?|interior(?:\\s*color)?|upholstery|trim)'
+const INTERIOR_COLOR_TEXT_MARKERS = '(?:\\uC2DC\\uD2B8|\\uB0B4\\uC7A5(?:\\s*\\uC0AC\\uC591)?|\\uC2E4\\uB0B4(?:\\s*\\uC0C9\\uC0C1|\\s*\\uCEEC\\uB7EC)?|\\uC778\\uD14C\\uB9AC\\uC5B4|seat(?:\\s*(?:color|trim))?|interior(?:\\s*color)?|upholstery|trim(?:\\s*color)?)'
 const INTERIOR_COLOR_CONTEXT_MARKERS = `(?:${INTERIOR_COLOR_TEXT_MARKERS}|\\uAC00\\uC8FD|\\uBAA8\\uB178\\uD1A4|\\uD22C\\uD1A4|leather|monotone|two[-\\s]*tone)`
+const INTERIOR_COLOR_LABEL_RE = /(?:\uB0B4\uC7A5(?:\s*\uC0AC\uC591|\s*\uC0C9\uC0C1)?|\uC2E4\uB0B4(?:\s*\uC0C9\uC0C1|\s*\uCEEC\uB7EC)?|\uC2DC\uD2B8(?:\s*\uC0C9\uC0C1|\s*\uCEEC\uB7EC)?|interior(?:\s*color)?|seat(?:\s*(?:color|trim))?|trim\s*color|upholstery)/i
+const INTERIOR_COLOR_REJECT_RE = /(?:body\s*color|\uC678\uC7A5|\uC678\uC7A5\s*\uC0C9\uC0C1|\uCC28\uCCB4\s*\uC0C9\uC0C1)/i
+const INTERIOR_COLOR_SEGMENT_SPLIT_RE = /(?:\r?\n|[|,;]|\/|▶|★|◈|▪|•|\u2022)+/g
 const INTERIOR_COLOR_TEXT_PATTERNS = Object.freeze([
   { color: 'black', source: '(?:\\uBE14\\uB799|\\uAC80\\uC815|\\uD751\\uC0C9|black|charcoal|ebony)' },
   { color: 'beige', source: '(?:\\uBCA0\\uC774\\uC9C0|\\uC0CC\\uB4DC\\s*\\uBCA0\\uC774\\uC9C0|beige|sand\\s*beige)' },
@@ -882,17 +885,62 @@ export function normalizeInteriorColorName(value, bodyValue = '') {
   return normalizedInterior
 }
 
-export function extractInteriorColorFromText(value, bodyValue = '') {
+function splitInteriorTextSegments(value) {
+  return String(value || '')
+    .split(INTERIOR_COLOR_SEGMENT_SPLIT_RE)
+    .map((segment) => cleanText(segment))
+    .filter(Boolean)
+}
+
+function extractInteriorColorFromSegment(value, bodyValue = '') {
   const text = cleanText(value)
   if (!text) return ''
 
   for (const { color, source } of INTERIOR_COLOR_TEXT_PATTERNS) {
-    const beforeMarker = new RegExp(`${source}[\\s\\S]{0,24}${INTERIOR_COLOR_CONTEXT_MARKERS}`, 'i')
-    const afterMarker = new RegExp(`${INTERIOR_COLOR_CONTEXT_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color))?[\\s\\S]{0,24}${source}`, 'i')
-    const compactMarker = new RegExp(`${source}\\s*(?:\\/|&|-)?\\s*(?:${INTERIOR_COLOR_CONTEXT_MARKERS})`, 'i')
+    const beforeMarker = new RegExp(`${source}\\s*(?:\\/|&|-|:)?\\s*(?:${INTERIOR_COLOR_CONTEXT_MARKERS})`, 'i')
+    const afterMarker = new RegExp(`(?:${INTERIOR_COLOR_CONTEXT_MARKERS})(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color|trim))?\\s*(?:\\/|&|-|:)?\\s*${source}`, 'i')
+    const tightAroundMarker = new RegExp(`${source}[\\s\\S]{0,8}${INTERIOR_COLOR_CONTEXT_MARKERS}|${INTERIOR_COLOR_CONTEXT_MARKERS}[\\s\\S]{0,8}${source}`, 'i')
+    if (beforeMarker.test(text) || afterMarker.test(text) || tightAroundMarker.test(text)) {
+      return normalizeInteriorColorName(color, bodyValue)
+    }
+  }
+
+  return ''
+}
+
+export function extractInteriorColorFromText(value, bodyValue = '') {
+  const text = cleanText(value)
+  if (!text) return ''
+
+  for (const segment of splitInteriorTextSegments(text)) {
+    const segmentedMatch = extractInteriorColorFromSegment(segment, bodyValue)
+    if (segmentedMatch) return segmentedMatch
+  }
+
+  for (const { color, source } of INTERIOR_COLOR_TEXT_PATTERNS) {
+    const beforeMarker = new RegExp(`${source}[\\s\\S]{0,12}${INTERIOR_COLOR_CONTEXT_MARKERS}`, 'i')
+    const afterMarker = new RegExp(`${INTERIOR_COLOR_CONTEXT_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color|trim))?[\\s\\S]{0,12}${source}`, 'i')
+    const compactMarker = new RegExp(`${source}\\s*(?:\\/|&|-|:)?\\s*(?:${INTERIOR_COLOR_CONTEXT_MARKERS})`, 'i')
     if (beforeMarker.test(text) || afterMarker.test(text) || compactMarker.test(text)) {
       return normalizeInteriorColorName(color, bodyValue)
     }
+  }
+
+  return ''
+}
+
+export function extractInteriorColorFromPairs(pairs = [], bodyValue = '') {
+  for (const pair of pairs) {
+    const label = cleanText(pair?.label)
+    const value = cleanText(pair?.value)
+    if (!label || !value) continue
+    if (!INTERIOR_COLOR_LABEL_RE.test(label) || INTERIOR_COLOR_REJECT_RE.test(label)) continue
+
+    const direct = normalizeInteriorColorName(value, bodyValue)
+    if (direct) return direct
+
+    const contextual = extractInteriorColorFromText(`${label} ${value}`, bodyValue)
+    if (contextual) return contextual
   }
 
   return ''

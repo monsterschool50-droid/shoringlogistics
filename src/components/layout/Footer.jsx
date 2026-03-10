@@ -108,9 +108,9 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://instagram.com/tlv_auto_korea" target="_blank" rel="noreferrer" className="footer-link">
+                <a href="https://www.instagram.com/avt_shoring?igsh=MXhnYTgzaGJ3aGZiNQ==" target="_blank" rel="noreferrer" className="footer-link">
                   <span className="footer-link-icon pink"><InstagramIcon /></span>
-                  @tlv_auto_korea
+                  @avt_shoring
                 </a>
               </li>
               <li>

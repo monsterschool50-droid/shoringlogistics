@@ -13,6 +13,7 @@
     "build:railway": "npm run build && node server/index.js",
     "normalize:cars": "node scripts/normalize-existing-cars.js",
     "backfill:encar": "node scripts/backfill-encar-enrichment.js",
+    "check:encar-parser": "node scripts/check-encar-parsers.js",
     "fix:catalog": "node scripts/fix-catalog-issues.js",
     "cleanup:encar": "node scripts/remove-unavailable-encar-cars.js"
   },

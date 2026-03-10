@@ -369,15 +369,102 @@ function buildInspectionPhotoMeta(photo, index) {
   return parts.filter(Boolean).join(' • ')
 }
 
+function hasHistoryDisplayValue(value) {
+  return value !== null && value !== undefined && value !== '' && value !== '-' && value !== 'вЂ”'
+}
+
+function formatHistoryNumber(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return '-'
+  return parsed.toLocaleString('ru-RU')
+}
+
+function formatHistoryWon(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return '-'
+  return `${parsed.toLocaleString('ru-RU')} ₩`
+}
+
+function getVehicleHistory(car) {
+  return car?.inspection?.vehicleHistory || null
+}
+
+function buildVehicleHistoryStatistics(car) {
+  const history = getVehicleHistory(car)
+  const stats = history?.statistics || {}
+
+  return [
+    { label: 'Аварии', value: stats.accidents },
+    { label: 'Тотальная потеря', value: stats.totalLoss },
+    { label: 'Смены владельцев', value: stats.ownerChanges },
+    { label: 'Смены номеров', value: stats.numberChanges },
+    { label: 'По моей вине', value: stats.atFaultCount },
+    { label: 'Ущерб (моя вина)', value: stats.atFaultDamage, type: 'money' },
+    { label: 'Не по моей вине', value: stats.notAtFaultCount },
+    { label: 'Ущерб (чужая вина)', value: stats.notAtFaultDamage, type: 'money' },
+    { label: 'Кражи', value: stats.thefts },
+  ]
+    .filter((entry) => entry.value !== null && entry.value !== undefined)
+    .map((entry) => ({
+      label: entry.label,
+      value: entry.type === 'money' ? formatHistoryWon(entry.value) : formatHistoryNumber(entry.value),
+    }))
+    .filter((entry) => hasHistoryDisplayValue(entry.value))
+}
+
+function buildVehicleHistoryUninsuredPeriods(car) {
+  const history = getVehicleHistory(car)
+  const periods = Array.isArray(history?.uninsuredPeriods) ? history.uninsuredPeriods : []
+
+  return periods
+    .map((item, index) => ({
+      label: `Период ${item?.index || index + 1}`,
+      value: item?.raw || [item?.start, item?.end].filter(Boolean).join('~'),
+    }))
+    .filter((item) => hasHistoryDisplayValue(item.value))
+}
+
+function buildVehicleHistoryOwnerChanges(car) {
+  const history = getVehicleHistory(car)
+  const changes = Array.isArray(history?.ownerChanges) ? history.ownerChanges : []
+
+  return changes
+    .map((item, index) => ({
+      label: `Смена владельца ${item?.index || index + 1}`,
+      value: item?.date ? formatDate(item.date) : item?.rawDate || '-',
+    }))
+    .filter((item) => hasHistoryDisplayValue(item.value))
+}
+
+function buildVehicleHistoryNumberChanges(car) {
+  const history = getVehicleHistory(car)
+  const changes = Array.isArray(history?.numberChangeHistory) ? history.numberChangeHistory : []
+
+  return changes
+    .map((item, index) => ({
+      label: `Смена номера ${item?.index || index + 1}`,
+      value: [item?.carNo, item?.date ? formatDate(item.date) : ''].filter(Boolean).join(' — '),
+    }))
+    .filter((item) => hasHistoryDisplayValue(item.value))
+}
+
 function buildRegistrationHistoryEntries(car) {
   const inspection = car?.inspection
   const manage = car?.detailManage || {}
+  const history = getVehicleHistory(car)
+  const overview = history?.overview || {}
 
   const entries = [
-    { label: 'Год', value: car?.year || '-' },
-    { label: 'Первая регистрация', value: getInspectionBasicValue(inspection, 'Первая регистрация') },
-    { label: 'Номер автомобиля', value: car?.vehicleNo || '—' },
+    { label: 'Год', value: overview.year || car?.year || '-' },
+    { label: 'Дата регистрации', value: overview.registrationDate ? formatDate(overview.registrationDate) : '-' },
+    { label: 'Первая регистрация', value: overview.firstRegistration ? formatDate(overview.firstRegistration) : getInspectionBasicValue(inspection, 'Первая регистрация') },
+    { label: 'Номер автомобиля', value: overview.vehicleNo || car?.vehicleNo || '—' },
     { label: 'VIN', value: car?.vin || '—' },
+    { label: 'Открытые данные', value: overview.openData || '-' },
+    { label: 'Займ', value: overview.loans !== undefined && overview.loans !== null ? formatHistoryNumber(overview.loans) : '-' },
+    { label: 'Бизнес', value: overview.businessUse !== undefined && overview.businessUse !== null ? formatHistoryNumber(overview.businessUse) : '-' },
+    { label: 'Государственный', value: overview.governmentUse !== undefined && overview.governmentUse !== null ? formatHistoryNumber(overview.governmentUse) : '-' },
+    { label: 'Объем двигателя', value: overview.engineDisplacement ? formatHistoryNumber(overview.engineDisplacement) : '-' },
     { label: 'Срок осмотра', value: getInspectionBasicValue(inspection, 'Срок действия осмотра') },
     { label: 'Тип гарантии', value: getInspectionBasicValue(inspection, 'Тип гарантии') },
     { label: 'Дата отчета', value: getInspectionReportDate(inspection) },
@@ -392,7 +479,7 @@ function buildRegistrationHistoryEntries(car) {
     { label: 'Подписчики', value: Number.isFinite(Number(manage.subscribeCount)) ? String(Number(manage.subscribeCount)) : '-' },
   ]
 
-  return entries.filter((entry) => entry.value && entry.value !== '-' && entry.value !== '—')
+  return entries.filter((entry) => hasHistoryDisplayValue(entry.value))
 }
 
 function buildAccidentHistoryEntries(car) {
@@ -413,7 +500,7 @@ function buildAccidentHistoryEntries(car) {
     { label: 'Тип окраса', value: getInspectionSummaryText(inspection, 'Тип окраса') },
   ]
 
-  return entries.filter((entry) => entry.value && entry.value !== '-' && entry.value !== '—')
+  return entries.filter((entry) => hasHistoryDisplayValue(entry.value))
 }
 
 function buildRepairHistoryItems(car) {
@@ -1027,6 +1114,10 @@ export default function CarDetailsPage() {
   const inspectionGroups = useMemo(() => groupInspectionRows(car?.inspection?.detailStatus || []), [car?.inspection])
   const registrationHistoryEntries = useMemo(() => buildRegistrationHistoryEntries(car), [car])
   const accidentHistoryEntries = useMemo(() => buildAccidentHistoryEntries(car), [car])
+  const historyStatisticsEntries = useMemo(() => buildVehicleHistoryStatistics(car), [car])
+  const historyUninsuredPeriods = useMemo(() => buildVehicleHistoryUninsuredPeriods(car), [car])
+  const historyOwnerChanges = useMemo(() => buildVehicleHistoryOwnerChanges(car), [car])
+  const historyNumberChanges = useMemo(() => buildVehicleHistoryNumberChanges(car), [car])
   const repairHistoryItems = useMemo(() => buildRepairHistoryItems(car), [car])
   const encarFlagBadges = useMemo(() => buildEncarFlagBadges(car), [car])
   const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
@@ -1443,6 +1534,74 @@ export default function CarDetailsPage() {
               </div>
             ))}
           </div>
+
+          {historyStatisticsEntries.length > 0 && (
+            <div className="car-inspection-block">
+              <h4 className="car-inspection-title">Статистика</h4>
+              <div className="car-details-history-grid">
+                {historyStatisticsEntries.map((entry) => (
+                  <div key={entry.label}>
+                    <span>{entry.label}</span>
+                    <strong>{entry.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {historyUninsuredPeriods.length > 0 && (
+            <div className="car-inspection-block">
+              <h4 className="car-inspection-title">Периоды без страховки</h4>
+              <div className="car-inspection-group">
+                <div className="car-inspection-group-list">
+                  {historyUninsuredPeriods.map((entry) => (
+                    <div key={entry.label} className="car-inspection-line">
+                      <div>
+                        <span>{entry.label}</span>
+                      </div>
+                      <strong>{entry.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {historyOwnerChanges.length > 0 && (
+            <div className="car-inspection-block">
+              <h4 className="car-inspection-title">Смены владельцев</h4>
+              <div className="car-inspection-group">
+                <div className="car-inspection-group-list">
+                  {historyOwnerChanges.map((entry) => (
+                    <div key={entry.label} className="car-inspection-line">
+                      <div>
+                        <span>{entry.label}</span>
+                      </div>
+                      <strong>{entry.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {historyNumberChanges.length > 0 && (
+            <div className="car-inspection-block">
+              <h4 className="car-inspection-title">Смены номеров</h4>
+              <div className="car-inspection-group">
+                <div className="car-inspection-group-list">
+                  {historyNumberChanges.map((entry) => (
+                    <div key={entry.label} className="car-inspection-line">
+                      <div>
+                        <span>{entry.label}</span>
+                      </div>
+                      <strong>{entry.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="car-details-card car-details-bottom-card">

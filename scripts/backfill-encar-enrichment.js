@@ -5,7 +5,7 @@ import { normalizeInteriorColorName } from '../server/lib/vehicleData.js'
 const DEFAULT_CONCURRENCY = (() => {
   const raw = Number.parseInt(process.env.BACKFILL_ENRICH_CONCURRENCY || '2', 10)
   if (!Number.isFinite(raw)) return 2
-  return Math.min(Math.max(raw, 1), 4)
+  return Math.min(Math.max(raw, 1), 8)
 })()
 
 function cleanText(value) {

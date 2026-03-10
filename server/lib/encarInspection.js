@@ -1,6 +1,7 @@
 import axios from 'axios'
 import iconv from 'iconv-lite'
 import { load } from 'cheerio'
+import { fetchEncarHistory } from './encarHistory.js'
 
 const inspectionClient = axios.create({
   baseURL: 'https://www.encar.com',
@@ -311,14 +312,51 @@ function parseSignatures($) {
   }
 }
 
-export async function fetchEncarInspection(carId) {
-  const url = `/md/sl/mdsl_regcar.do?method=inspectionView&carid=${encodeURIComponent(carId)}&wtClick_carview=015`
-  const response = await inspectionClient.get(url)
-  const html = iconv.decode(Buffer.from(response.data), 'euc-kr')
+function createEmptyInspection() {
+  return {
+    sourceUrl: '',
+    basicInfo: { certificate: '', items: [] },
+    summary: [],
+    repairHistory: [],
+    exteriorStatus: { legend: [], sections: [] },
+    detailStatus: [],
+    opinion: [],
+    photos: [],
+    signatures: { date: '', signers: [] },
+    parserDiagnostics: [],
+  }
+}
+
+function buildInspectionDiagnostics(parsed) {
+  const diagnostics = []
+  const checks = [
+    ['basicInfo.items', Array.isArray(parsed?.basicInfo?.items) && parsed.basicInfo.items.length > 0],
+    ['summary', Array.isArray(parsed?.summary) && parsed.summary.length > 0],
+    ['repairHistory', Array.isArray(parsed?.repairHistory) && parsed.repairHistory.length > 0],
+    ['exteriorStatus.sections', Array.isArray(parsed?.exteriorStatus?.sections) && parsed.exteriorStatus.sections.length > 0],
+    ['detailStatus', Array.isArray(parsed?.detailStatus) && parsed.detailStatus.length > 0],
+    ['opinion', Array.isArray(parsed?.opinion) && parsed.opinion.length > 0],
+    ['photos', Array.isArray(parsed?.photos) && parsed.photos.length > 0],
+    ['signatures.signers', Array.isArray(parsed?.signatures?.signers) && parsed.signatures.signers.length > 0],
+  ]
+
+  for (const [field, found] of checks) {
+    diagnostics.push({
+      field: `inspection.${field}`,
+      found,
+      strategy: 'exact-selector',
+      ...(found ? {} : { reason: 'selector_no_match' }),
+    })
+  }
+
+  return diagnostics
+}
+
+export function parseEncarInspectionHtml(html, { sourceUrl = '' } = {}) {
   const $ = load(html)
 
-  return {
-    sourceUrl: `https://www.encar.com${url}`,
+  const parsed = {
+    sourceUrl,
     basicInfo: parseBasicInfo($),
     summary: parseSummaryTable($),
     repairHistory: parseRepairHistory($),
@@ -328,4 +366,54 @@ export async function fetchEncarInspection(carId) {
     photos: parseInspectionPhotos($),
     signatures: parseSignatures($),
   }
+
+  parsed.parserDiagnostics = buildInspectionDiagnostics(parsed)
+  return parsed
+}
+
+export async function fetchEncarInspection(carId, { vehicleNo = '', includeHtml = true } = {}) {
+  let parsed = createEmptyInspection()
+
+  if (includeHtml) {
+    try {
+      const url = `/md/sl/mdsl_regcar.do?method=inspectionView&carid=${encodeURIComponent(carId)}&wtClick_carview=015`
+      const response = await inspectionClient.get(url)
+      const html = iconv.decode(Buffer.from(response.data), 'euc-kr')
+      parsed = parseEncarInspectionHtml(html, { sourceUrl: `https://www.encar.com${url}` })
+    } catch (htmlError) {
+      parsed.parserDiagnostics = buildInspectionDiagnostics(parsed)
+      parsed.parserDiagnostics.push({
+        field: 'inspection.fetch',
+        found: false,
+        strategy: 'html-fetch',
+        reason: htmlError.message,
+      })
+    }
+  } else {
+    parsed.parserDiagnostics = buildInspectionDiagnostics(parsed)
+  }
+
+  try {
+    parsed.vehicleHistory = await fetchEncarHistory(carId, { vehicleNo })
+  } catch (historyError) {
+    parsed.vehicleHistory = {
+      available: false,
+      pageType: 'fetch_error',
+      sourceUrl: '',
+      overview: {},
+      statistics: {},
+      uninsuredPeriods: [],
+      ownerChanges: [],
+      parserDiagnostics: [
+        {
+          field: 'vehicleHistory',
+          found: false,
+          strategy: 'history-fetch',
+          reason: historyError.message,
+        },
+      ],
+    }
+  }
+
+  return parsed
 }

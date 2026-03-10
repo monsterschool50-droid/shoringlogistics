@@ -7,6 +7,7 @@ import {
   PARKING_ADDRESS_EN,
   PARKING_ADDRESS_KO,
   extractKeyInfo,
+  extractInteriorColorFromPairs,
   extractInteriorColorFromText,
   extractShortLocation,
   extractOptionFeatures,
@@ -38,7 +39,7 @@ const apiClient = axios.create({
 })
 
 async function fetchEncarVehicleApiData(encarId) {
-  const url = `https://www.encar.com/dc/dc_cardetailview.do?carid=${encarId}`
+  const url = `https://fem.encar.com/cars/detail/${encarId}`
   const { data } = await apiClient.get(`/v1/readside/vehicle/${encodeURIComponent(encarId)}`)
 
   return {
@@ -92,10 +93,68 @@ function extractInteriorColorFromSpec(spec = {}) {
   )
 }
 
-function resolveInteriorColor(spec = {}, bodyColor = '', ...texts) {
-  const specValue = normalizeInteriorColorName(extractInteriorColorFromSpec(spec), bodyColor)
-  if (specValue) return specValue
-  return extractInteriorColorFromText(texts.filter(Boolean).join(' '), bodyColor)
+function buildInspectionPairs(inspection) {
+  if (!inspection) return []
+
+  const basicPairs = Array.isArray(inspection?.basicInfo?.items)
+    ? inspection.basicInfo.items.map((item) => ({ label: item?.label, value: item?.value }))
+    : []
+  const summaryPairs = Array.isArray(inspection?.summary)
+    ? inspection.summary.map((row) => ({
+        label: row?.label,
+        value: [row?.detail, ...(row?.states || []), row?.amount, row?.note].filter(Boolean).join(' '),
+      }))
+    : []
+  const detailPairs = Array.isArray(inspection?.detailStatus)
+    ? inspection.detailStatus.map((row) => ({
+        label: [row?.section, row?.label].filter(Boolean).join(' / '),
+        value: [row?.detail, ...(row?.states || []), row?.amount, row?.note].filter(Boolean).join(' '),
+      }))
+    : []
+  const historyPairs = inspection?.vehicleHistory
+    ? [
+        ...Object.entries(inspection.vehicleHistory.overview || {}).map(([label, value]) => ({ label, value })),
+        ...Object.entries(inspection.vehicleHistory.statistics || {}).map(([label, value]) => ({ label, value })),
+      ]
+    : []
+
+  return [...basicPairs, ...summaryPairs, ...detailPairs, ...historyPairs]
+}
+
+function resolveInteriorColorWithMeta(spec = {}, bodyColor = '', { pairs = [], texts = [] } = {}) {
+  const specRawValue = extractInteriorColorFromSpec(spec)
+  const specValue = normalizeInteriorColorName(specRawValue, bodyColor)
+  if (specValue) {
+    return {
+      value: specValue,
+      source: 'spec',
+      diagnostics: [{ field: 'interior_color', found: true, strategy: 'spec', rawValue: specRawValue }],
+    }
+  }
+
+  const pairedValue = extractInteriorColorFromPairs(pairs, bodyColor)
+  if (pairedValue) {
+    return {
+      value: pairedValue,
+      source: 'structured-pairs',
+      diagnostics: [{ field: 'interior_color', found: true, strategy: 'structured-pairs' }],
+    }
+  }
+
+  const textValue = extractInteriorColorFromText(texts.filter(Boolean).join(' '), bodyColor)
+  if (textValue) {
+    return {
+      value: textValue,
+      source: 'text-fallback',
+      diagnostics: [{ field: 'interior_color', found: true, strategy: 'text-fallback' }],
+    }
+  }
+
+  return {
+    value: '',
+    source: '',
+    diagnostics: [{ field: 'interior_color', found: false, strategy: 'all-fallbacks', reason: 'value_not_found' }],
+  }
 }
 
 export async function fetchEncarVehicleDetail(encarId, { includeInspection = false } = {}) {
@@ -224,9 +283,12 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
   const imageUrls = normalizedPhotos.map((photo) => photo.url)
   let inspection = null
 
-  if (includeInspection && (Boolean(ad.diagnosisCar || view.encarDiagnosis) || Array.isArray(condition?.inspection?.formats))) {
+  if (includeInspection) {
     try {
-      inspection = await fetchEncarInspection(encarId)
+      inspection = await fetchEncarInspection(encarId, {
+        vehicleNo: data?.vehicleNo || '',
+        includeHtml: Boolean(ad.diagnosisCar || view.encarDiagnosis) || Array.isArray(condition?.inspection?.formats),
+      })
     } catch (inspectionError) {
       console.warn('Encar inspection parse warning:', inspectionError.message)
     }
@@ -240,8 +302,11 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
       ...(inspection.summary || []).map((row) => [row?.label, row?.detail, row?.note, ...(row?.states || [])].join(' ')),
       ...(inspection.detailStatus || []).map((row) => [row?.section, row?.label, row?.detail, row?.note, ...(row?.states || [])].join(' ')),
       ...(inspection.repairHistory || []).map((row) => [row?.label, row?.value].join(' ')),
+      ...(inspection?.vehicleHistory?.uninsuredPeriods || []).map((item) => [item?.raw, item?.start, item?.end].join(' ')),
+      ...(inspection?.vehicleHistory?.ownerChanges || []).map((item) => [item?.index, item?.date].join(' ')),
     ]
     : []
+  const inspectionPairs = buildInspectionPairs(inspection)
   const keyInfo = extractKeyInfo({
     contentsText: contents.text,
     inspectionRows: inspection?.detailStatus || [],
@@ -255,6 +320,18 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     optionTexts,
     inspectionRows: inspection?.detailStatus || [],
   })
+  const interiorColorResult = resolveInteriorColorWithMeta(spec, bodyColor, {
+    pairs: inspectionPairs,
+    texts: [
+      ad.memo,
+      contents.text,
+      ad.title,
+      ad.subTitle,
+      ad.oneLineText,
+      optionTexts.join(' '),
+      ...inspectionTexts,
+    ],
+  })
 
   return {
     encar_id: String(encarId),
@@ -265,17 +342,9 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     year,
     mileage: Number(spec.mileage) || 0,
     body_color: bodyColor,
-    interior_color: resolveInteriorColor(
-      spec,
-      bodyColor,
-      ad.memo,
-      contents.text,
-      ad.title,
-      ad.subTitle,
-      ad.oneLineText,
-      optionTexts.join(' '),
-      ...inspectionTexts,
-    ),
+    interior_color: interiorColorResult.value,
+    interior_color_source: interiorColorResult.source,
+    interior_color_diagnostics: interiorColorResult.diagnostics,
     location: locationRaw,
     location_short: extractShortLocation(locationRaw),
     vin: data?.vin || '',
@@ -403,6 +472,16 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     oneLineText: ad.oneLineText,
     optionTexts,
   })
+  const interiorColorResult = resolveInteriorColorWithMeta(spec, bodyColor, {
+    texts: [
+      ad.memo,
+      contents.text,
+      ad.title,
+      ad.subTitle,
+      ad.oneLineText,
+      optionTexts.join(' '),
+    ],
+  })
 
   return {
     name,
@@ -415,7 +494,8 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     transmission: normalizeTransmission(spec.transmissionName),
     drive_type: inferDrive(driveRaw, name, model),
     body_color: bodyColor,
-    interior_color: resolveInteriorColor(spec, bodyColor, ad.memo, contents.text, ad.title, ad.subTitle, ad.oneLineText, optionTexts.join(' ')),
+    interior_color: interiorColorResult.value,
+    interior_color_source: interiorColorResult.source,
     option_features: optionFeatures,
     body_type: resolveBodyType(
       spec.bodyName,

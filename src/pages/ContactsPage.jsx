@@ -293,7 +293,7 @@ export default function ContactsPage() {
           <p className="cnt-section-sub">Следите за новостями, новыми поступлениями и полезными советами</p>
           <div className="cnt-social-btns">
             <a
-              href="https://instagram.com/tlv_auto_korea"
+              href="https://www.instagram.com/avt_shoring?igsh=MXhnYTgzaGJ3aGZiNQ=="
               target="_blank" rel="noreferrer"
               className="cnt-btn-social"
             >
