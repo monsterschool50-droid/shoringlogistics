@@ -86,6 +86,8 @@ export default function AuthModal({
   loading,
   authenticateWithFirebase,
   logout,
+  authStatus,
+  authFeedback,
 }) {
   const [countryId, setCountryId] = useState(DEFAULT_COUNTRY_ID)
   const [phone, setPhone] = useState('')
@@ -110,9 +112,11 @@ export default function AuthModal({
   const resendSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
   const expiresSeconds = expiresAt ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 1000)) : 0
   const hasRequestedCode = Boolean(requestedPhone && expiresSeconds > 0)
+  const serverAuthReady = authStatus?.ready !== false
   const shouldShowRecaptcha = !user && isFirebaseConfigured && (!hasRequestedCode || resendSeconds === 0)
   const canRequestCode = (
     isFirebaseConfigured
+    && serverAuthReady
     && phoneDigitsLength >= 8
     && phoneDigitsLength <= 15
     && !submittingRequest
@@ -259,6 +263,11 @@ export default function AuthModal({
       return
     }
 
+    if (!serverAuthReady) {
+      setError('Сервер не готов завершить регистрацию. Проверьте конфигурацию backend.')
+      return
+    }
+
     if (!IS_FIREBASE_TEST_MODE && !recaptchaVerifierRef.current) {
       setError('reCAPTCHA еще не готова. Обновите страницу и попробуйте снова')
       return
@@ -329,7 +338,7 @@ export default function AuthModal({
         <div className="auth-modal-head">
           <div>
             <p className="auth-modal-eyebrow">AVT Auto</p>
-            <h3>{user ? 'Ваш аккаунт' : 'Вход по номеру телефона'}</h3>
+            <h3>{user ? 'Ваш аккаунт' : 'Регистрация / вход по номеру телефона'}</h3>
           </div>
           <button className="auth-modal-close" type="button" onClick={onClose} aria-label="Закрыть">
             <CloseIcon />
@@ -338,9 +347,9 @@ export default function AuthModal({
 
         {user ? (
           <div className="auth-account-card">
-            <div className="auth-account-badge">Аккаунт активен</div>
+            <div className="auth-account-badge">{authFeedback?.kind === 'register' ? 'Аккаунт создан' : 'Аккаунт активен'}</div>
             <div className="auth-account-phone">{formatPhoneForDisplay(user.phone)}</div>
-            <p className="auth-account-sub">Номер уже подтвержден и привязан к вашему аккаунту.</p>
+            <p className="auth-account-sub">{authFeedback?.message || 'Номер уже подтвержден и привязан к вашему аккаунту.'}</p>
             <div className="auth-modal-actions">
               <button type="button" className="auth-secondary-btn" onClick={onClose}>
                 Закрыть
@@ -358,11 +367,24 @@ export default function AuthModal({
               </p>
             )}
 
+            {!serverAuthReady && (
+              <p className="auth-status auth-status-error">
+                Backend auth не готов завершить регистрацию.
+                {Array.isArray(authStatus?.missing) && authStatus.missing.length
+                  ? ` Отсутствует: ${authStatus.missing.join(', ')}`
+                  : ''}
+              </p>
+            )}
+
             {IS_FIREBASE_TEST_MODE && (
               <p className="auth-status auth-status-info">
                 Включен Firebase test mode. Работают только номера, добавленные в Phone numbers for testing.
               </p>
             )}
+
+            <p className="auth-status auth-status-info">
+              После подтверждения SMS-кода аккаунт создается автоматически. Для уже зарегистрированного номера будет выполнен обычный вход.
+            </p>
 
             <form className="auth-form" onSubmit={handleRequestCode}>
               <label className="auth-field">

@@ -1,7 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { signOut } from 'firebase/auth'
 import AuthModal from '../components/auth/AuthModal'
-import { formatPhoneForDisplay } from '../lib/authClient'
 import { firebaseAuth } from '../lib/firebase'
 
 const AUTH_TOKEN_KEY = 'tlv-user-jwt'
@@ -44,16 +44,37 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(() => Boolean(readStoredToken()))
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authStatus, setAuthStatus] = useState({ ready: true, checks: {}, missing: [] })
+  const [authFeedback, setAuthFeedback] = useState(null)
 
   useEffect(() => {
-    if (!token) {
-      setUser(null)
-      setLoading(false)
-      return undefined
+    let cancelled = false
+
+    apiFetchJson('/api/auth/status')
+      .then((payload) => {
+        if (!cancelled) {
+          setAuthStatus(payload || { ready: true, checks: {}, missing: [] })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAuthStatus({
+            ready: false,
+            checks: {},
+            missing: ['auth_status_unavailable'],
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    if (!token) return undefined
 
     let cancelled = false
-    setLoading(true)
 
     apiFetchJson('/api/auth/me', {
       headers: {
@@ -83,8 +104,14 @@ export function AuthProvider({ children }) {
     }
   }, [token])
 
-  const openAuthModal = () => setAuthModalOpen(true)
-  const closeAuthModal = () => setAuthModalOpen(false)
+  const openAuthModal = () => {
+    setAuthFeedback(null)
+    setAuthModalOpen(true)
+  }
+  const closeAuthModal = () => {
+    setAuthFeedback(null)
+    setAuthModalOpen(false)
+  }
 
   const authenticateWithFirebase = async ({ idToken, phone = '' }) => {
     const payload = await apiFetchJson('/api/auth/firebase', {
@@ -96,7 +123,12 @@ export function AuthProvider({ children }) {
     storeToken(payload.token || '')
     setToken(payload.token || '')
     setUser(payload.user || null)
-    setAuthModalOpen(false)
+    setAuthFeedback({
+      kind: payload.isNewUser ? 'register' : 'login',
+      message: payload.isNewUser
+        ? 'Аккаунт создан и номер подтвержден'
+        : 'Вход выполнен успешно',
+    })
     return payload
   }
 
@@ -108,6 +140,7 @@ export function AuthProvider({ children }) {
     setToken('')
     setUser(null)
     setAuthModalOpen(false)
+    setAuthFeedback(null)
   }
 
   const value = useMemo(() => ({
@@ -119,7 +152,9 @@ export function AuthProvider({ children }) {
     closeAuthModal,
     authenticateWithFirebase,
     logout,
-  }), [loading, token, user])
+    authStatus,
+    authFeedback,
+  }), [authFeedback, authStatus, loading, token, user])
 
   return (
     <AuthContext.Provider value={value}>
@@ -131,6 +166,8 @@ export function AuthProvider({ children }) {
         loading={loading}
         authenticateWithFirebase={authenticateWithFirebase}
         logout={logout}
+        authStatus={authStatus}
+        authFeedback={authFeedback}
       />
     </AuthContext.Provider>
   )
@@ -143,5 +180,3 @@ export function useAuth() {
   }
   return value
 }
-
-export { formatPhoneForDisplay }

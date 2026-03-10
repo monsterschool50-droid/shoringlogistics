@@ -20,6 +20,29 @@ function mapFirebaseAuthError(error) {
   }
 }
 
+function getAuthConfigStatus() {
+  const checks = {
+    jwtSecret: Boolean(String(globalThis.process?.env?.JWT_SECRET || '').trim()),
+    firebaseProjectId: Boolean(String(globalThis.process?.env?.FIREBASE_PROJECT_ID || '').trim()),
+    firebaseClientEmail: Boolean(String(globalThis.process?.env?.FIREBASE_CLIENT_EMAIL || '').trim()),
+    firebasePrivateKey: Boolean(String(globalThis.process?.env?.FIREBASE_PRIVATE_KEY || '').trim()),
+  }
+
+  const missing = Object.entries(checks)
+    .filter(([, value]) => !value)
+    .map(([key]) => key)
+
+  return {
+    ready: missing.length === 0,
+    checks,
+    missing,
+  }
+}
+
+router.get('/status', (_req, res) => {
+  return res.json(getAuthConfigStatus())
+})
+
 router.post('/firebase', async (req, res) => {
   const idToken = String(req.body?.idToken || '').trim()
   if (!idToken) {
@@ -42,16 +65,35 @@ router.post('/firebase', async (req, res) => {
     }
 
     const userResult = await pool.query(
-      `INSERT INTO users (phone)
-       VALUES ($1)
-       ON CONFLICT (phone) DO UPDATE SET phone = EXCLUDED.phone
-       RETURNING id, phone, created_at`,
+      `WITH inserted AS (
+         INSERT INTO users (phone, updated_at, last_login_at)
+         VALUES ($1, NOW(), NOW())
+         ON CONFLICT (phone) DO NOTHING
+         RETURNING id, phone, created_at, updated_at, last_login_at, TRUE AS is_new_user
+       ),
+       updated AS (
+         UPDATE users
+         SET updated_at = NOW(),
+             last_login_at = NOW()
+         WHERE phone = $1
+           AND NOT EXISTS (SELECT 1 FROM inserted)
+         RETURNING id, phone, created_at, updated_at, last_login_at, FALSE AS is_new_user
+       )
+       SELECT * FROM inserted
+       UNION ALL
+       SELECT * FROM updated
+       LIMIT 1`,
       [phone],
     )
 
-    const user = serializeUser(userResult.rows[0])
+    if (!userResult.rows.length) {
+      return res.status(500).json({ error: 'Не удалось создать или обновить пользователя' })
+    }
+
+    const row = userResult.rows[0]
+    const user = serializeUser(row)
     const token = createUserToken(user)
-    return res.json({ ok: true, token, user })
+    return res.json({ ok: true, token, user, isNewUser: Boolean(row.is_new_user) })
   } catch (error) {
     const mappedError = mapFirebaseAuthError(error)
     if (mappedError.status >= 500) {

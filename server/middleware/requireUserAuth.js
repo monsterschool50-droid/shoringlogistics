@@ -10,7 +10,7 @@ export async function requireUserAuth(req, res, next) {
   try {
     const payload = verifyUserToken(token)
     const userResult = await pool.query(
-      'SELECT id, phone, created_at FROM users WHERE id = $1 AND phone = $2 LIMIT 1',
+      'SELECT id, phone, created_at, updated_at, last_login_at FROM users WHERE id = $1 AND phone = $2 LIMIT 1',
       [payload.id, payload.phone],
     )
 

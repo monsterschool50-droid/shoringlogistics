@@ -1,9 +1,11 @@
 import crypto from 'crypto'
+import { Buffer } from 'buffer'
 
 const DEFAULT_JWT_SECRET = 'dev-only-jwt-secret-change-me'
-const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_JWT_SECRET
-const JWT_EXPIRES_IN_DAYS = clampNumber(process.env.JWT_EXPIRES_IN_DAYS, 30, 1, 365)
-const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const ENV = globalThis.process?.env || {}
+const JWT_SECRET = ENV.JWT_SECRET || DEFAULT_JWT_SECRET
+const JWT_EXPIRES_IN_DAYS = clampNumber(ENV.JWT_EXPIRES_IN_DAYS, 30, 1, 365)
+const IS_PRODUCTION = ENV.NODE_ENV === 'production'
 
 if (JWT_SECRET === DEFAULT_JWT_SECRET && IS_PRODUCTION) {
   console.warn('JWT_SECRET is not set. Using the development fallback secret in production is unsafe.')
@@ -39,6 +41,8 @@ export function serializeUser(row) {
     id: row.id,
     phone: row.phone,
     created_at: row.created_at,
+    updated_at: row.updated_at || null,
+    last_login_at: row.last_login_at || null,
   }
 }
 
