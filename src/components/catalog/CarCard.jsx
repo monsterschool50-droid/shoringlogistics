@@ -34,17 +34,6 @@ const WhatsAppIcon = () => (
   </svg>
 )
 
-const NewTabIcon = () => (
-  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-    />
-  </svg>
-)
-
 const BodyIcon = () => (
   <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 15l1.5-4.5A2 2 0 017.4 9H16.6a2 2 0 011.9 1.5L20 15M6 15h12M7 18h.01M17 18h.01M7 18a1 1 0 11-2 0 1 1 0 012 0zm12 0a1 1 0 11-2 0 1 1 0 012 0z" />
@@ -403,9 +392,6 @@ export default function CarCard({ car }) {
 
       <div className="car-card-actions">
         <Link to={`/catalog/${car.id}`} className="btn-car-primary">Открыть детали</Link>
-        <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-outline">
-          <NewTabIcon /> В новой вкладке
-        </a>
         <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-outline">
           Encar →
         </a>

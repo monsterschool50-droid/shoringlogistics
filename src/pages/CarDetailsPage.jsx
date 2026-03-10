@@ -3,8 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
 import {
   appendDisplayTrimSuffix,
-  PARKING_ADDRESS_EN,
-  PARKING_ADDRESS_KO,
   VAT_REFUND_RATE,
   extractTrimLabelFromTitle,
   getShortLocationLabel,
@@ -1378,6 +1376,7 @@ export default function CarDetailsPage() {
   const historyInfoChanges = useMemo(() => buildVehicleHistoryInfoChanges(car), [car])
   const repairHistoryItems = useMemo(() => buildRepairHistoryItems(car), [car])
   const encarFlagBadges = useMemo(() => buildEncarFlagBadges(car), [car])
+  const displayLocation = useMemo(() => getShortLocationLabel(car?.location || '', 'Корея'), [car?.location])
   const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
   const inspectionSummary = Array.isArray(car?.inspection?.summary) ? car.inspection.summary : []
 
@@ -1475,7 +1474,7 @@ export default function CarDetailsPage() {
               <div className="car-details-meta-grid">
                 <div><span className="car-details-meta-label">Год</span><strong>{car.year || '-'}</strong></div>
                 <div><span className="car-details-meta-label">Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
-                <div><span className="car-details-meta-label">Местоположение</span><strong>{car.location || '-'}</strong></div>
+                <div><span className="car-details-meta-label">Местоположение</span><strong>{displayLocation || '-'}</strong></div>
                 <div><span className="car-details-meta-label">VIN / Номер</span><strong className="car-details-meta-value-vin">{(car.vin && car.vin !== '-') ? car.vin : (car.vehicleNo || '-')}</strong></div>
               </div>
 
@@ -1551,26 +1550,24 @@ export default function CarDetailsPage() {
               <p className="car-details-customs-note">{customsNote}</p>
             </div>
 
-            <div className="car-details-card">
+            <div className="car-details-card car-details-specs-card">
               <h3 className="car-details-card-title">Основные характеристики</h3>
               <div className="car-details-specs-grid">
-                <div><span>Топливо</span><strong>{car.fuelType || fuelLabel(calc.fuel)}</strong></div>
-                <div><span>Трансмиссия</span><strong>{car.transmission || '-'}</strong></div>
-                <div><span>Привод</span><strong>{car.driveType || '-'}</strong></div>
-                <div><span>Комплектация</span><strong>{car.trimLevel || '-'}</strong></div>
-                <div><span>Цвет кузова</span><strong>{car.bodyColor || '-'}</strong></div>
-                <div><span>Цвет салона</span><strong>{car.interiorColor || '-'}</strong></div>
-                <div><span>Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
-                <div><span>Местоположение</span><strong>{car.location || '-'}</strong></div>
-                <div><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
-                <div><span>Ключи</span><strong>{car.keyInfo || '-'}</strong></div>
-                <div><span>Количество мест</span><strong>{car.seatCount || '-'}</strong></div>
-                <div><span>Объем двигателя</span><strong>{car.displacement ? `${car.displacement} cc` : '-'}</strong></div>
-                <div><span>Encar ID</span><strong>{car.encarId || '-'}</strong></div>
-                <div><span>На Encar с</span><strong>{formatDate(car.detailManage?.firstAdvertisedDateTime || car.createdAt)}</strong></div>
-                <div><span>Обновлено на Encar</span><strong>{formatDate(car.detailManage?.modifyDateTime || car.updatedAt)}</strong></div>
-                <div><span>Стоянка (KR)</span><strong>{PARKING_ADDRESS_KO}</strong></div>
-                <div><span>Стоянка (EN)</span><strong>{PARKING_ADDRESS_EN}</strong></div>
+                <div className="car-details-spec-item"><span>Топливо</span><strong>{car.fuelType || fuelLabel(calc.fuel)}</strong></div>
+                <div className="car-details-spec-item"><span>Трансмиссия</span><strong>{car.transmission || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Привод</span><strong>{car.driveType || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Комплектация</span><strong>{car.trimLevel || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Цвет кузова</span><strong>{car.bodyColor || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Цвет салона</span><strong>{car.interiorColor || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
+                <div className="car-details-spec-item"><span>Местоположение</span><strong>{displayLocation || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Ключи</span><strong>{car.keyInfo || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Количество мест</span><strong>{car.seatCount || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Объем двигателя</span><strong>{car.displacement ? `${car.displacement} cc` : '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Encar ID</span><strong>{car.encarId || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>На Encar с</span><strong>{formatDate(car.detailManage?.firstAdvertisedDateTime || car.createdAt)}</strong></div>
+                <div className="car-details-spec-item"><span>Обновлено на Encar</span><strong>{formatDate(car.detailManage?.modifyDateTime || car.updatedAt)}</strong></div>
               </div>
             </div>
 

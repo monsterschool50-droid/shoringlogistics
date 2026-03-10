@@ -97,6 +97,7 @@ export default function AuthModal({
   const [countryId, setCountryId] = useState(DEFAULT_COUNTRY_ID)
   const [phone, setPhone] = useState('')
   const [requestedPhone, setRequestedPhone] = useState('')
+  const [authStep, setAuthStep] = useState('phone')
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
@@ -116,7 +117,8 @@ export default function AuthModal({
   const phoneDigitsLength = getDigitsLength(composedPhone)
   const resendSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000))
   const expiresSeconds = expiresAt ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - now) / 1000)) : 0
-  const hasRequestedCode = Boolean(requestedPhone)
+  const hasRequestedCode = authStep === 'code'
+  const activePhone = requestedPhone || composedPhone
   const serverAuthReady = authStatus?.ready !== false
   const shouldShowRecaptcha = !user && isFirebaseConfigured && (!hasRequestedCode || resendSeconds === 0)
   const canRequestCode = (
@@ -157,6 +159,7 @@ export default function AuthModal({
   }
 
   function resetVerificationState({ preserveStatus = false } = {}) {
+    setAuthStep('phone')
     setRequestedPhone('')
     setCode('')
     setExpiresAt('')
@@ -292,6 +295,7 @@ export default function AuthModal({
 
       const targetPhone = hasRequestedCode ? requestedPhone : composedPhone
       confirmationResultRef.current = confirmation
+      setAuthStep('code')
       setRequestedPhone(targetPhone)
       setExpiresAt(new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString())
       setCooldownUntil(Date.now() + RESEND_SECONDS * 1000)
@@ -324,7 +328,7 @@ export default function AuthModal({
     try {
       const credential = await confirmationResultRef.current.confirm(code)
       const idToken = await credential.user.getIdToken()
-      await authenticateWithFirebase({ idToken, phone: requestedPhone || composedPhone })
+      await authenticateWithFirebase({ idToken, phone: activePhone })
       if (firebaseAuth) {
         await signOut(firebaseAuth).catch(() => {})
       }
@@ -439,7 +443,7 @@ export default function AuthModal({
               <form className="auth-form auth-form-verify" onSubmit={handleVerifyCode}>
                 <div className="auth-otp-head">
                   <span className="auth-otp-title">SMS-код</span>
-                  <span className="auth-otp-phone">{formatPhoneFull(requestedPhone)}</span>
+                  <span className="auth-otp-phone">{formatPhoneFull(activePhone)}</span>
                 </div>
 
                 <label className="auth-field">
