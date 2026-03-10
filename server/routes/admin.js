@@ -12,6 +12,7 @@ import {
 } from '../lib/vehicleData.js'
 import { createCarTextBackfillState, runCarTextBackfill } from '../lib/carTextBackfill.js'
 import { normalizeKnownBrandAlias } from '../../shared/brandAliases.js'
+import { isStandardVin, normalizeVin } from '../lib/vin.js'
 
 const router = Router()
 const MIN_CATALOG_YEAR = 2019
@@ -38,17 +39,17 @@ const enrichState = {
 }
 const normalizeCarsState = createCarTextBackfillState()
 const DEFAULT_ENRICH_CONCURRENCY = (() => {
-  const raw = Number.parseInt(process.env.ENRICH_CONCURRENCY || '5', 10)
+  const raw = Number.parseInt(globalThis.process?.env?.ENRICH_CONCURRENCY || '5', 10)
   if (!Number.isFinite(raw)) return 5
   return Math.min(Math.max(raw, 1), 6)
 })()
 const ENRICH_SUCCESS_COOLDOWN_HOURS = (() => {
-  const raw = Number.parseInt(process.env.ENRICH_SUCCESS_COOLDOWN_HOURS || '24', 10)
+  const raw = Number.parseInt(globalThis.process?.env?.ENRICH_SUCCESS_COOLDOWN_HOURS || '24', 10)
   if (!Number.isFinite(raw)) return 24
   return Math.min(Math.max(raw, 1), 720)
 })()
 const ENRICH_ERROR_RETRY_HOURS = (() => {
-  const raw = Number.parseInt(process.env.ENRICH_ERROR_RETRY_HOURS || '12', 10)
+  const raw = Number.parseInt(globalThis.process?.env?.ENRICH_ERROR_RETRY_HOURS || '12', 10)
   if (!Number.isFinite(raw)) return 12
   return Math.min(Math.max(raw, 1), 168)
 })()
@@ -75,7 +76,7 @@ const EXTRA_COLOR_SWATCH = {
   'Мокрый асфальт': { color: '#5b6470' },
   'Графитовый': { color: '#505862' },
   'Серебристо-серый': { color: '#b8c0ca', border: '#94a3b8' },
-  'Белый / черная крыша': { color: '#f8fafc', border: '#111827' },
+  'Белый двухцветный': { color: '#f8fafc', border: '#111827' },
   'Темно-серый': { color: '#4b5563' },
   'Светло-серый': { color: '#dbe1e8', border: '#a8b3c2' },
   'Жемчужный': { color: '#e7eaef', border: '#cbd5e1' },
@@ -145,6 +146,26 @@ function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim()
 }
 
+function isVinConstraintError(error) {
+  return error?.code === '23505' && error?.constraint === 'idx_cars_vin_unique'
+}
+
+async function getExistingCarIdByVin(vin, excludeId = null) {
+  const normalized = normalizeVin(vin)
+  if (!isStandardVin(normalized)) return null
+
+  const params = [normalized]
+  let sql = 'SELECT id FROM cars WHERE UPPER(BTRIM(vin)) = $1'
+  if (excludeId) {
+    params.push(excludeId)
+    sql += ' AND id != $2'
+  }
+  sql += ' LIMIT 1'
+
+  const result = await pool.query(sql, params)
+  return result.rows[0]?.id || null
+}
+
 function getCurrentEnrichEncarId(car = {}) {
   return cleanText(car.encar_id)
 }
@@ -158,7 +179,7 @@ function getEnrichCandidateWhereSql() {
       AND COALESCE(NULLIF(BTRIM(enrich_last_encar_id), ''), '') = COALESCE(NULLIF(BTRIM(encar_id), ''), '')
     )
     AND NOT (
-      enrich_last_status IN ('updated', 'checked')
+      enrich_last_status IN ('updated', 'checked', 'duplicate_vin')
       AND enrich_checked_at IS NOT NULL
       AND enrich_checked_at > NOW() - INTERVAL '${ENRICH_SUCCESS_COOLDOWN_HOURS} hours'
       AND COALESCE(NULLIF(BTRIM(enrich_last_encar_id), ''), '') = COALESCE(NULLIF(BTRIM(encar_id), ''), '')
@@ -202,7 +223,9 @@ function shouldRefreshTrim(value) {
 }
 
 function shouldRefreshVin(value) {
-  return !cleanText(value)
+  const raw = cleanText(value)
+  if (!raw) return true
+  return !isStandardVin(normalizeVin(raw))
 }
 
 function shouldRefreshBodyColor(value) {
@@ -233,6 +256,16 @@ function shouldEnrichCar(car) {
     isWeakBodyTypeForEnrichment(car.body_type) ||
     shouldRefreshTrim(car.trim_level)
   )
+}
+
+function getEnrichCandidatePriority(car) {
+  if (shouldRefreshVin(car.vin)) return 0
+  if (shouldRefreshTrim(car.trim_level)) return 1
+  if (isWeakBodyTypeForEnrichment(car.body_type)) return 2
+  if (shouldRefreshBodyColor(car.body_color)) return 3
+  if (shouldRefreshOptionFeatures(car.option_features)) return 4
+  if (shouldRefreshInteriorColor(car.interior_color, car.body_color)) return 5
+  return 6
 }
 
 async function updateCarFields(id, patch, meta = {}) {
@@ -304,23 +337,59 @@ async function enrichCar(car) {
     }
 
     if (Object.keys(patch).length) {
-      const changes = Object.entries(patch).map(([field, nextValue]) => ({
+      let appliedPatch = { ...patch }
+      let duplicateVinId = null
+
+      try {
+        await updateCarFields(car.id, appliedPatch, {
+          status: 'updated',
+          encarId: getCurrentEnrichEncarId(car),
+        })
+      } catch (updateError) {
+        if (!isVinConstraintError(updateError) || !appliedPatch.vin) throw updateError
+
+        duplicateVinId = await getExistingCarIdByVin(appliedPatch.vin, car.id)
+        delete appliedPatch.vin
+
+        if (!Object.keys(appliedPatch).length) {
+          await updateCarFields(car.id, {}, {
+            status: 'duplicate_vin',
+            error: `VIN already exists at ID ${duplicateVinId || '-'}`,
+            encarId: getCurrentEnrichEncarId(car),
+          })
+          enrichState.skipped += 1
+          pushEnrichReportItem({
+            status: 'duplicate_vin',
+            id: car.id,
+            encar_id: car.encar_id,
+            name: car.name || car.model || '',
+            error: `VIN already exists at ID ${duplicateVinId || '-'}`,
+            finished_at: new Date().toISOString(),
+          })
+          return
+        }
+
+        await updateCarFields(car.id, appliedPatch, {
+          status: 'updated',
+          error: `VIN duplicate skipped: existing ID ${duplicateVinId || '-'}`,
+          encarId: getCurrentEnrichEncarId(car),
+        })
+      }
+
+      const changes = Object.entries(appliedPatch).map(([field, nextValue]) => ({
         field,
         before: car[field] ?? '',
         after: nextValue ?? '',
       }))
 
-      await updateCarFields(car.id, patch, {
-        status: 'updated',
-        encarId: getCurrentEnrichEncarId(car),
-      })
       enrichState.updated += 1
       pushEnrichReportItem({
-        status: 'updated',
+        status: duplicateVinId ? 'updated_with_duplicate_vin' : 'updated',
         id: car.id,
         encar_id: car.encar_id,
         name: car.name || car.model || '',
         changes,
+        ...(duplicateVinId ? { error: `VIN already exists at ID ${duplicateVinId}` } : {}),
         finished_at: new Date().toISOString(),
       })
     } else {
@@ -414,7 +483,18 @@ async function runEmptyFieldEnrichment(options = {}) {
         ORDER BY enrich_checked_at ASC NULLS FIRST, updated_at ASC NULLS FIRST, id ASC
       `)
 
-    const candidates = result.rows.filter(shouldEnrichCar)
+    const candidates = result.rows
+      .filter(shouldEnrichCar)
+      .sort((a, b) => {
+        const priorityDelta = getEnrichCandidatePriority(a) - getEnrichCandidatePriority(b)
+        if (priorityDelta !== 0) return priorityDelta
+
+        const checkedA = a.enrich_checked_at ? new Date(a.enrich_checked_at).getTime() : 0
+        const checkedB = b.enrich_checked_at ? new Date(b.enrich_checked_at).getTime() : 0
+        if (checkedA !== checkedB) return checkedA - checkedB
+
+        return Number(a.id || 0) - Number(b.id || 0)
+      })
     enrichState.total = candidates.length
 
     let nextIndex = 0
@@ -561,7 +641,8 @@ function normalizeColor(value) {
   if (low.includes('black') || /^(geomeunsaek|geomjeongsaek|heugsaek)$/.test(compact) || hasAny(src, [KO.black, KO.blackAlt])) return 'Черный'
   if (/^geomjeongtuton$/.test(compact)) return 'Черный двухцветный'
   if (/^eunsaektuton$/.test(compact)) return 'Серебристый двухцветный'
-  if (/^(huinseaktuton|huinsaektuton)$/.test(compact)) return 'Белый / черная крыша'
+  if (/^galsaektuton$/.test(compact)) return 'Коричневый двухцветный'
+  if (/^(huinseaktuton|huinsaektuton)$/.test(compact)) return 'Белый двухцветный'
   if (/^myeongeunsaek$/.test(compact)) return 'Серебристый'
   if (low.includes('white') || /^(baegsaek|huinsaek)$/.test(compact) || hasAny(src, [KO.white, KO.whiteAlt])) return 'Белый'
   if (low.includes('silver') || /^(eunsaek)$/.test(compact) || src.includes(KO.silver)) return 'Серебристый'
@@ -675,7 +756,7 @@ function aggregateOrigins(rows) {
 
 router.post('/login', (req, res) => {
   const { password } = req.body || {}
-  const correctPass = process.env.ADMIN_PASSWORD || 'admin123'
+  const correctPass = globalThis.process?.env?.ADMIN_PASSWORD || 'admin123'
   if (password === correctPass) {
     return res.json({ ok: true, token: 'adm-ok' })
   }
@@ -881,14 +962,14 @@ router.post('/enrich-empty-fields/start', async (_req, res) => {
   enrichState.last_error = ''
   const options = normalizeEnrichOptions(_req.body || {})
 
-  setImmediate(() => {
+  setTimeout(() => {
     runEmptyFieldEnrichment(options).catch((err) => {
       enrichState.running = false
       enrichState.last_error = err.message
       enrichState.finished_at = new Date().toISOString()
       console.error('Catalog enrichment error:', err)
     })
-  })
+  }, 0)
 
   return res.json({
     ok: true,
@@ -918,7 +999,7 @@ router.post('/normalize-existing-cars/start', async (_req, res) => {
     last_error: '',
   })
 
-  setImmediate(() => {
+  setTimeout(() => {
     runCarTextBackfill({
       onProgress: (snapshot) => {
         Object.assign(normalizeCarsState, snapshot)
@@ -929,7 +1010,7 @@ router.post('/normalize-existing-cars/start', async (_req, res) => {
       normalizeCarsState.finished_at = new Date().toISOString()
       console.error('Car text normalization error:', err)
     })
-  })
+  }, 0)
 
   return res.json({ ok: true, message: 'РќРѕСЂРјР°Р»РёР·Р°С†РёСЏ СѓР¶Рµ СЃРѕС…СЂР°РЅРµРЅРЅС‹С… РјР°С€РёРЅ Р·Р°РїСѓС‰РµРЅР°' })
 })

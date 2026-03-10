@@ -1139,18 +1139,27 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
                                                         ? 'Удалено'
                                                     : item.status === 'not_found'
                                                         ? 'Недоступно'
+                                                    : item.status === 'duplicate_vin'
+                                                        ? 'Дубликат VIN'
+                                                    : item.status === 'updated_with_duplicate_vin'
+                                                        ? 'Обновлено'
                                                         : 'Обновлено'}
                                             </span>
                                         </div>
                                         <div className="adm-car-sub" style={{ marginBottom: 8 }}>
                                             ID: {item.id} • Encar: {item.encar_id}
                                         </div>
-                                        {(item.status === 'error' || item.status === 'not_found' || item.status === 'removed') ? (
+                                        {(item.status === 'error' || item.status === 'not_found' || item.status === 'removed' || item.status === 'duplicate_vin') ? (
                                             <div className="adm-car-sub" style={{ color: '#fca5a5' }}>
                                                 {item.error}
                                             </div>
                                         ) : (
                                             <div style={{ display: 'grid', gap: 6 }}>
+                                                {item.error ? (
+                                                    <div className="adm-car-sub" style={{ color: '#fcd34d' }}>
+                                                        {item.error}
+                                                    </div>
+                                                ) : null}
                                                 {(item.changes || []).map((change, changeIndex) => (
                                                     <div key={`${item.id}-${change.field}-${changeIndex}`} className="adm-car-sub">
                                                         <strong>{change.field}</strong>: `{change.before || '-'}`

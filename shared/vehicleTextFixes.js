@@ -59,6 +59,15 @@ const TITLE_REPLACEMENTS = [
   [/\bgia\b/gi, 'Kia'],
   [/\bhyeondae\b/gi, 'Hyundai'],
   [/\bjenesiseu\b/gi, 'Genesis'],
+  [/\bcanival\b/gi, 'Carnival'],
+  [/\bberi\s+new\s+tibolri\b/gi, 'Very New Tivoli'],
+  [/\bberi\s+new\s+tiboli\b/gi, 'Very New Tivoli'],
+  [/\btibolri\s+ameo\b/gi, 'Tivoli Armor'],
+  [/\btiboli\s+ameo\b/gi, 'Tivoli Armor'],
+  [/\btibolri\s+eeo\b/gi, 'Tivoli Air'],
+  [/\btiboli\s+eeo\b/gi, 'Tivoli Air'],
+  [/\btibolri\b/gi, 'Tivoli'],
+  [/\btiboli\b/gi, 'Tivoli'],
   [/\baionik\b/gi, 'Ioniq'],
   [/\babeo\b/gi, 'Aveo'],
   [/\bbolteu\b/gi, 'Bolt'],
@@ -113,6 +122,12 @@ const TRIM_REPLACEMENTS = [
   [/\bperstige\b/gi, 'Prestige'],
   [/\bblack\s*edisyeon\b/gi, 'Black Edition'],
   [/\bblack\s*edition\b/gi, 'Black Edition'],
+  [/\binseukeuripsyeon\b/gi, 'Inscription'],
+  [/\binscription\b/gi, 'Inscription'],
+  [/\bpeurejideonteu\b/gi, 'President'],
+  [/\bpresident\b/gi, 'President'],
+  [/\bteukjangeopche\b/gi, 'Special vehicle'],
+  [/\bspecial\s+vehicle\b/gi, 'Special vehicle'],
   [/([A-Za-z])Edisyeon\b/gi, '$1 Edition'],
   [/([A-Za-z])Edition\b/gi, '$1 Edition'],
   [/\bedisyeon\b/gi, 'Edition'],
@@ -269,22 +284,24 @@ export function applyVehicleTitleFixes(value) {
 
 export function normalizeRequestedRomanizedColorAlias(value) {
   const low = cleanText(value).toLowerCase()
-  if (!low) return ''
+  const compact = low.replace(/[\s_-]/g, '')
+  if (!compact) return ''
 
-  if (/^(ppalgansaek|ppalgangsaek|ppalgangsaek)$/.test(low)) return '\u041A\u0440\u0430\u0441\u043D\u044B\u0439'
-  if (/^(noransaek|norangsaek)$/.test(low)) return '\u0416\u0435\u043B\u0442\u044B\u0439'
-  if (/^bunhongsaek$/.test(low)) return '\u0420\u043E\u0437\u043E\u0432\u044B\u0439'
-  if (/^cheongoksaek$/.test(low)) return '\u0411\u0438\u0440\u044E\u0437\u043E\u0432\u044B\u0439'
-  if (/^geomjeongtuton$/.test(low)) return '\u0427\u0435\u0440\u043D\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
-  if (/^eunsaektuton$/.test(low)) return '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
-  if (/^(huinseaktuton|huinsaektuton)$/.test(low)) return '\u0411\u0435\u043b\u044b\u0439 / \u0447\u0435\u0440\u043d\u0430\u044f \u043a\u0440\u044b\u0448\u0430'
-  if (/^haneulsaek$/.test(low)) return '\u041D\u0435\u0431\u0435\u0441\u043D\u043E-\u0433\u043E\u043B\u0443\u0431\u043E\u0439'
-  if (/^jajusaek$/.test(low)) return '\u0411\u043E\u0440\u0434\u043E\u0432\u044B\u0439'
-  if (/^(damnoksaek|damnogsaek|dampoksaek)$/.test(low)) return '\u0421\u0432\u0435\u0442\u043B\u043E-\u0437\u0435\u043B\u0435\u043D\u044B\u0439'
-  if (/^yeondusaek$/.test(low)) return '\u0421\u0432\u0435\u0442\u043B\u043E-\u0437\u0435\u043B\u0435\u043D\u044B\u0439'
-  if (/^galdaesaek$/.test(low)) return '\u0411\u0435\u0436\u0435\u0432\u044B\u0439'
-  if (/^yeongeumsaek$/.test(low)) return '\u0417\u043E\u043B\u043E\u0442\u043E\u0439'
-  if (/^myeongeunsaek$/.test(low)) return '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439'
+  if (/^(ppalgansaek|ppalgangsaek)$/.test(compact)) return '\u041A\u0440\u0430\u0441\u043D\u044B\u0439'
+  if (/^(noransaek|norangsaek)$/.test(compact)) return '\u0416\u0435\u043B\u0442\u044B\u0439'
+  if (/^bunhongsaek$/.test(compact)) return '\u0420\u043E\u0437\u043E\u0432\u044B\u0439'
+  if (/^cheongoksaek$/.test(compact)) return '\u0411\u0438\u0440\u044E\u0437\u043E\u0432\u044B\u0439'
+  if (/^geomjeongtuton$/.test(compact)) return '\u0427\u0435\u0440\u043D\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
+  if (/^eunsaektuton$/.test(compact)) return '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
+  if (/^galsaektuton$/.test(compact)) return '\u041A\u043E\u0440\u0438\u0447\u043D\u0435\u0432\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
+  if (/^(huinseaktuton|huinsaektuton)$/.test(compact)) return '\u0411\u0435\u043B\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
+  if (/^haneulsaek$/.test(compact)) return '\u041D\u0435\u0431\u0435\u0441\u043D\u043E-\u0433\u043E\u043B\u0443\u0431\u043E\u0439'
+  if (/^jajusaek$/.test(compact)) return '\u0411\u043E\u0440\u0434\u043E\u0432\u044B\u0439'
+  if (/^(damnoksaek|damnogsaek|dampoksaek)$/.test(compact)) return '\u0421\u0432\u0435\u0442\u043B\u043E-\u0437\u0435\u043B\u0435\u043D\u044B\u0439'
+  if (/^yeondusaek$/.test(compact)) return '\u0421\u0432\u0435\u0442\u043B\u043E-\u0437\u0435\u043B\u0435\u043D\u044B\u0439'
+  if (/^galdaesaek$/.test(compact)) return '\u0411\u0435\u0436\u0435\u0432\u044B\u0439'
+  if (/^yeongeumsaek$/.test(compact)) return '\u0417\u043E\u043B\u043E\u0442\u043E\u0439'
+  if (/^myeongeunsaek$/.test(compact)) return '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439'
 
   return ''
 }

@@ -229,7 +229,8 @@ function normalizeRomanizedColorAlias(value) {
   const low = cleanText(value).toLowerCase()
   if (!low) return ''
 
-  if (/^(galsaek|galdaesaek)$/.test(low)) return '\u041A\u043E\u0440\u0438\u0447\u043D\u0435\u0432\u044B\u0439'
+  if (/^galdaesaek$/.test(low)) return '\u0411\u0435\u0436\u0435\u0432\u044B\u0439'
+  if (/^galsaek$/.test(low)) return '\u041A\u043E\u0440\u0438\u0447\u043D\u0435\u0432\u044B\u0439'
   if (/^(borasaek|jajusaek)$/.test(low)) return '\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439'
   if (/^haneulsaek$/.test(low)) return '\u0421\u0438\u043D\u0438\u0439'
   if (/^(dampoksaek|damnoksaek|damnogsaek)$/.test(low)) return '\u0417\u0435\u043B\u0435\u043D\u044B\u0439'
@@ -418,6 +419,9 @@ export function normalizeColorLabel(value) {
   if (!raw) return ''
   if (GENERIC_COLOR_LABELS.has(raw)) return finalizeDisplayColorLabel(raw)
 
+  const twoToneCandidate = normalizeTwoToneColorCandidate(raw)
+  if (twoToneCandidate) return finalizeDisplayColorLabel(twoToneCandidate)
+
   const requestedAlias = normalizeRequestedRomanizedColorAlias(raw)
   if (requestedAlias) return finalizeDisplayColorLabel(requestedAlias)
 
@@ -434,7 +438,8 @@ export function normalizeColorLabel(value) {
   if (/^(cheongsaek|parangsaek)$/.test(low)) return 'Синий'
   if (/^(ppalgangsaek|ppalgansaek|hongsaek)$/.test(low)) return 'Красный'
   if (/^(noksaek|choroksaek)$/.test(low)) return 'Зеленый'
-  if (/^(galsaek|galdaesaek)$/.test(low)) return 'Коричневый'
+  if (/^galdaesaek$/.test(low)) return 'Бежевый'
+  if (/^galsaek$/.test(low)) return 'Коричневый'
   if (/^beijisaek$/.test(low)) return 'Бежевый'
   if (/^juhwangsaek$/.test(low)) return 'Оранжевый'
   if (/^norangsaek$/.test(low)) return 'Желтый'
@@ -469,13 +474,38 @@ export function normalizeColorLabel(value) {
   return finalizeDisplayColorLabel(raw)
 }
 
+function normalizeTwoToneColorCandidate(value) {
+  const raw = cleanText(value)
+  if (!raw) return ''
+
+  const low = raw.toLowerCase()
+  const compact = low.replace(/[\s_/-]/g, '')
+  const hasTwoToneHint =
+    compact.includes('tuton') ||
+    low.includes('two tone') ||
+    low.includes('two-tone') ||
+    low.includes('black roof') ||
+    /двухцвет|черная крыша/i.test(raw)
+
+  if (!hasTwoToneHint) return ''
+  if (/^(huinseaktuton|huinsaektuton)$/.test(compact) || /(white|baegsaek|huinsaek)/.test(low) || /흰색|백색/u.test(raw)) return 'Белый двухцветный'
+  if (/^(geomjeongtuton|geomeunsaektuton)$/.test(compact) || /(black|geomeunsaek|geomjeongsaek|heugsaek)/.test(low) || /검정|흑색/u.test(raw)) return 'Черный двухцветный'
+  if (/^eunsaektuton$/.test(compact) || /(silver|eunsaek)/.test(low) || /은색/u.test(raw)) return 'Серебристый двухцветный'
+  if (/^galsaektuton$/.test(compact) || /(brown|galsaek)/.test(low) || /갈색/u.test(raw)) return 'Коричневый двухцветный'
+  if (/(beige|beijisaek)/.test(low) || /베이지/u.test(raw)) return 'Бежевый двухцветный'
+  if (/(gray|grey|hoesaek)/.test(low) || /회색/u.test(raw)) return 'Серый двухцветный'
+
+  return ''
+}
+
 function finalizeDisplayColorLabel(value) {
   const text = cleanText(value)
   if (!text) return ''
   if (text === 'Золотистый') return 'Золотой'
   if (text === 'Ярко-серебристый') return 'Серебристый'
   if (text === 'Серебристо-серый') return 'Серебристый'
-  if (text === 'Белый двухцветный') return 'Белый / черная крыша'
+  const roofMatch = text.match(/^(.+?)\s*\/\s*черная крыша$/i)
+  if (roofMatch) return `${roofMatch[1]} двухцветный`
   return text
 }
 
@@ -533,6 +563,8 @@ export function normalizeInteriorColorLabel(interiorValue, bodyValue = '') {
 
 export function getColorSwatch(value) {
   const text = normalizeColorLabel(value).toLowerCase()
+  const twoToneBase = text.match(/^(.+?)\s+двухцветный$/i)?.[1]
+  if (twoToneBase) return getColorSwatch(twoToneBase)
   if (/\u0440\u043e\u0437\u043e\u0432/i.test(text)) return '#f472b6'
   if (/\u0431\u0438\u0440\u044e\u0437/i.test(text)) return '#14b8a6'
   if (/\u043d\u0435\u0431\u0435\u0441\u043d\u043e-\u0433\u043e\u043b\u0443\u0431/i.test(text)) return '#60a5fa'
@@ -543,8 +575,6 @@ export function getColorSwatch(value) {
   if (/\u0430\u0439\u0432\u043e\u0440\u0438|ivory/i.test(text)) return '#f3ead8'
   if (/\u0432\u0438\u043d\u043d|wine/i.test(text)) return '#7f1d1d'
   if (text.includes('серебристо-зелен')) return '#a8b7a1'
-  if (text.includes('черная крыша')) return '#f8fafc'
-
   if (text.includes('черн')) return '#101010'
   if (text.includes('бел')) return '#f8fafc'
   if (text.includes('мокрый асфальт')) return '#5b6470'

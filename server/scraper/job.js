@@ -47,6 +47,9 @@ const PARSE_SCOPE_GERMAN = 'german'
 const IMPORT_ONLY_SCOPES = new Set([PARSE_SCOPE_IMPORTED, PARSE_SCOPE_JAPANESE, PARSE_SCOPE_GERMAN])
 const DETAIL_RETRY_ATTEMPTS = 3
 const PHOTO_LIMIT = 8
+const STALE_KNOWN_PAGE_LIMIT = 2
+const LOW_YIELD_PAGE_LIMIT = 4
+const LOW_YIELD_MAX_FRESH = 1
 const JAPANESE_BRAND_ALIASES = [
   'toyota',
   'lexus',
@@ -676,6 +679,7 @@ export async function runScrapeJob(limit = 100, options = {}) {
   let offset = 0
   let addedThisRun = 0
   let consecutiveKnownOnlyPages = 0
+  let consecutiveLowYieldPages = 0
 
   try {
     while (addedThisRun < limit && !state.stopReq) {
@@ -716,16 +720,18 @@ export async function runScrapeJob(limit = 100, options = {}) {
         const rawId = cleanText(raw?.Id)
         return existingEncarIds.has(rawId) || seenEncarIds.has(rawId) ? count + 1 : count
       }, 0)
+      const pageFreshCars = Math.max(cars.length - pageKnownCars, 0)
 
       if (pageKnownCars === cars.length) {
         consecutiveKnownOnlyPages += 1
+        consecutiveLowYieldPages += 1
         state.setProgress({
           alreadyKnown: state.progress.alreadyKnown + pageKnownCars,
         })
         state.info(`LIST_ALL_KNOWN_PAGE | scope=${parseScope} | offset=${offset} | known=${pageKnownCars} | consecutive=${consecutiveKnownOnlyPages}`)
 
-        if (consecutiveKnownOnlyPages >= 2) {
-          state.info(`LIST_STALE_STOP | scope=${parseScope} | offset=${offset} | consecutiveKnownPages=${consecutiveKnownOnlyPages}`)
+        if (consecutiveKnownOnlyPages >= STALE_KNOWN_PAGE_LIMIT || consecutiveLowYieldPages >= LOW_YIELD_PAGE_LIMIT) {
+          state.info(`LIST_STALE_STOP | scope=${parseScope} | offset=${offset} | consecutiveKnownPages=${consecutiveKnownOnlyPages} | consecutiveLowYield=${consecutiveLowYieldPages}`)
           break
         }
 
@@ -734,6 +740,16 @@ export async function runScrapeJob(limit = 100, options = {}) {
       }
 
       consecutiveKnownOnlyPages = 0
+      if (pageFreshCars <= LOW_YIELD_MAX_FRESH) {
+        consecutiveLowYieldPages += 1
+        state.info(`LIST_LOW_YIELD_PAGE | scope=${parseScope} | offset=${offset} | fresh=${pageFreshCars} | known=${pageKnownCars} | consecutive=${consecutiveLowYieldPages}`)
+        if (consecutiveLowYieldPages >= LOW_YIELD_PAGE_LIMIT) {
+          state.info(`LIST_STALE_STOP | scope=${parseScope} | offset=${offset} | consecutiveKnownPages=${consecutiveKnownOnlyPages} | consecutiveLowYield=${consecutiveLowYieldPages}`)
+          break
+        }
+      } else {
+        consecutiveLowYieldPages = 0
+      }
 
       for (const raw of cars) {
         if (state.stopReq) {

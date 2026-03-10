@@ -333,6 +333,9 @@ const COLOR_MAP = {
 function getColorStyle(name) {
   const normalized = normalizeVehicleColorLabel(name)
   const color = getColorSwatch(normalized)
+  if (normalized.toLowerCase().includes('двухцветный')) {
+    return { color, border: '#111827' }
+  }
   const border = /бел|white|silver|серебрист|жемчуж|pearl|snow|ivory|айвори/i.test(normalized)
     ? '#cbd5e1'
     : color
@@ -341,6 +344,7 @@ function getColorStyle(name) {
 
 function normalizeColorName(value) {
   return normalizeVehicleColorLabel(value)
+  /* legacy fallback removed
 
   const text = String(value || '').trim()
   const low = text.toLowerCase()
@@ -362,6 +366,7 @@ function normalizeColorName(value) {
   if (low.includes('purple') || low.includes('violet') || compact === 'borasaek' || /보라/.test(text)) return 'Фиолетовый'
 
   return text
+  */
 }
 
 /* ── Reusable checkbox list with expand ── */

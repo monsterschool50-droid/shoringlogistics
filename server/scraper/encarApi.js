@@ -25,12 +25,15 @@ const USER_AGENTS = [
 
 let uaIdx = 0
 function nextUA() { return USER_AGENTS[uaIdx++ % USER_AGENTS.length] }
+let proxySuppressedUntil = 0
 
 const ENCAR_PROXY_URL = (globalThis.process?.env?.ENCAR_PROXY_URL || '').trim().replace(/\/$/, '')
 const ENCAR_DEFAULT_SORT = 'ModifiedDate'
 const MIN_LIST_YEAR = 2019
 const MAX_LIST_TOP_UP_PAGES = 6
 const PAGE_FETCH_SIZE = 20
+const PROXY_AUTH_FAILURE_COOLDOWN_MS = 30 * 60 * 1000
+const PROXY_GENERIC_FAILURE_COOLDOWN_MS = 10 * 60 * 1000
 const PARSE_SCOPE_ALL = 'all'
 const PARSE_SCOPE_IMPORTED = 'imported'
 const PARSE_SCOPE_JAPANESE = 'japanese'
@@ -43,6 +46,17 @@ const IMPORT_ONLY_SCOPES = new Set([
 
 function normalizeParseScope(parseScope = PARSE_SCOPE_ALL) {
   return IMPORT_ONLY_SCOPES.has(parseScope) ? parseScope : PARSE_SCOPE_ALL
+}
+
+function isProxyTemporarilySuppressed() {
+  return proxySuppressedUntil > Date.now()
+}
+
+function suppressProxy(status = 0) {
+  const durationMs = status === 401 || status === 403 || status === 404 || status === 407
+    ? PROXY_AUTH_FAILURE_COOLDOWN_MS
+    : PROXY_GENERIC_FAILURE_COOLDOWN_MS
+  proxySuppressedUntil = Math.max(proxySuppressedUntil, Date.now() + durationMs)
 }
 
 function buildEncarListQuery(parseScope = PARSE_SCOPE_ALL) {
@@ -167,7 +181,7 @@ async function fetchListDirect(offset, pageLimit, parseScope = PARSE_SCOPE_ALL) 
 
 function getListFetchers() {
   const fetchers = []
-  if (ENCAR_PROXY_URL) {
+  if (ENCAR_PROXY_URL && !isProxyTemporarilySuppressed()) {
     fetchers.push({
       name: 'proxy',
       run: (offset, pageLimit, parseScope) => fetchListViaProxy(offset, pageLimit, parseScope),
@@ -193,12 +207,16 @@ async function fetchBatchWithFallback(offset, pageLimit, parseScope, preferredSo
     try {
       const batch = await fetcher.run(offset, pageLimit, parseScope)
       if (isListScopeMismatch(parseScope, batch.cars)) {
+        if (fetcher.name === 'proxy') suppressProxy()
         lastError = createListScopeMismatchError(parseScope, fetcher.name, batch.cars)
         continue
       }
 
       return { batch, source: fetcher.name }
     } catch (error) {
+      if (fetcher.name === 'proxy') {
+        suppressProxy(Number(error?.response?.status) || 0)
+      }
       lastError = error
     }
   }
@@ -228,7 +246,7 @@ export async function fetchCarList(offset = 0, limit = 20, retries = 3, options 
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      let activeSource = ENCAR_PROXY_URL ? 'proxy' : 'direct'
+      let activeSource = ENCAR_PROXY_URL && !isProxyTemporarilySuppressed() ? 'proxy' : 'direct'
       let total = 0
       let scanned = 0
       let nextOffset = offset

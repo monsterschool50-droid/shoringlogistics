@@ -122,21 +122,21 @@ const SUSPICIOUS_DUPLICATE_INTERIOR_COLORS = new Set([
   'Графитовый',
 ])
 
-const INTERIOR_COLOR_TEXT_MARKERS = '(?:\\uC2DC\\uD2B8|\\uB0B4\\uC7A5(?:\\s*\\uC0AC\\uC591)?|\\uC2E4\\uB0B4(?:\\s*\\uC0C9\\uC0C1|\\s*\\uCEEC\\uB7EC)?|\\uC778\\uD14C\\uB9AC\\uC5B4|seat(?:\\s*(?:color|trim))?|interior(?:\\s*color)?|upholstery|trim(?:\\s*color)?)'
+const INTERIOR_COLOR_TEXT_MARKERS = '(?:\\uC2DC\\uD2B8|\\uB0B4\\uC7A5(?:\\s*\\uC0AC\\uC591)?|\\uC2E4\\uB0B4(?:\\s*\\uC0C9\\uC0C1|\\s*\\uCEEC\\uB7EC)?|\\uC778\\uD14C\\uB9AC\\uC5B4|seat(?:\\s*(?:color|trim))?|interior(?:\\s*color)?|upholstery|trim(?:\\s*color)?|siteu(?:\\s*(?:color|trim))?|silnae(?:\\s*(?:saeksang|keolreo))?|naejang(?:\\s*sayang)?|inteorieo|upeolseuteori)'
 const INTERIOR_COLOR_CONTEXT_MARKERS = `(?:${INTERIOR_COLOR_TEXT_MARKERS}|\\uAC00\\uC8FD|\\uBAA8\\uB178\\uD1A4|\\uD22C\\uD1A4|leather|monotone|two[-\\s]*tone)`
 const INTERIOR_COLOR_LABEL_RE = /(?:\uB0B4\uC7A5(?:\s*\uC0AC\uC591|\s*\uC0C9\uC0C1)?|\uC2E4\uB0B4(?:\s*\uC0C9\uC0C1|\s*\uCEEC\uB7EC)?|\uC2DC\uD2B8(?:\s*\uC0C9\uC0C1|\s*\uCEEC\uB7EC)?|interior(?:\s*color)?|seat(?:\s*(?:color|trim))?|trim\s*color|upholstery)/i
 const INTERIOR_COLOR_REJECT_RE = /(?:body\s*color|\uC678\uC7A5|\uC678\uC7A5\s*\uC0C9\uC0C1|\uCC28\uCCB4\s*\uC0C9\uC0C1)/i
 const INTERIOR_COLOR_SEGMENT_SPLIT_RE = /(?:\r?\n|[|,;]|\/|▶|★|◈|▪|•|\u2022)+/g
 const INTERIOR_COLOR_TEXT_PATTERNS = Object.freeze([
-  { color: 'black', source: '(?:\\uBE14\\uB799|\\uAC80\\uC815|\\uD751\\uC0C9|black|charcoal|ebony)' },
-  { color: 'beige', source: '(?:\\uBCA0\\uC774\\uC9C0|\\uC0CC\\uB4DC\\s*\\uBCA0\\uC774\\uC9C0|beige|sand\\s*beige)' },
-  { color: 'brown', source: '(?:\\uBE0C\\uB77C\\uC6B4|\\uCE74\\uBA5C|\\uCF54\\uB0D1|\\uD1A0\\uD504|\\uBAA8\\uCE74|brown|tan|camel|cognac|taupe|mocha)' },
-  { color: 'ivory', source: '(?:\\uC544\\uC774\\uBCF4\\uB9AC|\\uD06C\\uB9BC|\\uC624\\uD504\\s*\\uD654\\uC774\\uD2B8|ivory|cream|off\\s*white)' },
-  { color: 'gray', source: '(?:\\uADF8\\uB808\\uC774|\\uBAA8\\uB358\\s*\\uADF8\\uB808\\uC774|\\uADF8\\uB808\\uC774\\uC9C0|\\uD68C\\uC0C9|gray|grey|greige|modern\\s*gray)' },
-  { color: 'red', source: '(?:\\uB808\\uB4DC|\\uC801\\uC0C9|\\uC640\\uC778|\\uBC84\\uAC74\\uB514|red|wine|burgundy)' },
-  { color: 'blue', source: '(?:\\uB124\\uC774\\uBE44|\\uCCAD\\uC0C9|blue|navy)' },
-  { color: 'orange', source: '(?:\\uC624\\uB80C\\uC9C0|orange)' },
-  { color: 'green', source: '(?:\\uADF8\\uB9B0|green)' },
+  { color: 'black', source: '(?:\\uBE14\\uB799|\\uAC80\\uC815|\\uD751\\uC0C9|black|charcoal|ebony|beullaek|geomjeong|heuksaek)' },
+  { color: 'beige', source: '(?:\\uBCA0\\uC774\\uC9C0|\\uC0CC\\uB4DC\\s*\\uBCA0\\uC774\\uC9C0|beige|sand\\s*beige|beiji|saendeu\\s*beiji)' },
+  { color: 'brown', source: '(?:\\uBE0C\\uB77C\\uC6B4|\\uCE74\\uBA5C|\\uCF54\\uB0D1|\\uD1A0\\uD504|\\uBAA8\\uCE74|brown|tan|camel|cognac|konyak|kkonyak|konnyak|taupe|mocha|beuraun|galsaek|kamel|topeu|moka|mokka|choko\\s*beuraun)' },
+  { color: 'ivory', source: '(?:\\uC544\\uC774\\uBCF4\\uB9AC|\\uD06C\\uB9BC|\\uC624\\uD504\\s*\\uD654\\uC774\\uD2B8|ivory|cream|off\\s*white|aibori|keurim|opeu\\s*hwaiteu)' },
+  { color: 'gray', source: '(?:\\uADF8\\uB808\\uC774|\\uBAA8\\uB358\\s*\\uADF8\\uB808\\uC774|\\uADF8\\uB808\\uC774\\uC9C0|\\uD68C\\uC0C9|gray|grey|greige|modern\\s*gray|geurei|geureiji|hoesaek|modeon\\s*geurei)' },
+  { color: 'red', source: '(?:\\uB808\\uB4DC|\\uC801\\uC0C9|\\uC640\\uC778|\\uBC84\\uAC74\\uB514|red|wine|burgundy|redeu|wain|beogeondi)' },
+  { color: 'blue', source: '(?:\\uB124\\uC774\\uBE44|\\uCCAD\\uC0C9|blue|navy|neibi|cheongsaek|parangsaek)' },
+  { color: 'orange', source: '(?:\\uC624\\uB80C\\uC9C0|orange|orenji|juhwangsaek)' },
+  { color: 'green', source: '(?:\\uADF8\\uB9B0|green|geurin|choroksaek)' },
 ])
 
 const OPTION_FEATURE_RULES = Object.freeze([
@@ -213,6 +213,8 @@ const TRIM_REPLACEMENTS = [
   ['peurimieo', 'Премьер'],
   ['peurimio', 'Премьер'],
   ['premier', 'Премьер'],
+  ['inseukeuripsyeon', 'Inscription'],
+  ['inscription', 'Inscription'],
   ['the essential', 'Эссеншел'],
   ['essential', 'Эссеншел'],
   ['calligraphy', 'Каллиграфия'],
@@ -277,6 +279,8 @@ const TITLE_SAFE_TRIM_SOURCES = [
   'peurimieo',
   'peurimio',
   'premier',
+  'inseukeuripsyeon',
+  'inscription',
   'calligraphy',
   'prestige',
   'the essential',
@@ -403,10 +407,18 @@ function normalizeRomanizedColorAlias(value) {
   const low = cleanText(value).toLowerCase()
   if (!low) return ''
 
-  if (/^(galsaek|galdaesaek)$/.test(low)) return '\u041A\u043E\u0440\u0438\u0447\u043D\u0435\u0432\u044B\u0439'
+  if (/^(beullaek|geomjeong|heuksaek)$/.test(low)) return '\u0427\u0435\u0440\u043D\u044B\u0439'
+  if (/^(beiji|saendeubeiji)$/.test(low)) return '\u0411\u0435\u0436\u0435\u0432\u044B\u0439'
+  if (/^galdaesaek$/.test(low)) return '\u0411\u0435\u0436\u0435\u0432\u044B\u0439'
+  if (/^(galsaek|beuraun|moka|mokka|konyak|kkonyak|konnyak|kamel|topeu)$/.test(low)) return '\u041A\u043E\u0440\u0438\u0447\u043D\u0435\u0432\u044B\u0439'
+  if (/^(aibori|keurim|opeuhwaiteu)$/.test(low)) return '\u0410\u0439\u0432\u043E\u0440\u0438'
+  if (/^(geurei|geureiji|hoesaek)$/.test(low)) return '\u0421\u0435\u0440\u044B\u0439'
+  if (/^(redeu|wain|beogeondi)$/.test(low)) return '\u041A\u0440\u0430\u0441\u043D\u044B\u0439'
+  if (/^(neibi|cheongsaek|parangsaek)$/.test(low)) return '\u0421\u0438\u043D\u0438\u0439'
+  if (/^(orenji|juhwangsaek)$/.test(low)) return '\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439'
+  if (/^(geurin|choroksaek|dampoksaek|damnoksaek|damnogsaek)$/.test(low)) return '\u0417\u0435\u043B\u0435\u043D\u044B\u0439'
   if (/^(borasaek|jajusaek)$/.test(low)) return '\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439'
   if (/^haneulsaek$/.test(low)) return '\u0421\u0438\u043D\u0438\u0439'
-  if (/^(dampoksaek|damnoksaek|damnogsaek)$/.test(low)) return '\u0417\u0435\u043B\u0435\u043D\u044B\u0439'
 
   return ''
 }
@@ -701,8 +713,33 @@ function finalizeColorLabel(value) {
   if (text === 'Золотистый') return 'Золотой'
   if (text === 'Ярко-серебристый') return 'Серебристый'
   if (text === 'Серебристо-серый') return 'Серебристый'
-  if (text === 'Белый двухцветный') return 'Белый / черная крыша'
+  const roofMatch = text.match(/^(.+?)\s*\/\s*черная крыша$/i)
+  if (roofMatch) return `${roofMatch[1]} двухцветный`
   return text
+}
+
+function normalizeTwoToneColorCandidate(value) {
+  const raw = cleanText(value)
+  if (!raw) return ''
+
+  const low = raw.toLowerCase()
+  const compact = low.replace(/[\s_/-]/g, '')
+  const hasTwoToneHint =
+    compact.includes('tuton') ||
+    low.includes('two tone') ||
+    low.includes('two-tone') ||
+    low.includes('black roof') ||
+    /двухцвет|черная крыша/i.test(raw)
+
+  if (!hasTwoToneHint) return ''
+  if (/^(huinseaktuton|huinsaektuton)$/.test(compact) || /(white|baegsaek|huinsaek)/.test(low) || /흰색|백색/u.test(raw)) return 'Белый двухцветный'
+  if (/^(geomjeongtuton|geomeunsaektuton)$/.test(compact) || /(black|geomeunsaek|geomjeongsaek|heugsaek)/.test(low) || /검정|흑색/u.test(raw)) return 'Черный двухцветный'
+  if (/^eunsaektuton$/.test(compact) || /(silver|eunsaek)/.test(low) || /은색/u.test(raw)) return 'Серебристый двухцветный'
+  if (/^galsaektuton$/.test(compact) || /(brown|galsaek)/.test(low) || /갈색/u.test(raw)) return 'Коричневый двухцветный'
+  if (/(beige|beijisaek)/.test(low) || /베이지/u.test(raw)) return 'Бежевый двухцветный'
+  if (/(gray|grey|hoesaek)/.test(low) || /회색/u.test(raw)) return 'Серый двухцветный'
+
+  return ''
 }
 
 export function normalizeTrimLevel(...values) {
@@ -797,6 +834,9 @@ export function normalizeColorName(value) {
   const raw = cleanText(value)
   if (!raw) return ''
   if (GENERIC_COLOR_LABELS.has(raw)) return finalizeColorLabel(raw)
+
+  const twoToneCandidate = normalizeTwoToneColorCandidate(raw)
+  if (twoToneCandidate) return finalizeColorLabel(twoToneCandidate)
 
   const requestedAlias = normalizeRequestedRomanizedColorAlias(raw)
   if (requestedAlias) return finalizeColorLabel(requestedAlias)

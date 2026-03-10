@@ -1,11 +1,26 @@
 import pool from '../server/db.js'
 import { fetchEncarVehicleEnrichment } from '../server/lib/encarVehicle.js'
 import { normalizeInteriorColorName } from '../server/lib/vehicleData.js'
+import { isStandardVin, normalizeVin } from '../server/lib/vin.js'
 
 const DEFAULT_CONCURRENCY = (() => {
-  const raw = Number.parseInt(process.env.BACKFILL_ENRICH_CONCURRENCY || '2', 10)
+  const raw = Number.parseInt(globalThis.process?.env?.BACKFILL_ENRICH_CONCURRENCY || '2', 10)
   if (!Number.isFinite(raw)) return 2
   return Math.min(Math.max(raw, 1), 8)
+})()
+const DEFAULT_TARGETS = ['interior', 'vin', 'trim', 'options']
+const BACKFILL_TARGETS = (() => {
+  const raw = String(globalThis.process?.env?.BACKFILL_TARGETS || DEFAULT_TARGETS.join(','))
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+  const normalized = raw.filter((item) => DEFAULT_TARGETS.includes(item))
+  return normalized.length ? normalized : [...DEFAULT_TARGETS]
+})()
+const BACKFILL_LIMIT = (() => {
+  const raw = Number.parseInt(globalThis.process?.env?.BACKFILL_ENRICH_LIMIT || '0', 10)
+  if (!Number.isFinite(raw) || raw <= 0) return 0
+  return raw
 })()
 
 function cleanText(value) {
@@ -21,24 +36,66 @@ function hasOptionFeatures(value) {
   return normalizeOptionFeatures(value).length > 0
 }
 
+function isVinConstraintError(error) {
+  return error?.code === '23505' && error?.constraint === 'idx_cars_vin_unique'
+}
+
+async function getExistingCarIdByVin(vin, excludeId = null) {
+  const normalized = normalizeVin(vin)
+  if (!isStandardVin(normalized)) return null
+
+  const params = [normalized]
+  let sql = 'SELECT id FROM cars WHERE UPPER(BTRIM(vin)) = $1'
+  if (excludeId) {
+    params.push(excludeId)
+    sql += ' AND id != $2'
+  }
+  sql += ' LIMIT 1'
+
+  const result = await pool.query(sql, params)
+  return result.rows[0]?.id || null
+}
+
 async function ensureSchema() {
   await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS option_features TEXT[] DEFAULT '{}'`)
 }
 
+function hasTarget(name) {
+  return BACKFILL_TARGETS.includes(name)
+}
+
 async function fetchCandidates() {
-  const result = await pool.query(`
+  const whereChecks = []
+  if (hasTarget('interior')) whereChecks.push(`COALESCE(BTRIM(interior_color), '') = ''`)
+  if (hasTarget('vin')) whereChecks.push(`COALESCE(BTRIM(vin), '') = ''`)
+  if (hasTarget('trim')) whereChecks.push(`COALESCE(BTRIM(trim_level), '') = ''`)
+  if (hasTarget('options')) whereChecks.push(`COALESCE(array_length(option_features, 1), 0) = 0`)
+  if (!whereChecks.length) return []
+
+  const params = []
+  let sql = `
     SELECT id, encar_id, name, body_color, interior_color, vin, trim_level, option_features
     FROM cars
     WHERE encar_id IS NOT NULL
       AND encar_id != ''
       AND (
-        COALESCE(BTRIM(interior_color), '') = ''
-        OR COALESCE(BTRIM(vin), '') = ''
-        OR COALESCE(BTRIM(trim_level), '') = ''
-        OR COALESCE(array_length(option_features, 1), 0) = 0
+        ${whereChecks.join('\n        OR ')}
       )
-    ORDER BY updated_at ASC NULLS FIRST, id ASC
-  `)
+    ORDER BY
+      CASE WHEN COALESCE(BTRIM(vin), '') = '' THEN 0 ELSE 1 END,
+      CASE WHEN COALESCE(BTRIM(trim_level), '') = '' THEN 0 ELSE 1 END,
+      CASE WHEN COALESCE(array_length(option_features, 1), 0) = 0 THEN 0 ELSE 1 END,
+      CASE WHEN COALESCE(BTRIM(interior_color), '') = '' THEN 0 ELSE 1 END,
+      updated_at ASC NULLS FIRST,
+      id ASC
+  `
+
+  if (BACKFILL_LIMIT > 0) {
+    params.push(BACKFILL_LIMIT)
+    sql += ` LIMIT $${params.length}`
+  }
+
+  const result = await pool.query(sql, params)
 
   return result.rows
 }
@@ -79,6 +136,8 @@ async function main() {
     option_features_filled: 0,
   }
 
+  console.log(`Backfill targets: ${BACKFILL_TARGETS.join(', ')}`)
+  console.log(`Backfill limit: ${BACKFILL_LIMIT || 'all'}`)
   console.log(`Backfill candidates: ${stats.checked}`)
   if (!candidates.length) {
     await pool.end()
@@ -101,22 +160,22 @@ async function main() {
         const currentInterior = cleanText(row.interior_color)
         const normalizedCurrentInterior = normalizeInteriorColorName(currentInterior, row.body_color || '')
 
-        if (!normalizedCurrentInterior && nextInterior) {
+        if (hasTarget('interior') && !normalizedCurrentInterior && nextInterior) {
           patch.interior_color = nextInterior
           stats.interior_filled += 1
         }
 
-        if (!cleanText(row.vin) && cleanText(detail.vin)) {
+        if (hasTarget('vin') && !cleanText(row.vin) && cleanText(detail.vin)) {
           patch.vin = cleanText(detail.vin)
           stats.vin_filled += 1
         }
 
-        if (!cleanText(row.trim_level) && cleanText(detail.trim_level)) {
+        if (hasTarget('trim') && !cleanText(row.trim_level) && cleanText(detail.trim_level)) {
           patch.trim_level = cleanText(detail.trim_level)
           stats.trim_filled += 1
         }
 
-        if (!hasOptionFeatures(row.option_features)) {
+        if (hasTarget('options') && !hasOptionFeatures(row.option_features)) {
           const nextFeatures = normalizeOptionFeatures(detail.option_features)
           if (nextFeatures.length) {
             patch.option_features = nextFeatures
@@ -124,10 +183,27 @@ async function main() {
           }
         }
 
-        if (await updateCar(row.id, patch)) {
-          stats.updated += 1
-        } else {
-          stats.skipped += 1
+        let appliedPatch = { ...patch }
+        try {
+          if (await updateCar(row.id, appliedPatch)) {
+            stats.updated += 1
+          } else {
+            stats.skipped += 1
+          }
+        } catch (updateError) {
+          if (!isVinConstraintError(updateError) || !appliedPatch.vin) throw updateError
+
+          const duplicateId = await getExistingCarIdByVin(appliedPatch.vin, row.id)
+          delete appliedPatch.vin
+          stats.vin_filled = Math.max(stats.vin_filled - 1, 0)
+
+          if (await updateCar(row.id, appliedPatch)) {
+            stats.updated += 1
+            console.warn(`Skipped duplicate VIN for ID ${row.id} / Encar ${row.encar_id}; existing ID ${duplicateId || '-'}`)
+          } else {
+            stats.skipped += 1
+            console.warn(`Duplicate VIN only for ID ${row.id} / Encar ${row.encar_id}; existing ID ${duplicateId || '-'}`)
+          }
         }
       } catch (error) {
         stats.errors += 1
@@ -166,5 +242,5 @@ main().catch(async (error) => {
   } catch {
     // ignore close errors
   }
-  process.exit(1)
+  globalThis.process.exitCode = 1
 })
