@@ -416,13 +416,13 @@ export function resolveDisplayBodyTypeLabel(bodyValue, ...contextValues) {
 export function normalizeColorLabel(value) {
   const raw = cleanText(value)
   if (!raw) return ''
-  if (GENERIC_COLOR_LABELS.has(raw)) return raw
+  if (GENERIC_COLOR_LABELS.has(raw)) return finalizeDisplayColorLabel(raw)
 
   const requestedAlias = normalizeRequestedRomanizedColorAlias(raw)
-  if (requestedAlias) return requestedAlias
+  if (requestedAlias) return finalizeDisplayColorLabel(requestedAlias)
 
   const romanizedAlias = normalizeRomanizedColorAlias(raw)
-  if (romanizedAlias) return romanizedAlias
+  if (romanizedAlias) return finalizeDisplayColorLabel(romanizedAlias)
 
   const low = raw.toLowerCase()
 
@@ -441,7 +441,7 @@ export function normalizeColorLabel(value) {
   if (/^borasaek$/.test(low)) return 'Фиолетовый'
 
   if (/쥐색|wet asphalt|jwisaek|jwiseak/i.test(raw)) return 'Мокрый асфальт'
-  if (/은회색|silver\s*(gray|grey)/i.test(raw)) return 'Серебристо-серый'
+  if (/은회색|silver\s*(gray|grey)/i.test(raw)) return finalizeDisplayColorLabel('Серебристо-серый')
   if (/진주.*(흰|백)|pearl white/i.test(raw)) return 'Жемчужно-белый'
   if (/진주.*(검|흑)|pearl black/i.test(raw)) return 'Жемчужно-черный'
   if (/진주|pearl/i.test(raw)) return 'Жемчужный'
@@ -464,9 +464,19 @@ export function normalizeColorLabel(value) {
   if (/yellow|노란|노랑/i.test(raw)) return 'Желтый'
   if (/orange|주황/i.test(raw)) return 'Оранжевый'
   if (/purple|violet|보라/i.test(raw)) return 'Фиолетовый'
-  if (/gold|금색/i.test(raw)) return 'Золотой'
+  if (/gold|금색/i.test(raw)) return finalizeDisplayColorLabel('Золотой')
 
-  return raw
+  return finalizeDisplayColorLabel(raw)
+}
+
+function finalizeDisplayColorLabel(value) {
+  const text = cleanText(value)
+  if (!text) return ''
+  if (text === 'Золотистый') return 'Золотой'
+  if (text === 'Ярко-серебристый') return 'Серебристый'
+  if (text === 'Серебристо-серый') return 'Серебристый'
+  if (text === 'Белый двухцветный') return 'Белый / черная крыша'
+  return text
 }
 
 export function isWeakColorValue(value) {
@@ -528,11 +538,12 @@ export function getColorSwatch(value) {
   if (/\u043d\u0435\u0431\u0435\u0441\u043d\u043e-\u0433\u043e\u043b\u0443\u0431/i.test(text)) return '#60a5fa'
   if (/\u0431\u043e\u0440\u0434\u043e\u0432|wine/i.test(text)) return '#7f1d1d'
   if (/\u0441\u0432\u0435\u0442\u043b\u043e-\u0437\u0435\u043b\u0435\u043d/i.test(text)) return '#86efac'
-  if (/\u0437\u043e\u043b\u043e\u0442\u0438\u0441\u0442/i.test(text)) return '#d4a72c'
+  if (/\u0437\u043e\u043b\u043e\u0442/i.test(text)) return '#d4a72c'
   if (/\u0436\u0435\u043c\u0447\u0443\u0436|pearl/i.test(text)) return '#e7eaef'
   if (/\u0430\u0439\u0432\u043e\u0440\u0438|ivory/i.test(text)) return '#f3ead8'
   if (/\u0432\u0438\u043d\u043d|wine/i.test(text)) return '#7f1d1d'
   if (text.includes('серебристо-зелен')) return '#a8b7a1'
+  if (text.includes('черная крыша')) return '#f8fafc'
 
   if (text.includes('черн')) return '#101010'
   if (text.includes('бел')) return '#f8fafc'

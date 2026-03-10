@@ -22,6 +22,7 @@ import {
   normalizeTransmission,
   normalizeTrimLevel,
 } from './vehicleData.js'
+import { resolveEncarOptionTexts } from './encarOptionDictionary.js'
 
 const apiClient = axios.create({
   baseURL: 'https://api.encar.com',
@@ -52,6 +53,7 @@ async function fetchEncarVehicleApiData(encarId) {
     contents: data?.contents || {},
     view: data?.view || {},
     partnership: data?.partnership || {},
+    options: data?.options || {},
   }
 }
 
@@ -109,6 +111,7 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     contents,
     view,
     partnership,
+    options,
   } = await fetchEncarVehicleApiData(encarId)
   const exchangeSnapshot = await getExchangeRateSnapshot()
   const pricingSettings = await getPricingSettings()
@@ -231,6 +234,14 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
 
   const locationRaw = String(contact.address || '').trim()
   const bodyColor = normalizeColorName(spec.colorName)
+  const optionTexts = await resolveEncarOptionTexts(options)
+  const inspectionTexts = inspection
+    ? [
+      ...(inspection.summary || []).map((row) => [row?.label, row?.detail, row?.note, ...(row?.states || [])].join(' ')),
+      ...(inspection.detailStatus || []).map((row) => [row?.section, row?.label, row?.detail, row?.note, ...(row?.states || [])].join(' ')),
+      ...(inspection.repairHistory || []).map((row) => [row?.label, row?.value].join(' ')),
+    ]
+    : []
   const keyInfo = extractKeyInfo({
     contentsText: contents.text,
     inspectionRows: inspection?.detailStatus || [],
@@ -241,6 +252,7 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     titleText: ad.title,
     subtitleText: ad.subTitle,
     oneLineText: ad.oneLineText,
+    optionTexts,
     inspectionRows: inspection?.detailStatus || [],
   })
 
@@ -253,7 +265,17 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     year,
     mileage: Number(spec.mileage) || 0,
     body_color: bodyColor,
-    interior_color: resolveInteriorColor(spec, bodyColor, ad.memo, contents.text, ad.title, ad.subTitle),
+    interior_color: resolveInteriorColor(
+      spec,
+      bodyColor,
+      ad.memo,
+      contents.text,
+      ad.title,
+      ad.subTitle,
+      ad.oneLineText,
+      optionTexts.join(' '),
+      ...inspectionTexts,
+    ),
     location: locationRaw,
     location_short: extractShortLocation(locationRaw),
     vin: data?.vin || '',
@@ -313,7 +335,7 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
 }
 
 export async function fetchEncarVehicleEnrichment(encarId) {
-  const { data, category, spec, ad, contact, contents } = await fetchEncarVehicleApiData(encarId)
+  const { data, category, spec, ad, contact, contents, options } = await fetchEncarVehicleApiData(encarId)
   const manufacturerRaw = category.manufacturerEnglishName || category.manufacturerName || ''
   const modelGroupRaw = category.modelGroupEnglishName || category.modelGroupName || category.modelName || ''
   const gradeNameRaw = category.gradeDetailEnglishName || category.gradeDetailName || category.gradeName || ''
@@ -372,12 +394,14 @@ export async function fetchEncarVehicleEnrichment(encarId) {
   )
 
   const bodyColor = normalizeColorName(spec.colorName)
+  const optionTexts = await resolveEncarOptionTexts(options)
   const optionFeatures = extractOptionFeatures({
     contentsText: contents.text,
     memoText: ad.memo,
     titleText: ad.title,
     subtitleText: ad.subTitle,
     oneLineText: ad.oneLineText,
+    optionTexts,
   })
 
   return {
@@ -391,7 +415,7 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     transmission: normalizeTransmission(spec.transmissionName),
     drive_type: inferDrive(driveRaw, name, model),
     body_color: bodyColor,
-    interior_color: resolveInteriorColor(spec, bodyColor, ad.memo, contents.text, ad.title, ad.subTitle),
+    interior_color: resolveInteriorColor(spec, bodyColor, ad.memo, contents.text, ad.title, ad.subTitle, ad.oneLineText, optionTexts.join(' ')),
     option_features: optionFeatures,
     body_type: resolveBodyType(
       spec.bodyName,

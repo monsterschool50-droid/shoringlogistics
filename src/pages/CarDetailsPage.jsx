@@ -774,7 +774,7 @@ function normalizeImages(rawImages) {
 
 function normalizeOptionFeatures(value) {
   if (!Array.isArray(value)) return []
-  return [...new Set(value.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 12)
+  return [...new Set(value.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 16)
 }
 
 function mapCar(c) {
@@ -1127,7 +1127,7 @@ export default function CarDetailsPage() {
                 <div><span className="car-details-meta-label">Год</span><strong>{car.year || '-'}</strong></div>
                 <div><span className="car-details-meta-label">Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
                 <div><span className="car-details-meta-label">Местоположение</span><strong>{car.location || '-'}</strong></div>
-                <div><span className="car-details-meta-label">VIN / Номер</span><strong>{(car.vin && car.vin !== '-') ? car.vin : (car.vehicleNo || '-')}</strong></div>
+                <div><span className="car-details-meta-label">VIN / Номер</span><strong className="car-details-meta-value-vin">{(car.vin && car.vin !== '-') ? car.vin : (car.vehicleNo || '-')}</strong></div>
               </div>
 
               <div className="car-details-actions">
@@ -1160,40 +1160,6 @@ export default function CarDetailsPage() {
               <div className="car-price-total"><span>Итого</span><span>${car.total.toLocaleString()}</span></div>
               {car.canNegotiate && <div className="car-details-negotiate">Возможен торг</div>}
             </div>
-
-            <div className="car-details-card">
-              <h3 className="car-details-card-title">Основные характеристики</h3>
-              <div className="car-details-specs-grid">
-                <div><span>Топливо</span><strong>{car.fuelType || fuelLabel(calc.fuel)}</strong></div>
-                <div><span>Трансмиссия</span><strong>{car.transmission || '-'}</strong></div>
-                <div><span>Привод</span><strong>{car.driveType || '-'}</strong></div>
-                <div><span>Комплектация</span><strong>{car.trimLevel || '-'}</strong></div>
-                <div><span>Цвет кузова</span><strong>{car.bodyColor || '-'}</strong></div>
-                <div><span>Цвет салона</span><strong>{car.interiorColor || '-'}</strong></div>
-                <div><span>Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
-                <div><span>Местоположение</span><strong>{car.location || '-'}</strong></div>
-                <div><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
-                <div><span>Ключи</span><strong>{car.keyInfo || '-'}</strong></div>
-                <div><span>Количество мест</span><strong>{car.seatCount || '-'}</strong></div>
-                <div><span>Объем двигателя</span><strong>{car.displacement ? `${car.displacement} cc` : '-'}</strong></div>
-                <div><span>Encar ID</span><strong>{car.encarId || '-'}</strong></div>
-                <div><span>На Encar с</span><strong>{formatDate(car.detailManage?.firstAdvertisedDateTime || car.createdAt)}</strong></div>
-                <div><span>Обновлено на Encar</span><strong>{formatDate(car.detailManage?.modifyDateTime || car.updatedAt)}</strong></div>
-                <div><span>Стоянка (KR)</span><strong>{PARKING_ADDRESS_KO}</strong></div>
-                <div><span>Стоянка (EN)</span><strong>{PARKING_ADDRESS_EN}</strong></div>
-              </div>
-            </div>
-
-            {!!car.optionFeatures?.length && (
-              <div className="car-details-card">
-                <h3 className="car-details-card-title">Опции и оснащение</h3>
-                <div className="car-feature-row car-details-option-row">
-                  {car.optionFeatures.map((item) => (
-                    <span key={item} className="car-feature-pill">{item}</span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="car-details-card car-details-customs">
               <h3 className="car-details-card-title">Калькулятор растаможки (Кыргызстан)</h3>
@@ -1235,6 +1201,41 @@ export default function CarDetailsPage() {
               </div>
               <p className="car-details-customs-note">{customsNote}</p>
             </div>
+
+            <div className="car-details-card">
+              <h3 className="car-details-card-title">Основные характеристики</h3>
+              <div className="car-details-specs-grid">
+                <div><span>Топливо</span><strong>{car.fuelType || fuelLabel(calc.fuel)}</strong></div>
+                <div><span>Трансмиссия</span><strong>{car.transmission || '-'}</strong></div>
+                <div><span>Привод</span><strong>{car.driveType || '-'}</strong></div>
+                <div><span>Комплектация</span><strong>{car.trimLevel || '-'}</strong></div>
+                <div><span>Цвет кузова</span><strong>{car.bodyColor || '-'}</strong></div>
+                <div><span>Цвет салона</span><strong>{car.interiorColor || '-'}</strong></div>
+                <div><span>Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
+                <div><span>Местоположение</span><strong>{car.location || '-'}</strong></div>
+                <div><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
+                <div><span>Ключи</span><strong>{car.keyInfo || '-'}</strong></div>
+                <div><span>Количество мест</span><strong>{car.seatCount || '-'}</strong></div>
+                <div><span>Объем двигателя</span><strong>{car.displacement ? `${car.displacement} cc` : '-'}</strong></div>
+                <div><span>Encar ID</span><strong>{car.encarId || '-'}</strong></div>
+                <div><span>На Encar с</span><strong>{formatDate(car.detailManage?.firstAdvertisedDateTime || car.createdAt)}</strong></div>
+                <div><span>Обновлено на Encar</span><strong>{formatDate(car.detailManage?.modifyDateTime || car.updatedAt)}</strong></div>
+                <div><span>Стоянка (KR)</span><strong>{PARKING_ADDRESS_KO}</strong></div>
+                <div><span>Стоянка (EN)</span><strong>{PARKING_ADDRESS_EN}</strong></div>
+              </div>
+            </div>
+
+            {!!car.optionFeatures?.length && (
+              <div className="car-details-card">
+                <h3 className="car-details-card-title">Опции и оснащение</h3>
+                <div className="car-feature-row car-details-option-row">
+                  {car.optionFeatures.map((item) => (
+                    <span key={item} className="car-feature-pill">{item}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </aside>
         </div>
 

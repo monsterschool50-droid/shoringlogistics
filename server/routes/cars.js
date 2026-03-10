@@ -36,7 +36,7 @@ function normalizeCatalogYear(value) {
 
 function normalizeOptionFeatures(value) {
   if (!Array.isArray(value)) return []
-  return [...new Set(value.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 12)
+  return [...new Set(value.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 16)
 }
 
 function getPayloadPriceBlockReason(payload = {}) {

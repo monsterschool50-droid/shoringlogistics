@@ -14,7 +14,7 @@ function cleanText(value) {
 
 function normalizeOptionFeatures(value) {
   if (!Array.isArray(value)) return []
-  return [...new Set(value.map((item) => cleanText(item)).filter(Boolean))].slice(0, 12)
+  return [...new Set(value.map((item) => cleanText(item)).filter(Boolean))].slice(0, 16)
 }
 
 function hasOptionFeatures(value) {
@@ -27,12 +27,14 @@ async function ensureSchema() {
 
 async function fetchCandidates() {
   const result = await pool.query(`
-    SELECT id, encar_id, name, body_color, interior_color, option_features
+    SELECT id, encar_id, name, body_color, interior_color, vin, trim_level, option_features
     FROM cars
     WHERE encar_id IS NOT NULL
       AND encar_id != ''
       AND (
         COALESCE(BTRIM(interior_color), '') = ''
+        OR COALESCE(BTRIM(vin), '') = ''
+        OR COALESCE(BTRIM(trim_level), '') = ''
         OR COALESCE(array_length(option_features, 1), 0) = 0
       )
     ORDER BY updated_at ASC NULLS FIRST, id ASC
@@ -72,6 +74,8 @@ async function main() {
     skipped: 0,
     errors: 0,
     interior_filled: 0,
+    vin_filled: 0,
+    trim_filled: 0,
     option_features_filled: 0,
   }
 
@@ -100,6 +104,16 @@ async function main() {
         if (!normalizedCurrentInterior && nextInterior) {
           patch.interior_color = nextInterior
           stats.interior_filled += 1
+        }
+
+        if (!cleanText(row.vin) && cleanText(detail.vin)) {
+          patch.vin = cleanText(detail.vin)
+          stats.vin_filled += 1
+        }
+
+        if (!cleanText(row.trim_level) && cleanText(detail.trim_level)) {
+          patch.trim_level = cleanText(detail.trim_level)
+          stats.trim_filled += 1
         }
 
         if (!hasOptionFeatures(row.option_features)) {
@@ -133,6 +147,8 @@ async function main() {
     SELECT
       COUNT(*)::int AS total,
       COUNT(*) FILTER (WHERE COALESCE(BTRIM(interior_color), '') <> '')::int AS with_interior_color,
+      COUNT(*) FILTER (WHERE COALESCE(BTRIM(vin), '') <> '')::int AS with_vin,
+      COUNT(*) FILTER (WHERE COALESCE(BTRIM(trim_level), '') <> '')::int AS with_trim_level,
       COUNT(*) FILTER (WHERE COALESCE(array_length(option_features, 1), 0) > 0)::int AS with_option_features
     FROM cars
   `)

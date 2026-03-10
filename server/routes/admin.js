@@ -75,6 +75,7 @@ const EXTRA_COLOR_SWATCH = {
   'Мокрый асфальт': { color: '#5b6470' },
   'Графитовый': { color: '#505862' },
   'Серебристо-серый': { color: '#b8c0ca', border: '#94a3b8' },
+  'Белый / черная крыша': { color: '#f8fafc', border: '#111827' },
   'Темно-серый': { color: '#4b5563' },
   'Светло-серый': { color: '#dbe1e8', border: '#a8b3c2' },
   'Жемчужный': { color: '#e7eaef', border: '#cbd5e1' },
@@ -200,6 +201,10 @@ function shouldRefreshTrim(value) {
   return Boolean(normalized && normalized !== raw)
 }
 
+function shouldRefreshVin(value) {
+  return !cleanText(value)
+}
+
 function shouldRefreshBodyColor(value) {
   const raw = cleanText(value)
   if (!raw) return true
@@ -221,6 +226,7 @@ function shouldRefreshOptionFeatures(value) {
 
 function shouldEnrichCar(car) {
   return (
+    shouldRefreshVin(car.vin) ||
     shouldRefreshBodyColor(car.body_color) ||
     shouldRefreshInteriorColor(car.interior_color, car.body_color) ||
     shouldRefreshOptionFeatures(car.option_features) ||
@@ -291,6 +297,10 @@ async function enrichCar(car) {
 
     if (shouldRefreshTrim(car.trim_level) && cleanText(detail.trim_level)) {
       patch.trim_level = detail.trim_level
+    }
+
+    if (shouldRefreshVin(car.vin) && cleanText(detail.vin)) {
+      patch.vin = detail.vin
     }
 
     if (Object.keys(patch).length) {
@@ -389,7 +399,7 @@ async function runEmptyFieldEnrichment(options = {}) {
     const candidateWhereSql = getEnrichCandidateWhereSql()
     const result = scope === ENRICH_SCOPE_LATEST
       ? await pool.query(`
-        SELECT id, encar_id, name, model, body_type, trim_level, body_color, interior_color, option_features,
+        SELECT id, encar_id, name, model, vin, body_type, trim_level, body_color, interior_color, option_features,
                enrich_checked_at, enrich_last_status, enrich_last_error, enrich_last_encar_id
         FROM cars
         WHERE ${candidateWhereSql}
@@ -397,7 +407,7 @@ async function runEmptyFieldEnrichment(options = {}) {
         LIMIT $1
       `, [latestLimit])
       : await pool.query(`
-        SELECT id, encar_id, name, model, body_type, trim_level, body_color, interior_color, option_features,
+        SELECT id, encar_id, name, model, vin, body_type, trim_level, body_color, interior_color, option_features,
                enrich_checked_at, enrich_last_status, enrich_last_error, enrich_last_encar_id
         FROM cars
         WHERE ${candidateWhereSql}
@@ -551,8 +561,8 @@ function normalizeColor(value) {
   if (low.includes('black') || /^(geomeunsaek|geomjeongsaek|heugsaek)$/.test(compact) || hasAny(src, [KO.black, KO.blackAlt])) return 'Черный'
   if (/^geomjeongtuton$/.test(compact)) return 'Черный двухцветный'
   if (/^eunsaektuton$/.test(compact)) return 'Серебристый двухцветный'
-  if (/^(huinseaktuton|huinsaektuton)$/.test(compact)) return 'Белый двухцветный'
-  if (/^myeongeunsaek$/.test(compact)) return 'Ярко-серебристый'
+  if (/^(huinseaktuton|huinsaektuton)$/.test(compact)) return 'Белый / черная крыша'
+  if (/^myeongeunsaek$/.test(compact)) return 'Серебристый'
   if (low.includes('white') || /^(baegsaek|huinsaek)$/.test(compact) || hasAny(src, [KO.white, KO.whiteAlt])) return 'Белый'
   if (low.includes('silver') || /^(eunsaek)$/.test(compact) || src.includes(KO.silver)) return 'Серебристый'
   if (low.includes('gray') || low.includes('grey') || /^(hoesaek|jwisaek)$/.test(compact) || hasAny(src, [KO.gray, KO.grayAlt])) return 'Серый'

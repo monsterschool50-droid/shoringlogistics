@@ -2673,6 +2673,20 @@ body {
   line-height: 1.2;
 }
 
+.car-details-meta-value-vin {
+  font-size: 16px;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 560px) {
+  .car-details-meta-value-vin {
+    font-size: 14px;
+  }
+}
+
 .car-details-actions {
   margin-top: 18px;
   display: flex;

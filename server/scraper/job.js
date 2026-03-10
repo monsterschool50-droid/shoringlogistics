@@ -272,7 +272,7 @@ function normalizeImportedCar(car) {
     body_color: normalizedText.body_color ?? car.body_color,
     interior_color: normalizedText.interior_color ?? car.interior_color,
     option_features: Array.isArray(car.option_features)
-      ? [...new Set(car.option_features.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 12)
+      ? [...new Set(car.option_features.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 16)
       : [],
     location: normalizedText.location || car.location || 'Корея',
     vin: normalizeVin(car.vin) || null,

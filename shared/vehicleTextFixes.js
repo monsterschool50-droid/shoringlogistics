@@ -92,9 +92,9 @@ const TITLE_REPLACEMENTS = [
   [/\bssoul\b/gi, 'Soul'],
   [/\bsoul\s+ev\s+ev\b/gi, 'Soul EV'],
   [/\bseuboteiji\b/gi, 'Sportage'],
-  [/\bjangaeinyong\b/gi, 'Для людей с ограниченными возможностями'],
-  [/\beorinibobocha\b/gi, 'Школьный / Детский'],
-  [/\bschool\s+bus\b/gi, 'Школьный / Детский'],
+  [/\bjangaeinyong\b/gi, 'Disabled Access'],
+  [/\beorinibobocha\b/gi, 'School Bus'],
+  [/\bschool\s+bus\b/gi, 'School Bus'],
   [/\bjeopisiktapcha\b/gi, 'Folding Top'],
   [/\bilrekteurik\b/gi, 'Electric'],
   [/\bdeo\s+nyu\b/gi, 'The New'],
@@ -109,6 +109,15 @@ const TITLE_REPLACEMENTS = [
 
 const TRIM_REPLACEMENTS = [
   [/baelryu\s+(?:peulreoseu|plus|\u041f\u043b\u044e\u0441)/gi, 'Value Plus'],
+  [/\bexclusice\b/gi, 'Exclusive'],
+  [/\bperstige\b/gi, 'Prestige'],
+  [/\bblack\s*edisyeon\b/gi, 'Black Edition'],
+  [/\bblack\s*edition\b/gi, 'Black Edition'],
+  [/([A-Za-z])Edisyeon\b/gi, '$1 Edition'],
+  [/([A-Za-z])Edition\b/gi, '$1 Edition'],
+  [/\bedisyeon\b/gi, 'Edition'],
+  [/\binseupaieo\b/gi, 'Inspire'],
+  [/\btaeksihyeong\b/gi, 'Taxi'],
   [/\bbeseuteu\s+selreksyeon\b/gi, 'Best Selection'],
   [/\bbest\s+selection\b/gi, 'Best Selection'],
   [/\bsyupeurim\b/gi, 'Supreme'],
@@ -143,7 +152,8 @@ const TRIM_REPLACEMENTS = [
   [/\bcelebrity\b/gi, 'Celebrity'],
   [/\breubeulrang\b/gi, 'Le Blanc'],
   [/\ble\s+blanc\b/gi, 'Le Blanc'],
-  [/\b(\d+)\s*inseung\b/gi, '$1 мест'],
+  [/\b(\d+)\s*inseung\b/gi, '$1 seats'],
+  [/\b(\d+)\s*мест\b/gi, '$1 seats'],
   [/\b(\d+)\s*(?:ddeo|doeo)\b/gi, '$1-door'],
   [/\b(\d+)[-\s]*door\b/gi, '$1-door'],
   [/\bbaen\b/gi, 'Van'],
@@ -180,9 +190,9 @@ const TRIM_REPLACEMENTS = [
   [/\bfamily\b/gi, 'Family'],
   [/\bsuchulhyeong\b/gi, 'Export'],
   [/\bexport\b/gi, 'Export'],
-  [/\beorini\s+bokocha\b/gi, 'Детский / Школьный автобус'],
-  [/\beorinibobocha\b/gi, 'Детский / Школьный'],
-  [/\bschool\s+bus\b/gi, 'Детский / Школьный'],
+  [/\beorini\s+bokocha\b/gi, 'School Bus'],
+  [/\beorinibobocha\b/gi, 'School Bus'],
+  [/\bschool\s+bus\b/gi, 'School Bus'],
   [/\bebinyu\b/gi, 'Avenue'],
   [/\bavenue\b/gi, 'Avenue'],
   [/\bkochi\b/gi, 'Coach'],
@@ -207,6 +217,44 @@ const TRIM_REPLACEMENTS = [
   [/\bteurendi\b/gi, 'Trendy'],
   [/\btrendy\b/gi, 'Trendy'],
   [/\u0422\u0440\u0435\u043D\u0434\u0438/gi, 'Trendy'],
+  [/\u041a\u0430\u043b\u043b\u0438\u0433\u0440\u0430\u0444\u0438\u044f/gi, 'Calligraphy'],
+  [/\u0413\u0440\u0430\u0432\u0438\u0442\u0438/gi, 'Gravity'],
+  [/\u0412\u0438\u0436\u0435\u043d/gi, 'Vision'],
+  [/\u0418\u043d\u0442\u0435\u043b\u043b\u0438\u0434\u0436\u0435\u043d\u0442/gi, 'Intelligent'],
+  [/\u041c\u0430\u0441\u0442\u0435\u0440/gi, 'Master'],
+  [/\u041a\u043e\u0440\u0435/gi, 'Core'],
+  [/\u041b\u0430\u0443\u043d\u0436/gi, 'Lounge'],
+  [/\u041a\u0435\u043c\u043f\u0435\u0440/gi, 'Camper'],
+  [/\u041c\u043e\u0431\u0438\u043b\u044c\u043d\u044b\u0439\s+\u043e\u0444\u0438\u0441/gi, 'Mobile Office'],
+  [/\u041f\u0440\u0435\u043c\u044c\u0435\u0440/gi, 'Premiere'],
+  [/\u042d\u0441\u0441\u0435\u043d\u0448\u0435\u043b/gi, 'Essential'],
+  [/\u041b\u0430\u043a\u0448\u0435\u0440\u0438/gi, 'Luxury'],
+  [/\u041f\u0440\u0435\u043c\u0438\u0443\u043c/gi, 'Premium'],
+  [/\u041d\u043e\u0431\u043b\u0435\u0441\u0441/gi, 'Noblesse'],
+  [/\u042d\u043a\u0441\u043a\u043b\u044e\u0437\u0438\u0432/gi, 'Exclusive'],
+  [/\u0418\u043d\u0441\u043f\u0438\u0440\u0435\u0439\u0448\u043d/gi, 'Inspire'],
+  [/\u041c\u043e\u0434\u0435\u0440\u043d/gi, 'Modern'],
+  [/\u0421\u043c\u0430\u0440\u0442\u0441\u0442\u0440\u0438\u043c/gi, 'Smartstream'],
+  [/\u0421\u043c\u0430\u0440\u0442/gi, 'Smart'],
+  [/\u0421\u0442\u0430\u0439\u043b/gi, 'Style'],
+  [/\u041a\u043e\u043c\u0444\u043e\u0440\u0442/gi, 'Comfort'],
+  [/\u0421\u0442\u0430\u043d\u0434\u0430\u0440\u0442/gi, 'Standard'],
+  [/\u0425\u0430\u0439\s*[-\s]*\u0422\u0435\u0445/gi, 'Hi-Tech'],
+  [/[Ee\u0415\u0435]-?\s*\u0422\u0435\u0445/gi, 'E-Tech'],
+  [/\u0422\u0435\u0445/gi, 'Tech'],
+  [/\u042d\u0434\u0432\u0430\u043d\u0441\u0434/gi, 'Advanced'],
+  [/\u041f\u043b\u0430\u0442\u0438\u043d\u0443\u043c/gi, 'Platinum'],
+  [/\u042d\u043a\u0437\u0435\u043a\u044c\u044e\u0442\u0438\u0432/gi, 'Executive'],
+  [/\u0411\u043b\u044d\u043a\s*\u042d\u0434\u0438\u0448\u043d/gi, 'Black Edition'],
+  [/\u0411\u043b\u044d\u043a\s*\u042d\u0434\u0438\u0448\u0435\u043d/gi, 'Black Edition'],
+  [/\u0411\u043b\u044d\u043a/gi, 'Black'],
+  [/\u042d\u0434\u0438\u0448\u043d/gi, 'Edition'],
+  [/\u042d\u0434\u0438\u0448\u0435\u043d/gi, 'Edition'],
+  [/\u042d\u043b\u0438\u0442/gi, 'Elite'],
+  [/\u041f\u043b\u044e\u0441/gi, 'Plus'],
+  [/\u0414\u0435\u0442\u0441\u043a\u0438\u0439\s*\/\s*\u0428\u043a\u043e\u043b\u044c\u043d\u044b\u0439(?:\s+\u0430\u0432\u0442\u043e\u0431\u0443\u0441)?/gi, 'School Bus'],
+  [/\u0428\u043a\u043e\u043b\u044c\u043d\u044b\u0439\s*\/\s*\u0414\u0435\u0442\u0441\u043a\u0438\u0439/gi, 'School Bus'],
+  [/\u0414\u043b\u044f\s+\u043b\u044e\u0434\u0435\u0439\s+\u0441\s+\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u043d\u044b\u043c\u0438\s+\u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e\u0441\u0442\u044f\u043c\u0438/gi, 'Disabled Access'],
 ]
 
 export function applyTrimFixes(value) {
@@ -229,14 +277,14 @@ export function normalizeRequestedRomanizedColorAlias(value) {
   if (/^cheongoksaek$/.test(low)) return '\u0411\u0438\u0440\u044E\u0437\u043E\u0432\u044B\u0439'
   if (/^geomjeongtuton$/.test(low)) return '\u0427\u0435\u0440\u043D\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
   if (/^eunsaektuton$/.test(low)) return '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
-  if (/^(huinseaktuton|huinsaektuton)$/.test(low)) return '\u0411\u0435\u043B\u044B\u0439 \u0434\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439'
+  if (/^(huinseaktuton|huinsaektuton)$/.test(low)) return '\u0411\u0435\u043b\u044b\u0439 / \u0447\u0435\u0440\u043d\u0430\u044f \u043a\u0440\u044b\u0448\u0430'
   if (/^haneulsaek$/.test(low)) return '\u041D\u0435\u0431\u0435\u0441\u043D\u043E-\u0433\u043E\u043B\u0443\u0431\u043E\u0439'
   if (/^jajusaek$/.test(low)) return '\u0411\u043E\u0440\u0434\u043E\u0432\u044B\u0439'
   if (/^(damnoksaek|damnogsaek|dampoksaek)$/.test(low)) return '\u0421\u0432\u0435\u0442\u043B\u043E-\u0437\u0435\u043B\u0435\u043D\u044B\u0439'
   if (/^yeondusaek$/.test(low)) return '\u0421\u0432\u0435\u0442\u043B\u043E-\u0437\u0435\u043B\u0435\u043D\u044B\u0439'
   if (/^galdaesaek$/.test(low)) return '\u0411\u0435\u0436\u0435\u0432\u044B\u0439'
-  if (/^yeongeumsaek$/.test(low)) return '\u0417\u043E\u043B\u043E\u0442\u0438\u0441\u0442\u044B\u0439'
-  if (/^myeongeunsaek$/.test(low)) return '\u042F\u0440\u043A\u043E-\u0441\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439'
+  if (/^yeongeumsaek$/.test(low)) return '\u0417\u043E\u043B\u043E\u0442\u043E\u0439'
+  if (/^myeongeunsaek$/.test(low)) return '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044B\u0439'
 
   return ''
 }

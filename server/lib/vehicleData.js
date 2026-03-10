@@ -122,14 +122,15 @@ const SUSPICIOUS_DUPLICATE_INTERIOR_COLORS = new Set([
   'Графитовый',
 ])
 
-const INTERIOR_COLOR_TEXT_MARKERS = '(?:\\uC2DC\\uD2B8|\\uB0B4\\uC7A5|seat(?:\\s*color)?|interior(?:\\s*color)?)'
+const INTERIOR_COLOR_TEXT_MARKERS = '(?:\\uC2DC\\uD2B8|\\uB0B4\\uC7A5|\\uC778\\uD14C\\uB9AC\\uC5B4|seat(?:\\s*color)?|interior(?:\\s*color)?|upholstery|trim)'
+const INTERIOR_COLOR_CONTEXT_MARKERS = `(?:${INTERIOR_COLOR_TEXT_MARKERS}|\\uAC00\\uC8FD|\\uBAA8\\uB178\\uD1A4|\\uD22C\\uD1A4|leather|monotone|two[-\\s]*tone)`
 const INTERIOR_COLOR_TEXT_PATTERNS = Object.freeze([
-  { color: 'black', source: '(?:\\uBE14\\uB799|\\uAC80\\uC815|\\uD751\\uC0C9|black)' },
-  { color: 'beige', source: '(?:\\uBCA0\\uC774\\uC9C0|beige)' },
-  { color: 'brown', source: '(?:\\uBE0C\\uB77C\\uC6B4|brown|tan|camel)' },
-  { color: 'ivory', source: '(?:\\uC544\\uC774\\uBCF4\\uB9AC|ivory)' },
-  { color: 'gray', source: '(?:\\uADF8\\uB808\\uC774|\\uD68C\\uC0C9|gray|grey)' },
-  { color: 'red', source: '(?:\\uB808\\uB4DC|\\uC801\\uC0C9|red|wine|burgundy)' },
+  { color: 'black', source: '(?:\\uBE14\\uB799|\\uAC80\\uC815|\\uD751\\uC0C9|black|charcoal|ebony)' },
+  { color: 'beige', source: '(?:\\uBCA0\\uC774\\uC9C0|\\uC0CC\\uB4DC\\s*\\uBCA0\\uC774\\uC9C0|beige|sand\\s*beige)' },
+  { color: 'brown', source: '(?:\\uBE0C\\uB77C\\uC6B4|\\uCE74\\uBA5C|\\uCF54\\uB0D1|\\uD1A0\\uD504|\\uBAA8\\uCE74|brown|tan|camel|cognac|taupe|mocha)' },
+  { color: 'ivory', source: '(?:\\uC544\\uC774\\uBCF4\\uB9AC|\\uD06C\\uB9BC|\\uC624\\uD504\\s*\\uD654\\uC774\\uD2B8|ivory|cream|off\\s*white)' },
+  { color: 'gray', source: '(?:\\uADF8\\uB808\\uC774|\\uBAA8\\uB358\\s*\\uADF8\\uB808\\uC774|\\uADF8\\uB808\\uC774\\uC9C0|\\uD68C\\uC0C9|gray|grey|greige|modern\\s*gray)' },
+  { color: 'red', source: '(?:\\uB808\\uB4DC|\\uC801\\uC0C9|\\uC640\\uC778|\\uBC84\\uAC74\\uB514|red|wine|burgundy)' },
   { color: 'blue', source: '(?:\\uB124\\uC774\\uBE44|\\uCCAD\\uC0C9|blue|navy)' },
   { color: 'orange', source: '(?:\\uC624\\uB80C\\uC9C0|orange)' },
   { color: 'green', source: '(?:\\uADF8\\uB9B0|green)' },
@@ -158,6 +159,19 @@ const OPTION_FEATURE_RULES = Object.freeze([
   { label: 'Пакет Popular', patterns: [/\uD30C\uD4E8\uB7EC\s*\uD328\uD0A4\uC9C0/u, /popular\s*package/i] },
   { label: 'Пакет Built-in Cam', patterns: [/\uBE4C\uD2B8\uC778\s*\uCEA0\s*\uD328\uD0A4\uC9C0/u, /built[-\s]*in\s*cam\s*package/i] },
   { label: 'Coupe Design Selection II', patterns: [/\uCFE0\uD398\s*\uB514\uC790\uC778\s*\uC140\uB809\uC158/u, /coupe\s*design\s*selection/i] },
+  { label: 'Смарт-ключ', patterns: [/\uC2A4\uB9C8\uD2B8\uD0A4/u, /smart\s*key/i] },
+  { label: 'Задняя камера', patterns: [/\uD6C4\uBC29\s*\uCE74\uBA54\uB77C/u, /rear\s*camera/i, /backup\s*camera/i] },
+  { label: 'TPMS', patterns: [/\uD0C0\uC774\uC5B4\s*\uACF5\uAE30\uC555\uC13C\uC11C/u, /\bTPMS\b/i] },
+  { label: 'Навигация', patterns: [/\uB0B4\uBE44\uAC8C\uC774\uC158/u, /navigation/i] },
+  { label: 'Bluetooth', patterns: [/\uBE14\uB8E8\uD22C\uC2A4/u, /\bbluetooth\b/i] },
+  { label: 'Кожаный салон', patterns: [/\uAC00\uC8FD\s*\uC2DC\uD2B8/u, /leather\s*seats?/i] },
+  { label: 'Электропривод багажника', patterns: [/\uD30C\uC6CC\s*\uC804\uB3D9\s*\uD2B8\uB801\uD06C/u, /power\s*(?:tailgate|trunk)/i] },
+  { label: 'Датчик дождя', patterns: [/\uB808\uC778\uC13C\uC11C/u, /rain\s*sensor/i] },
+  { label: 'Автосвет', patterns: [/\uC624\uD1A0\s*\uB77C\uC774\uD2B8/u, /auto\s*light/i] },
+  { label: 'EPB', patterns: [/\uC804\uC790\uC2DD\s*\uC8FC\uCC28\uBE0C\uB808\uC774\uD06C/u, /\bEPB\b/i] },
+  { label: 'HID / LED Headlights', patterns: [/\uD5E4\uB4DC\uB7A8\uD504/u, /\b(?:HID|LED)\b/i] },
+  { label: 'Электросиденья', patterns: [/\uC804\uB3D9\uC2DC\uD2B8/u, /power\s*seats?/i] },
+  { label: 'Массаж сидений', patterns: [/\uB9C8\uC0AC\uC9C0\s*\uC2DC\uD2B8/u, /massage\s*seats?/i] },
 ])
 
 const TRIM_REPLACEMENTS = [
@@ -678,6 +692,16 @@ function translateTrimWords(value) {
   return applyTrimFixes(text).replace(/\s+/g, ' ').trim()
 }
 
+function finalizeColorLabel(value) {
+  const text = cleanText(value)
+  if (!text) return ''
+  if (text === 'Золотистый') return 'Золотой'
+  if (text === 'Ярко-серебристый') return 'Серебристый'
+  if (text === 'Серебристо-серый') return 'Серебристый'
+  if (text === 'Белый двухцветный') return 'Белый / черная крыша'
+  return text
+}
+
 export function normalizeTrimLevel(...values) {
   for (const value of values) {
     let text = cleanText(value)
@@ -769,25 +793,25 @@ export function normalizeLocationName(value) {
 export function normalizeColorName(value) {
   const raw = cleanText(value)
   if (!raw) return ''
-  if (GENERIC_COLOR_LABELS.has(raw)) return raw
+  if (GENERIC_COLOR_LABELS.has(raw)) return finalizeColorLabel(raw)
 
   const requestedAlias = normalizeRequestedRomanizedColorAlias(raw)
-  if (requestedAlias) return requestedAlias
+  if (requestedAlias) return finalizeColorLabel(requestedAlias)
 
   const romanizedAlias = normalizeRomanizedColorAlias(raw)
-  if (romanizedAlias) return romanizedAlias
+  if (romanizedAlias) return finalizeColorLabel(romanizedAlias)
 
   const direct = COLOR_EXACT.get(raw) || COLOR_EXACT.get(raw.toLowerCase())
-  if (direct) return direct
+  if (direct) return finalizeColorLabel(direct)
 
-  if (/은회색/.test(raw)) return 'Серебристо-серый'
+  if (/은회색/.test(raw)) return finalizeColorLabel('Серебристо-серый')
   if (/쥐색/.test(raw)) return 'Мокрый асфальт'
   if (/진주/.test(raw) && /(흰|백)/.test(raw)) return 'Жемчужно-белый'
   if (/진주/.test(raw) && /검|흑/.test(raw)) return 'Жемчужно-черный'
   if (/진주/.test(raw)) return 'Жемчужный'
   if (/아이보리/.test(raw)) return 'Айвори'
   if (/와인/.test(raw)) return 'Винный'
-  if (/은/.test(raw) && /회/.test(raw)) return 'Серебристо-серый'
+  if (/은/.test(raw) && /회/.test(raw)) return finalizeColorLabel('Серебристо-серый')
   if (/회/.test(raw) && /(짙|진|다크)/.test(raw)) return 'Темно-серый'
 
   const low = raw.toLowerCase()
@@ -810,7 +834,7 @@ export function normalizeColorName(value) {
   if (/pearl/.test(low) && /white/.test(low)) return 'Жемчужно-белый'
   if (/pearl/.test(low) && /black/.test(low)) return 'Жемчужно-черный'
   if (/pearl/.test(low)) return 'Жемчужный'
-  if (/silver/.test(low) && /(gray|grey)/.test(low)) return 'Серебристо-серый'
+  if (/silver/.test(low) && /(gray|grey)/.test(low)) return finalizeColorLabel('Серебристо-серый')
   if (/silver/.test(low) && /green/.test(low)) return 'Серебристо-зеленый'
   if (/green/.test(low) && /silver/.test(low)) return 'Серебристо-зеленый'
   if (/(dark|deep)/.test(low) && /(gray|grey)/.test(low)) return 'Темно-серый'
@@ -830,12 +854,12 @@ export function normalizeColorName(value) {
   if (/yellow/.test(low)) return 'Желтый'
   if (/orange/.test(low)) return 'Оранжевый'
   if (/(purple|violet)/.test(low)) return 'Фиолетовый'
-  if (/gold/.test(low)) return 'Золотой'
+  if (/gold/.test(low)) return finalizeColorLabel('Золотой')
 
-  if (!hasHangul(raw)) return raw
+  if (!hasHangul(raw)) return finalizeColorLabel(raw)
 
   const translated = normalizeText(raw)
-  return normalizeRequestedRomanizedColorAlias(translated) || translated
+  return finalizeColorLabel(normalizeRequestedRomanizedColorAlias(translated) || translated)
 }
 
 export function normalizeInteriorColorName(value, bodyValue = '') {
@@ -863,9 +887,10 @@ export function extractInteriorColorFromText(value, bodyValue = '') {
   if (!text) return ''
 
   for (const { color, source } of INTERIOR_COLOR_TEXT_PATTERNS) {
-    const beforeMarker = new RegExp(`${source}[\\s\\S]{0,18}${INTERIOR_COLOR_TEXT_MARKERS}`, 'i')
-    const afterMarker = new RegExp(`${INTERIOR_COLOR_TEXT_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color))?[\\s\\S]{0,18}${source}`, 'i')
-    if (beforeMarker.test(text) || afterMarker.test(text)) {
+    const beforeMarker = new RegExp(`${source}[\\s\\S]{0,24}${INTERIOR_COLOR_CONTEXT_MARKERS}`, 'i')
+    const afterMarker = new RegExp(`${INTERIOR_COLOR_CONTEXT_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color))?[\\s\\S]{0,24}${source}`, 'i')
+    const compactMarker = new RegExp(`${source}\\s*(?:\\/|&|-)?\\s*(?:${INTERIOR_COLOR_CONTEXT_MARKERS})`, 'i')
+    if (beforeMarker.test(text) || afterMarker.test(text) || compactMarker.test(text)) {
       return normalizeInteriorColorName(color, bodyValue)
     }
   }
@@ -908,6 +933,7 @@ export function extractOptionFeatures({
   titleText = '',
   subtitleText = '',
   oneLineText = '',
+  optionTexts = [],
   inspectionRows = [],
 } = {}) {
   const text = [
@@ -916,6 +942,7 @@ export function extractOptionFeatures({
     cleanText(oneLineText),
     cleanText(memoText),
     cleanText(contentsText),
+    ...optionTexts.map((item) => cleanText(item)),
     ...inspectionRows.map((row) => cleanText([row?.label, row?.detail, row?.note, ...(row?.states || [])].join(' '))),
   ]
     .filter(Boolean)
@@ -932,8 +959,13 @@ export function extractOptionFeatures({
 
   if (features.includes('Панорамная крыша')) {
     const next = features.filter((item) => item !== 'Люк')
-    return [...new Set(next)].slice(0, 12)
+    return [...new Set(next)].slice(0, 16)
   }
 
-  return [...new Set(features)].slice(0, 12)
+  if (features.includes('Натуральная кожа Nappa')) {
+    const next = features.filter((item) => item !== 'Кожаный салон')
+    return [...new Set(next)].slice(0, 16)
+  }
+
+  return [...new Set(features)].slice(0, 16)
 }
