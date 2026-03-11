@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import {
-  SignInButton,
-  UserButton,
-  useClerk,
-  useUser,
-} from '@clerk/react'
 import { useTheme } from '../../hooks/useTheme'
-import { getClerkUserLabel, isClerkConfigured } from '../../lib/clerk'
+import { useAuth } from '../../hooks/useAuth.js'
+import AuthModal from '../auth/AuthModal.jsx'
 import logoImg from '../../assets/logo.png'
 
 const SearchIcon = () => (
@@ -77,27 +72,11 @@ function AuthButtonContent({ label }) {
   )
 }
 
-function DisabledAuthButton({ mobile = false }) {
-  const className = mobile ? 'mobile-login-btn' : 'header-login'
-
-  return (
-    <button
-      className={className}
-      disabled
-      title="Добавь VITE_CLERK_PUBLISHABLE_KEY для Clerk"
-      type="button"
-    >
-      <AuthButtonContent label="Войти" />
-    </button>
-  )
-}
-
-function ClerkAuthControl({ mobile = false, onAction }) {
-  const { isLoaded, isSignedIn, user } = useUser()
-  const { openUserProfile } = useClerk()
+function LocalAuthControl({ mobile = false, onAction, onOpenAuth }) {
+  const { isLoading, logout, user } = useAuth()
   const buttonClassName = mobile ? 'mobile-login-btn' : 'header-login'
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <button className={buttonClassName} disabled type="button">
         <AuthButtonContent label="..." />
@@ -105,41 +84,42 @@ function ClerkAuthControl({ mobile = false, onAction }) {
     )
   }
 
-  if (!isSignedIn || !user) {
+  if (!user) {
     return (
-      <SignInButton mode="modal">
-        <button
-          className={buttonClassName}
-          onClick={() => onAction?.()}
-          title="Войти"
-          type="button"
-        >
-          <AuthButtonContent label="Войти" />
-        </button>
-      </SignInButton>
+      <button
+        className={buttonClassName}
+        onClick={() => {
+          onAction?.()
+          onOpenAuth?.()
+        }}
+        title="Войти"
+        type="button"
+      >
+        <AuthButtonContent label="Войти" />
+      </button>
     )
   }
 
-  const label = getClerkUserLabel(user)
+  const label = user.login || 'Аккаунт'
   const authenticatedClassName = `${buttonClassName} ${mobile ? 'mobile-login-btn-authenticated' : 'header-login-authenticated'}`
   const rowClassName = mobile ? 'mobile-auth-row' : 'header-auth-row'
+  const logoutClassName = mobile ? 'mobile-auth-logout' : 'header-auth-logout'
 
   return (
     <div className={rowClassName}>
-      <button
-        className={authenticatedClassName}
-        onClick={() => {
-          onAction?.()
-          openUserProfile()
-        }}
-        title={label}
-        type="button"
-      >
+      <button className={authenticatedClassName} title={label} type="button">
         <AuthButtonContent label={label} />
       </button>
-      <div className="clerk-user-button-wrap">
-        <UserButton afterSignOutUrl="/" />
-      </div>
+      <button
+        className={logoutClassName}
+        onClick={() => {
+          onAction?.()
+          logout()
+        }}
+        type="button"
+      >
+        Выйти
+      </button>
     </div>
   )
 }
@@ -149,10 +129,12 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchDirty, setSearchDirty] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const { theme, toggle } = useTheme()
-  const clerkConfigured = isClerkConfigured()
+  const locationQuery = new URLSearchParams(location.search).get('q') || ''
+  const effectiveSearchTerm = searchDirty ? searchTerm : locationQuery
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10)
@@ -161,18 +143,15 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    setSearchTerm(params.get('q') || '')
-  }, [location.search])
-
-  useEffect(() => {
     if (!searchDirty) return
 
-    const currentQuery = new URLSearchParams(location.search).get('q') || ''
+    const currentQuery = locationQuery
     const nextQuery = searchTerm.trim()
     if (currentQuery === nextQuery && location.pathname === '/catalog') {
-      setSearchDirty(false)
-      return
+      const timer = setTimeout(() => {
+        setSearchDirty(false)
+      }, 0)
+      return () => clearTimeout(timer)
     }
 
     const timer = setTimeout(() => {
@@ -190,11 +169,11 @@ export default function Header() {
     }, 250)
 
     return () => clearTimeout(timer)
-  }, [searchDirty, searchTerm, location.pathname, location.search, navigate])
+  }, [location.pathname, location.search, locationQuery, navigate, searchDirty, searchTerm])
 
   const submitSearch = (event) => {
     event.preventDefault()
-    const query = searchTerm.trim()
+    const query = effectiveSearchTerm.trim()
     const params = new URLSearchParams()
     if (query) params.set('q', query)
     navigate(`/catalog${params.toString() ? `?${params}` : ''}`, { replace: true })
@@ -208,106 +187,111 @@ export default function Header() {
   }
 
   return (
-    <header className={`site-header${scrolled ? ' site-header-scrolled' : ''}`}>
-      <div className="header-row">
-        <AVTLogo />
+    <>
+      <header className={`site-header${scrolled ? ' site-header-scrolled' : ''}`}>
+        <div className="header-row">
+          <AVTLogo />
 
-        <nav className="header-nav">
-          {navLinks.map(({ label, to }) => (
-            <Link
-              key={to}
-              to={to}
-              className={location.pathname === to ? 'active' : ''}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+          <nav className="header-nav">
+            {navLinks.map(({ label, to }) => (
+              <Link
+                key={to}
+                to={to}
+                className={location.pathname === to ? 'active' : ''}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
 
-        <form className="header-search" onSubmit={submitSearch}>
-          <span className="header-search-icon">
-            <SearchIcon />
-          </span>
-          <input
-            type="text"
-            placeholder="Марка / модель / VIN / Encar ID"
-            className="search-input"
-            value={searchTerm}
-            onChange={(event) => handleSearchChange(event.target.value)}
-          />
-        </form>
-
-        <button
-          className="theme-toggle"
-          onClick={(event) => toggle(event)}
-          title={theme === 'light' ? 'Темная тема' : 'Светлая тема'}
-        >
-          {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-        </button>
-
-        {clerkConfigured
-          ? <ClerkAuthControl />
-          : <DisabledAuthButton />}
-
-        <div className="header-mobile-controls">
-          <button
-            className="header-icon-btn"
-            onClick={() => setMobileOpen((value) => (value === 'search' ? false : 'search'))}
-          >
-            <SearchIcon />
-          </button>
-          <button className="theme-toggle" onClick={(event) => toggle(event)} title="Сменить тему" style={{ width: 32, height: 32 }}>
-            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-          </button>
-          <button
-            className="header-icon-btn"
-            onClick={() => setMobileOpen((value) => (value === 'menu' ? false : 'menu'))}
-          >
-            {mobileOpen === 'menu' ? <CloseIcon /> : <MenuIcon />}
-          </button>
-        </div>
-      </div>
-
-      {mobileOpen === 'search' && (
-        <div className="header-mobile-menu">
-          <form className="mobile-search-wrap" onSubmit={submitSearch}>
-            <span className="header-search-icon" style={{ top: '50%' }}>
+          <form className="header-search" onSubmit={submitSearch}>
+            <span className="header-search-icon">
               <SearchIcon />
             </span>
             <input
-              autoFocus
               type="text"
               placeholder="Марка / модель / VIN / Encar ID"
               className="search-input"
-              value={searchTerm}
+              value={effectiveSearchTerm}
               onChange={(event) => handleSearchChange(event.target.value)}
             />
           </form>
-        </div>
-      )}
 
-      {mobileOpen === 'menu' && (
-        <div className="header-mobile-menu">
-          {navLinks.map(({ label, to }) => (
-            <Link
-              key={to}
-              to={to}
-              className={`mobile-nav-link${location.pathname === to ? ' active' : ''}`}
-              onClick={() => setMobileOpen(false)}
+          <button
+            className="theme-toggle"
+            onClick={(event) => toggle(event)}
+            title={theme === 'light' ? 'Темная тема' : 'Светлая тема'}
+          >
+            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+          </button>
+
+          <LocalAuthControl onOpenAuth={() => setAuthModalOpen(true)} />
+
+          <div className="header-mobile-controls">
+            <button
+              className="header-icon-btn"
+              onClick={() => setMobileOpen((value) => (value === 'search' ? false : 'search'))}
+              type="button"
             >
-              {label}
-            </Link>
-          ))}
-          {clerkConfigured
-            ? (
-                <ClerkAuthControl
-                  mobile
-                  onAction={() => setMobileOpen(false)}
-                />
-              )
-            : <DisabledAuthButton mobile />}
+              <SearchIcon />
+            </button>
+            <button className="theme-toggle" onClick={(event) => toggle(event)} title="Сменить тему" style={{ width: 32, height: 32 }} type="button">
+              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+            </button>
+            <button
+              className="header-icon-btn"
+              onClick={() => setMobileOpen((value) => (value === 'menu' ? false : 'menu'))}
+              type="button"
+            >
+              {mobileOpen === 'menu' ? <CloseIcon /> : <MenuIcon />}
+            </button>
+          </div>
         </div>
-      )}
-    </header>
+
+        {mobileOpen === 'search' && (
+          <div className="header-mobile-menu">
+            <form className="mobile-search-wrap" onSubmit={submitSearch}>
+              <span className="header-search-icon" style={{ top: '50%' }}>
+                <SearchIcon />
+              </span>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Марка / модель / VIN / Encar ID"
+                className="search-input"
+                value={effectiveSearchTerm}
+                onChange={(event) => handleSearchChange(event.target.value)}
+              />
+            </form>
+          </div>
+        )}
+
+        {mobileOpen === 'menu' && (
+          <div className="header-mobile-menu">
+            {navLinks.map(({ label, to }) => (
+              <Link
+                key={to}
+                to={to}
+                className={`mobile-nav-link${location.pathname === to ? ' active' : ''}`}
+                onClick={() => setMobileOpen(false)}
+              >
+                {label}
+              </Link>
+            ))}
+            <LocalAuthControl
+              mobile
+              onAction={() => setMobileOpen(false)}
+              onOpenAuth={() => setAuthModalOpen(true)}
+            />
+          </div>
+        )}
+      </header>
+
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setMobileOpen(false)}
+      />
+    </>
   )
 }

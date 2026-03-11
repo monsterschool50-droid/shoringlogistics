@@ -8,6 +8,7 @@ import carsRouter from './routes/cars.js'
 import imagesRouter from './routes/images.js'
 import encarRouter from './routes/encar.js'
 import adminRouter from './routes/admin.js'
+import authRouter from './routes/auth.js'
 import scraperRouter from './routes/scraper.js'
 import { startScheduler } from './scraper/scheduler.js'
 import { state as scraperState } from './scraper/state.js'
@@ -26,12 +27,6 @@ const PORT = ENV.PORT || 3001
 const PARSE_SCOPE_OPTIONS = new Set(['all', 'domestic', 'imported', 'japanese', 'german'])
 const API_RATE_LIMIT_WINDOW_MS = 60 * 1000
 const API_RATE_LIMIT_MAX = 60
-
-function getPublicRuntimeConfig() {
-  return {
-    VITE_CLERK_PUBLISHABLE_KEY: String(ENV.VITE_CLERK_PUBLISHABLE_KEY || ''),
-  }
-}
 
 // Middleware
 app.disable('x-powered-by')
@@ -55,6 +50,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/cars', carsRouter)
 app.use('/api/cars', imagesRouter)
 app.use('/api/encar', encarRouter)
+app.use('/api/auth', authRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/scraper', scraperRouter)
 app.delete('/api/images/:id', (req, res, next) => {
@@ -65,12 +61,6 @@ app.delete('/api/images/:id', (req, res, next) => {
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
-})
-
-app.get('/api/runtime-config.js', (_req, res) => {
-  res.type('application/javascript')
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
-  res.send(`window.__APP_CONFIG__ = ${JSON.stringify(getPublicRuntimeConfig())};`)
 })
 
 // В production — раздаём собранный React-фронтенд

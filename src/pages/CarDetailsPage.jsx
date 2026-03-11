@@ -1606,23 +1606,30 @@ export default function CarDetailsPage() {
 
           <aside className="car-details-right">
             <div className="car-details-card">
-              <div className="car-details-price-heading">Цена</div>
+              <div className="car-details-price-heading-row">
+                <div className="car-details-price-icon">$</div>
+                <div className="car-details-price-heading">Цена</div>
+              </div>
               <div className="car-details-price-krw">{car.priceKRW.toLocaleString()} ₩</div>
               <div className="car-details-price-usd">${car.priceUSD.toLocaleString()}</div>
               <p className="car-details-price-note">
-                Цена в KRW и USD. Курс сайта зафиксирован по формуле: текущий курс USD/KRW - 15.0
-                {car.exchangeRateSite ? ` (курс сайта: ${car.exchangeRateSite.toFixed(2)})` : ''}
+                Цена в корейских вонах (KRW) и долларах США (USD)
               </p>
 
               <div className="car-details-breakdown">
-                <div className="car-price-row"><span>Цена машины (KRW)</span><span>{car.priceKRW.toLocaleString()} ₩</span></div>
-                <div className="car-price-row"><span>Финальная цена (USD)</span><span>${car.priceUSD.toLocaleString()}</span></div>
-                <div className="car-price-row car-price-vat"><span>{`Возврат НДС ${VAT_REFUND_PERCENT}%`}</span><span>-${car.vatRefund.toLocaleString()}</span></div>
-                <div className="car-price-row"><span>Комиссия компании</span><span>${car.commission.toLocaleString()}</span></div>
-                <div className="car-price-row"><span>Доставка</span><span>${car.delivery.toLocaleString()}</span></div>
-                <div className="car-price-row"><span>Погрузка</span><span>${car.loading.toLocaleString()}</span></div>
-                <div className="car-price-row"><span>Выгрузка</span><span>${car.unloading.toLocaleString()}</span></div>
-                <div className="car-price-row"><span>Стоянка</span><span>${car.storage.toLocaleString()}</span></div>
+                <div className="car-details-breakdown-title">Расчет стоимости:</div>
+                <div className="car-price-row"><span>Цена машины (KRW):</span><span>{car.priceKRW.toLocaleString()} ₩</span></div>
+                <div className="car-price-row car-price-row-muted">
+                  <span>Курс обмена:</span>
+                  <span>{car.exchangeRateSite ? `${car.exchangeRateSite.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₩ = $1` : 'по курсу сайта'}</span>
+                </div>
+                <div className="car-price-row"><span>Финальная цена (USD):</span><span>${car.priceUSD.toLocaleString()}</span></div>
+                <div className="car-price-row car-price-vat"><span>{`Возврат НДС:`}</span><span>-${car.vatRefund.toLocaleString()}</span></div>
+                <div className="car-price-row"><span>Комиссия компании:</span><span>${car.commission.toLocaleString()}</span></div>
+                <div className="car-price-row"><span>Доставка:</span><span>${car.delivery.toLocaleString()}</span></div>
+                <div className="car-price-row"><span>Погрузка:</span><span>${car.loading.toLocaleString()}</span></div>
+                <div className="car-price-row"><span>Выгрузка:</span><span>${car.unloading.toLocaleString()}</span></div>
+                <div className="car-price-row"><span>Стоянка:</span><span>${car.storage.toLocaleString()}</span></div>
               </div>
               <div className="car-price-total"><span>Итого</span><span>${car.total.toLocaleString()}</span></div>
               {car.canNegotiate && <div className="car-details-negotiate">Возможен торг</div>}
