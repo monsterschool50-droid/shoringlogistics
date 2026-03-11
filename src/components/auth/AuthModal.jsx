@@ -126,7 +126,10 @@ export default function AuthModal({
   const hasRequestedCode = authStep === 'code' || Boolean(requestedPhone)
   const activePhone = requestedPhone || composedPhone
   const serverAuthReady = authStatus?.ready !== false
-  const shouldShowRecaptcha = !user && isFirebaseConfigured && (!hasRequestedCode || resendSeconds === 0)
+  const shouldShowRecaptcha = !user
+    && isFirebaseConfigured
+    && !submittingRequest
+    && (!hasRequestedCode || resendSeconds === 0)
   const canRequestCode = (
     isFirebaseConfigured
     && serverAuthReady

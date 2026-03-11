@@ -514,10 +514,10 @@ function buildVehicleHistoryStatistics(car) {
     ['totalLoss', 1],
     ['ownerChanges', 2],
     ['numberChanges', 3],
-    ['atFaultDamage', 4],
-    ['notAtFaultDamage', 5],
-    ['atFaultCount', 6],
-    ['notAtFaultCount', 7],
+    ['atFaultCount', 4],
+    ['atFaultDamage', 5],
+    ['notAtFaultCount', 6],
+    ['notAtFaultDamage', 7],
     ['thefts', 8],
   ])
 

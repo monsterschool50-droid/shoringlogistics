@@ -903,7 +903,15 @@ export function normalizeColorName(value) {
   if (!hasHangul(raw)) return finalizeColorLabel(raw)
 
   const translated = normalizeText(raw)
-  return finalizeColorLabel(normalizeRequestedRomanizedColorAlias(translated) || translated)
+  const translatedNormalized = translated && translated !== raw
+    ? normalizeColorName(translated)
+    : ''
+
+  return finalizeColorLabel(
+    translatedNormalized ||
+    normalizeRequestedRomanizedColorAlias(translated) ||
+    translated,
+  )
 }
 
 export function normalizeInteriorColorName(value, bodyValue = '') {
