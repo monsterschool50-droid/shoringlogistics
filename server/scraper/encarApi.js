@@ -35,9 +35,17 @@ const PAGE_FETCH_SIZE = 20
 const PROXY_AUTH_FAILURE_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const PROXY_GENERIC_FAILURE_COOLDOWN_MS = 30 * 60 * 1000
 const PARSE_SCOPE_ALL = 'all'
+const PARSE_SCOPE_DOMESTIC = 'domestic'
 const PARSE_SCOPE_IMPORTED = 'imported'
 const PARSE_SCOPE_JAPANESE = 'japanese'
 const PARSE_SCOPE_GERMAN = 'german'
+const SUPPORTED_PARSE_SCOPES = new Set([
+  PARSE_SCOPE_ALL,
+  PARSE_SCOPE_DOMESTIC,
+  PARSE_SCOPE_IMPORTED,
+  PARSE_SCOPE_JAPANESE,
+  PARSE_SCOPE_GERMAN,
+])
 const IMPORT_ONLY_SCOPES = new Set([
   PARSE_SCOPE_IMPORTED,
   PARSE_SCOPE_JAPANESE,
@@ -46,7 +54,7 @@ const IMPORT_ONLY_SCOPES = new Set([
 let lastHealthyListSource = ENCAR_PROXY_URL ? 'proxy' : 'direct'
 
 function normalizeParseScope(parseScope = PARSE_SCOPE_ALL) {
-  return IMPORT_ONLY_SCOPES.has(parseScope) ? parseScope : PARSE_SCOPE_ALL
+  return SUPPORTED_PARSE_SCOPES.has(parseScope) ? parseScope : PARSE_SCOPE_ALL
 }
 
 function isProxyTemporarilySuppressed() {
@@ -83,8 +91,16 @@ function buildSourceDiagnostic(source, error, reason = '') {
 
 function buildEncarListQuery(parseScope = PARSE_SCOPE_ALL) {
   const normalizedScope = normalizeParseScope(parseScope)
-  const carType = IMPORT_ONLY_SCOPES.has(normalizedScope) ? 'N' : 'Y'
-  return `(And.Hidden.N._.CarType.${carType}._.Year.range(201900..).)`
+
+  if (normalizedScope === PARSE_SCOPE_DOMESTIC) {
+    return '(And.Hidden.N._.CarType.Y._.Year.range(201900..).)'
+  }
+
+  if (IMPORT_ONLY_SCOPES.has(normalizedScope)) {
+    return '(And.Hidden.N._.CarType.N._.Year.range(201900..).)'
+  }
+
+  return '(And.Hidden.N._.Year.range(201900..).)'
 }
 
 const apiClient = axios.create({
@@ -270,7 +286,7 @@ function withProxyHint(err) {
  * @param {number} offset
  * @param {number} limit max 20 per page
  * @param {number} retries
- * @param {{ parseScope?: 'all' | 'imported' | 'japanese' | 'german' }} options
+ * @param {{ parseScope?: 'all' | 'domestic' | 'imported' | 'japanese' | 'german' }} options
  * @returns {{ total: number, cars: object[] }}
  */
 export async function fetchCarList(offset = 0, limit = 20, retries = 3, options = {}) {

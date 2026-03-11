@@ -81,6 +81,7 @@ function parsePipeMessage(message) {
 }
 
 function formatScope(scope) {
+  if (scope === 'domestic') return 'только корейские (domestic)'
   if (scope === 'imported') return 'только импортные'
   if (scope === 'japanese') return 'только японские'
   if (scope === 'german') return 'только немецкие'
@@ -516,6 +517,7 @@ export default function AdminEncar() {
   }[cfgSchedule] || 'Вручную'
   const parseScopeLabel = {
     all: 'Все машины',
+    domestic: 'Только корейские (domestic)',
     imported: 'Только импортные',
     japanese: 'Только японские',
     german: 'Только немецкие',
@@ -743,18 +745,25 @@ export default function AdminEncar() {
             <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Режим парсинга
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
               <ScheduleBtn
                 value="all"
                 label="Все машины"
-                sub="Корея + импорт"
+                sub="Общий поток Encar без CarType"
                 active={cfgParseScope === 'all'}
                 onClick={() => setCfgParseScope('all')}
               />
               <ScheduleBtn
+                value="domestic"
+                label="Только корейские"
+                sub="Domestic поток, CarType.Y"
+                active={cfgParseScope === 'domestic'}
+                onClick={() => setCfgParseScope('domestic')}
+              />
+              <ScheduleBtn
                 value="imported"
                 label="Только импортные"
-                sub="Все не-корейские"
+                sub="Import поток, CarType.N"
                 active={cfgParseScope === 'imported'}
                 onClick={() => setCfgParseScope('imported')}
               />

@@ -19,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const ENV = globalThis.process?.env || {}
 const PORT = ENV.PORT || 3001
-const PARSE_SCOPE_OPTIONS = new Set(['all', 'imported', 'japanese', 'german'])
+const PARSE_SCOPE_OPTIONS = new Set(['all', 'domestic', 'imported', 'japanese', 'german'])
 
 // Middleware
 app.use(cors())

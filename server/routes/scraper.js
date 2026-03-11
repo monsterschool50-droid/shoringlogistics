@@ -6,11 +6,13 @@ import { startScheduler, stopScheduler } from '../scraper/scheduler.js'
 
 const router = Router()
 const PARSE_SCOPE_ALL = 'all'
+const PARSE_SCOPE_DOMESTIC = 'domestic'
 const PARSE_SCOPE_IMPORTED = 'imported'
 const PARSE_SCOPE_JAPANESE = 'japanese'
 const PARSE_SCOPE_GERMAN = 'german'
 const PARSE_SCOPE_OPTIONS = new Set([
   PARSE_SCOPE_ALL,
+  PARSE_SCOPE_DOMESTIC,
   PARSE_SCOPE_IMPORTED,
   PARSE_SCOPE_JAPANESE,
   PARSE_SCOPE_GERMAN,
@@ -21,6 +23,7 @@ function normalizeParseScope(value) {
 }
 
 function formatParseScopeLabel(parseScope) {
+  if (parseScope === PARSE_SCOPE_DOMESTIC) return 'только корейские (domestic)'
   if (parseScope === PARSE_SCOPE_IMPORTED) return 'только импортные'
   if (parseScope === PARSE_SCOPE_JAPANESE) return 'только японские'
   if (parseScope === PARSE_SCOPE_GERMAN) return 'только немецкие'

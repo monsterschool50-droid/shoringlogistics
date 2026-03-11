@@ -4,6 +4,7 @@ import { state } from './state.js'
 let task = null
 
 function formatParseScopeLabel(config = state.config) {
+  if (config?.parseScope === 'domestic') return 'только корейские (domestic)'
   if (config?.parseScope === 'imported') return 'только импортные'
   if (config?.parseScope === 'japanese') return 'только японские'
   if (config?.parseScope === 'german') return 'только немецкие'
