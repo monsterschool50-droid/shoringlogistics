@@ -155,10 +155,30 @@ const INTERIOR_COLOR_TEXT_PATTERNS = Object.freeze([
 const INTERIOR_COLOR_CONTEXT_RE = new RegExp(INTERIOR_COLOR_CONTEXT_MARKERS, 'i')
 const INTERIOR_TWO_TONE_HINT_RE = /(?:\uD22C\s*\uD1A4|\uD22C\uD1A4|\uCEE8\uD2B8\uB77C\uC2A4\uD2B8|two[-\s]*tone|bi[-\s]*tone|dual[-\s]*tone|contrast)/i
 const INTERIOR_COLOR_SEPARATOR_RE = /(?:\/|&|\+|,|\band\b)/i
+const INTERIOR_COLOR_VALUE_RE = /(?:\b(?:black|white|beige|brown|gray|grey|red|blue|green|orange|ivory|cream|burgundy|wine|tan|camel|caramel|cognac|charcoal|graphite)\b|(?:\uBE14\uB799|\uAC80\uC815|\uD751\uC0C9|\uD654\uC774\uD2B8|\uD770\uC0C9|\uBC31\uC0C9|\uBCA0\uC774\uC9C0|\uBE0C\uB77C\uC6B4|\uADF8\uB808\uC774|\uD68C\uC0C9|\uB808\uB4DC|\uC801\uC0C9|\uB124\uC774\uBE44|\uCCAD\uC0C9|\uADF8\uB9B0|\uC624\uB80C\uC9C0|\uC544\uC774\uBCF4\uB9AC|\uD06C\uB9BC|\uBC84\uAC74\uB514|\uC640\uC778|\uCE74\uBA5C|\uCE90\uB7EC\uBA5C|\uCF54\uB0D1|\uCC28\uCF5C|\uADF8\uB798\uD53C\uD2B8))/i
+const INTERIOR_MATERIAL_HINT_RE = /(?:\b(?:leather|nappa|alcantara|suede|quilted|perforated|premium|natural|seat(?:s)?|interior|trim|upholstery)\b|(?:\uAC00\uC8FD|\uB098\uD30C|\uC2DC\uD2B8|\uB0B4\uC7A5|\uC778\uD14C\uB9AC\uC5B4))/i
 const INTERIOR_EXPLICIT_VALUE_RES = Object.freeze([
   new RegExp(`${INTERIOR_COLOR_EXPLICIT_LABEL_MARKERS}(?:\\s*(?:\\uC0C9\\uC0C1|\\uCEEC\\uB7EC|color|trim))?\\s*[:=-]?\\s*([^|,;\\n]{2,80})`, 'i'),
 ])
 const INTERIOR_MATERIAL_ONLY_RE = /^(?:\b(?:leather|nappa|alcantara|suede|quilted|perforated|premium|natural|seat(?:s)?|interior|trim|upholstery)\b|(?:\uAC00\uC8FD|\uB098\uD30C|\uC2DC\uD2B8|\uB0B4\uC7A5|\uC778\uD14C\uB9AC\uC5B4))(?:[\s/+,&-]+(?:\b(?:leather|nappa|alcantara|suede|quilted|perforated|premium|natural|seat(?:s)?|interior|trim|upholstery)\b|(?:\uAC00\uC8FD|\uB098\uD30C|\uC2DC\uD2B8|\uB0B4\uC7A5|\uC778\uD14C\uB9AC\uC5B4)))*$/i
+const INTERIOR_ALLOWED_OUTPUTS = new Set([
+  'Черный',
+  'Белый',
+  'Бежевый',
+  'Серый',
+  'Коричневый',
+  'Красный',
+  'Бордовый',
+  'Синий',
+  'Кремовый',
+  'Светло-серый',
+  'Темно-серый',
+  'Рыжий / карамельный',
+  'Двухцветный',
+  'Зеленый',
+  'Оранжевый',
+  'Желтый',
+])
 const DRIVE_AWD_RE = /\b(?:awd|all[-\s]*wheel(?:\s*drive)?|allrad|xdrive|quattro|4matic\+?|4motion|syncro|sh-awd|e-awd|e[-\s]*four|htrac)\b/i
 const DRIVE_4WD_RE = /\b(?:4wd|4x4|e-?4wd|4wd\s*system)\b/i
 const DRIVE_FWD_RE = /\b(?:fwd|ff|front[-\s]*wheel(?:\s*drive)?)\b/i
@@ -966,13 +986,25 @@ function mapGenericInteriorColor(value) {
   const normalized = cleanText(value)
   if (!normalized) return ''
 
-  if (normalized === 'Айвори') return 'Кремовый'
-  if (normalized === 'Винный') return 'Бордовый'
-  if (normalized === 'Графитовый' || normalized === 'Мокрый асфальт') return 'Темно-серый'
-  if (normalized === 'Серебристый' || normalized === 'Серебристо-серый') return 'Светло-серый'
-  if (normalized === 'Жемчужный' || normalized === 'Жемчужно-белый' || normalized === 'Снежный белый') return 'Белый'
+  let mapped = normalized
+  if (normalized === '\u0410\u0439\u0432\u043e\u0440\u0438') mapped = '\u041a\u0440\u0435\u043c\u043e\u0432\u044b\u0439'
+  else if (normalized === '\u0412\u0438\u043d\u043d\u044b\u0439') mapped = '\u0411\u043e\u0440\u0434\u043e\u0432\u044b\u0439'
+  else if (normalized === '\u0413\u0440\u0430\u0444\u0438\u0442\u043e\u0432\u044b\u0439' || normalized === '\u041c\u043e\u043a\u0440\u044b\u0439 \u0430\u0441\u0444\u0430\u043b\u044c\u0442') mapped = '\u0422\u0435\u043c\u043d\u043e-\u0441\u0435\u0440\u044b\u0439'
+  else if (normalized === '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044b\u0439' || normalized === '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u043e-\u0441\u0435\u0440\u044b\u0439') mapped = '\u0421\u0432\u0435\u0442\u043b\u043e-\u0441\u0435\u0440\u044b\u0439'
+  else if (normalized === '\u0416\u0435\u043c\u0447\u0443\u0436\u043d\u044b\u0439' || normalized === '\u0416\u0435\u043c\u0447\u0443\u0436\u043d\u043e-\u0431\u0435\u043b\u044b\u0439' || normalized === '\u0421\u043d\u0435\u0436\u043d\u044b\u0439 \u0431\u0435\u043b\u044b\u0439') mapped = '\u0411\u0435\u043b\u044b\u0439'
 
-  return normalized
+  return INTERIOR_ALLOWED_OUTPUTS.has(mapped) ? mapped : ''
+}
+
+function shouldKeepInteriorColorValue(rawValue, normalizedValue) {
+  const raw = cleanText(rawValue)
+  const normalized = cleanText(normalizedValue)
+  if (!raw || !normalized || !INTERIOR_ALLOWED_OUTPUTS.has(normalized)) return false
+  if (raw === normalized) return true
+  if (INTERIOR_TWO_TONE_HINT_RE.test(raw)) return true
+  if (INTERIOR_COLOR_CONTEXT_RE.test(raw) || INTERIOR_MATERIAL_HINT_RE.test(raw)) return true
+  if (INTERIOR_COLOR_VALUE_RE.test(raw) && raw.length <= 36 && raw.split(/\s+/).filter(Boolean).length <= 5) return true
+  return raw.length <= 24 && raw.split(/\s+/).filter(Boolean).length <= 3
 }
 
 function collectInteriorColorMatches(value) {
@@ -993,12 +1025,17 @@ function normalizeInteriorColorCandidate(value) {
   if (!text) return ''
 
   const matches = collectInteriorColorMatches(text)
-  if (INTERIOR_TWO_TONE_HINT_RE.test(text)) return 'Двухцветный'
-  if (matches.length > 1 && INTERIOR_COLOR_SEPARATOR_RE.test(text)) return 'Двухцветный'
-  if (matches.length) return matches[0]
+  if (INTERIOR_TWO_TONE_HINT_RE.test(text)) {
+    return shouldKeepInteriorColorValue(text, '\u0414\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043d\u044b\u0439') ? '\u0414\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043d\u044b\u0439' : ''
+  }
+  if (matches.length > 1 && INTERIOR_COLOR_SEPARATOR_RE.test(text)) {
+    return shouldKeepInteriorColorValue(text, '\u0414\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043d\u044b\u0439') ? '\u0414\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043d\u044b\u0439' : ''
+  }
+  if (matches.length) return shouldKeepInteriorColorValue(text, matches[0]) ? matches[0] : ''
   if (INTERIOR_MATERIAL_ONLY_RE.test(text)) return ''
 
-  return mapGenericInteriorColor(normalizeColorName(text))
+  const normalized = mapGenericInteriorColor(normalizeColorName(text))
+  return shouldKeepInteriorColorValue(text, normalized) ? normalized : ''
 }
 
 export function normalizeInteriorColorName(value, bodyValue = '') {

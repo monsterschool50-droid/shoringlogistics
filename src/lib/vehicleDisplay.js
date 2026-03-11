@@ -200,6 +200,27 @@ const SUSPICIOUS_DUPLICATE_INTERIOR_COLORS = new Set([
   'Мокрый асфальт',
   'Графитовый',
 ])
+const INTERIOR_ALLOWED_OUTPUTS = new Set([
+  '\u0427\u0435\u0440\u043d\u044b\u0439',
+  '\u0411\u0435\u043b\u044b\u0439',
+  '\u0411\u0435\u0436\u0435\u0432\u044b\u0439',
+  '\u0421\u0435\u0440\u044b\u0439',
+  '\u041a\u043e\u0440\u0438\u0447\u043d\u0435\u0432\u044b\u0439',
+  '\u041a\u0440\u0430\u0441\u043d\u044b\u0439',
+  '\u0411\u043e\u0440\u0434\u043e\u0432\u044b\u0439',
+  '\u0421\u0438\u043d\u0438\u0439',
+  '\u041a\u0440\u0435\u043c\u043e\u0432\u044b\u0439',
+  '\u0421\u0432\u0435\u0442\u043b\u043e-\u0441\u0435\u0440\u044b\u0439',
+  '\u0422\u0435\u043c\u043d\u043e-\u0441\u0435\u0440\u044b\u0439',
+  '\u0420\u044b\u0436\u0438\u0439 / \u043a\u0430\u0440\u0430\u043c\u0435\u043b\u044c\u043d\u044b\u0439',
+  '\u0414\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043d\u044b\u0439',
+  '\u0417\u0435\u043b\u0435\u043d\u044b\u0439',
+  '\u041e\u0440\u0430\u043d\u0436\u0435\u0432\u044b\u0439',
+  '\u0416\u0435\u043b\u0442\u044b\u0439',
+])
+const INTERIOR_COLOR_CONTEXT_RE = /(?:interior|inside|cabin|trim|seat(?:s)?|upholstery|내장|인테리어|시트)/i
+const INTERIOR_COLOR_VALUE_RE = /(?:\b(?:black|white|beige|brown|gray|grey|red|blue|green|orange|ivory|cream|burgundy|wine|tan|camel|caramel|cognac|charcoal|graphite)\b|(?:블랙|검정|흑색|화이트|흰색|백색|베이지|브라운|그레이|회색|레드|적색|네이비|청색|그린|오렌지|아이보리|크림|버건디|와인|카멜|캐러멜|코냑|차콜|그래피트))/i
+const INTERIOR_MATERIAL_HINT_RE = /(?:\b(?:leather|nappa|alcantara|suede|quilted|perforated|premium|natural|seat(?:s)?|interior|trim|upholstery)\b|(?:가죽|나파|시트|내장|인테리어))/i
 const BODY_CLASS_LABELS = new Set([
   '\u0421\u0435\u0434\u0430\u043d \u043c\u0430\u043b\u043e\u0433\u043e \u043a\u043b\u0430\u0441\u0441\u0430',
   '\u0421\u0435\u0434\u0430\u043d \u043a\u043e\u043c\u043f\u0430\u043a\u0442-\u043a\u043b\u0430\u0441\u0441\u0430',
@@ -499,6 +520,29 @@ function finalizeDisplayColorLabel(value) {
   return text
 }
 
+function mapInteriorDisplayColor(value) {
+  const raw = cleanText(value)
+  if (!raw) return ''
+
+  const normalized = normalizeColorLabel(raw)
+  if (!normalized) return ''
+
+  let mapped = normalized
+  if (normalized === '\u0410\u0439\u0432\u043e\u0440\u0438') mapped = '\u041a\u0440\u0435\u043c\u043e\u0432\u044b\u0439'
+  else if (normalized === '\u0412\u0438\u043d\u043d\u044b\u0439') mapped = '\u0411\u043e\u0440\u0434\u043e\u0432\u044b\u0439'
+  else if (normalized === '\u0413\u0440\u0430\u0444\u0438\u0442\u043e\u0432\u044b\u0439' || normalized === '\u041c\u043e\u043a\u0440\u044b\u0439 \u0430\u0441\u0444\u0430\u043b\u044c\u0442') mapped = '\u0422\u0435\u043c\u043d\u043e-\u0441\u0435\u0440\u044b\u0439'
+  else if (normalized === '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u044b\u0439' || normalized === '\u0421\u0435\u0440\u0435\u0431\u0440\u0438\u0441\u0442\u043e-\u0441\u0435\u0440\u044b\u0439') mapped = '\u0421\u0432\u0435\u0442\u043b\u043e-\u0441\u0435\u0440\u044b\u0439'
+  else if (normalized === '\u0416\u0435\u043c\u0447\u0443\u0436\u043d\u044b\u0439' || normalized === '\u0416\u0435\u043c\u0447\u0443\u0436\u043d\u043e-\u0431\u0435\u043b\u044b\u0439' || normalized === '\u0421\u043d\u0435\u0436\u043d\u044b\u0439 \u0431\u0435\u043b\u044b\u0439') mapped = '\u0411\u0435\u043b\u044b\u0439'
+
+  if (!INTERIOR_ALLOWED_OUTPUTS.has(mapped)) return ''
+  if (raw === normalized) return mapped
+  if (INTERIOR_COLOR_CONTEXT_RE.test(raw) || INTERIOR_MATERIAL_HINT_RE.test(raw)) return mapped
+  if (INTERIOR_COLOR_VALUE_RE.test(raw) && raw.length <= 36 && raw.split(/\s+/).filter(Boolean).length <= 5) return mapped
+  if (raw.length <= 24 && raw.split(/\s+/).filter(Boolean).length <= 3) return mapped
+
+  return ''
+}
+
 export function isWeakColorValue(value) {
   const text = cleanText(value)
   if (!text || text === '-') return true
@@ -536,8 +580,8 @@ export function normalizeInteriorColorLabel(interiorValue, bodyValue = '') {
   const interiorRaw = cleanText(interiorValue)
   if (!interiorRaw) return ''
 
-  const normalizedInterior = normalizeColorLabel(interiorRaw)
-  const normalizedBody = normalizeColorLabel(bodyValue)
+  const normalizedInterior = mapInteriorDisplayColor(interiorRaw)
+  const normalizedBody = mapInteriorDisplayColor(bodyValue)
 
   if (
     interiorRaw &&

@@ -753,6 +753,16 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     contents?.text,
     optionTexts,
   )
+  const keyInfo = extractKeyInfo({
+    contentsText: contents?.text,
+    texts: [
+      ad.memo,
+      ad.title,
+      ad.subTitle,
+      ad.oneLineText,
+      optionTexts,
+    ],
+  })
   const optionFeatures = extractOptionFeatures({
     contentsText: contents?.text,
     memoText: ad.memo,
@@ -790,6 +800,7 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     body_color: bodyColor,
     interior_color: interiorColorResult.value,
     interior_color_source: interiorColorResult.source,
+    key_info: keyInfo,
     warranty: warrantyInfo,
     warranty_company: warrantyInfo?.provider || '',
     warranty_body_months: warrantyInfo?.body?.months || null,

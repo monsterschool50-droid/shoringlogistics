@@ -160,6 +160,10 @@ function run() {
   assert.equal(normalizeInteriorColorName('burgundy'), '\u0411\u043E\u0440\u0434\u043E\u0432\u044B\u0439')
   assert.equal(normalizeInteriorColorName('dark gray'), '\u0422\u0435\u043C\u043D\u043E-\u0441\u0435\u0440\u044B\u0439')
   assert.equal(normalizeInteriorColorName('light gray'), '\u0421\u0432\u0435\u0442\u043B\u043E-\u0441\u0435\u0440\u044B\u0439')
+  assert.equal(normalizeInteriorColorName('black leather'), '\u0427\u0435\u0440\u043D\u044B\u0439')
+  assert.equal(normalizeInteriorColorName('Gonggan'), '')
+  assert.equal(normalizeInteriorColorName('blackbox camera QXD7000 with parking assist'), '')
+  assert.equal(normalizeInteriorColorName('Wa Siloega Kkaekkeuthapnida - Gwanrisangtae Modeun Jeongbireul Machin Sangtaeipnida'), '')
   assert.equal(
     extractInteriorColorFromText('Two-tone interior / black and beige leather seats', ''),
     '\u0414\u0432\u0443\u0445\u0446\u0432\u0435\u0442\u043D\u044B\u0439',
