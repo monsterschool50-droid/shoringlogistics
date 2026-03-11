@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
+import { sanitizeVin } from '../../shared/vin.js'
 import FilterSidebar from '../components/catalog/FilterSidebar'
 import CarCard from '../components/catalog/CarCard'
 import {
@@ -254,7 +255,7 @@ function inferDriveType(...values) {
   return ''
 }
 
-function normalizeBodyTypeLabel(value) {
+function UNUSEDNormalizeBodyTypeLabel(value) {
   const text = String(value || '').trim()
   if (!text) return ''
   const low = text.toLowerCase()
@@ -517,7 +518,7 @@ async function fetchEncarDetail(encarId) {
         bodyColor: normalizeColorLabel(detail?.body_color || ''),
         interiorColor: normalizeInteriorColorLabel(detail?.interior_color || '', detail?.body_color || '', { allowBodyDuplicate: true }),
         location: getShortLocationLabel(detail?.location_short || detail?.location || ''),
-        vin: String(detail?.vin || detail?.vehicle_no || '').trim(),
+        vin: sanitizeVin(detail?.vin) || '',
         flags: detail?.flags || {},
         inspectionFormats: detail?.condition?.inspectionFormats || [],
       }
@@ -636,7 +637,7 @@ function mapCar(c) {
     interiorColor: normalizeInteriorColorLabel(c.interior_color || '', c.body_color || '', { allowBodyDuplicate: true }),
     interiorColorDots: c.interior_color_dots || [],
     location: normalizedLocation || '\u041a\u043e\u0440\u0435\u044f',
-    vin: String(c.vin || c.vehicle_no || '').trim() || '-',
+    vin: sanitizeVin(c.vin) || '-',
     priceKRW: Number(c.price_krw) || 0,
     priceUSD,
     commission,
@@ -833,7 +834,7 @@ export default function CatalogPage() {
             if (shouldReplaceColor(car.bodyColor) && detail.bodyColor) next.bodyColor = detail.bodyColor
             if (shouldReplaceColor(car.interiorColor) && detail.interiorColor) next.interiorColor = detail.interiorColor
             if (detail.location) next.location = detail.location
-            if (shouldReplaceText(car.vin) && detail.vin) next.vin = detail.vin
+            if (shouldReplaceText(car.vin) && detail.vin) next.vin = sanitizeVin(detail.vin) || next.vin
             if (!next.engineVolume) {
               next.engineVolume = resolveEngineVolume({
                 displacement: next.displacement,

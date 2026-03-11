@@ -16,7 +16,7 @@ import {
 } from '../lib/vehicleData.js'
 import { createCarTextBackfillState, runCarTextBackfill } from '../lib/carTextBackfill.js'
 import { normalizeKnownBrandAlias } from '../../shared/brandAliases.js'
-import { isStandardVin, normalizeVin } from '../lib/vin.js'
+import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
 
 const router = Router()
 const MIN_CATALOG_YEAR = 2019
@@ -504,8 +504,9 @@ async function enrichCar(car) {
       patch.trim_level = detail.trim_level
     }
 
-    if (shouldRefreshVin(car.vin) && cleanText(detail.vin)) {
-      patch.vin = detail.vin
+    const sanitizedDetailVin = sanitizeVin(detail.vin)
+    if (shouldRefreshVin(car.vin) && sanitizedDetailVin) {
+      patch.vin = sanitizedDetailVin
     }
 
     if (Object.keys(patch).length) {
@@ -749,7 +750,7 @@ function normalizeFuel(value) {
   return ''
 }
 
-function normalizeDrive(value) {
+function UNUSEDNormalizeDrive(value) {
   const src = String(value || '').trim()
   if (!src) return ''
   const low = src.toLowerCase()
@@ -762,7 +763,7 @@ function normalizeDrive(value) {
   return ''
 }
 
-function normalizeBody(value) {
+function UNUSEDNormalizeBody(value) {
   const src = String(value || '').trim()
   if (!src) return ''
   const low = src.toLowerCase()

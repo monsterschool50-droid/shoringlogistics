@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
+import { sanitizeVin } from '../../shared/vin.js'
 import {
   appendDisplayTrimSuffix,
   VAT_REFUND_RATE,
@@ -711,7 +712,7 @@ function buildVehicleHistoryOwnerChanges(car) {
     .filter((item) => hasHistoryDisplayValue(item.value))
 }
 
-function buildVehicleHistoryNumberChanges(car) {
+function UNUSEDBuildVehicleHistoryNumberChanges(car) {
   const history = getVehicleHistory(car)
   const changes = Array.isArray(history?.numberChangeHistory) ? history.numberChangeHistory : []
 
@@ -1103,7 +1104,7 @@ function inferDriveType(...values) {
   return ''
 }
 
-function normalizeBodyTypeLabel(value) {
+function UNUSEDNormalizeBodyTypeLabel(value) {
   const text = String(value || '').trim()
   if (!text) return ''
   const low = text.toLowerCase()
@@ -1128,32 +1129,10 @@ function normalizeBodyTypeLabel(value) {
 
 function normalizeColorLabel(value) {
   return normalizeVehicleColorLabel(value)
-  const text = String(value || '').trim()
-  if (!text) return ''
-  const low = text.toLowerCase()
-  const compact = low.replace(/[\s_-]/g, '')
-
-  if (low.includes('black') || /^(geomeunsaek|geomjeongsaek|heugsaek)$/.test(compact)) return 'Черный'
-  if (low.includes('white') || /^(baegsaek|huinsaek)$/.test(compact)) return 'Белый'
-  if (low.includes('silver') || /^(eunsaek)$/.test(compact)) return 'Серебристый'
-  if (low.includes('gray') || low.includes('grey') || /^(hoesaek|jwisaek)$/.test(compact)) return 'Серый'
-  if (low.includes('blue') || /^(cheongsaek|parangsaek)$/.test(compact)) return 'Синий'
-  if (low.includes('red') || /^(ppalgangsaek|hongsaek)$/.test(compact)) return 'Красный'
-  if (low.includes('green') || /^(noksaek|choroksaek)$/.test(compact)) return 'Зеленый'
-  if (low.includes('brown') || /^(galsaek)$/.test(compact)) return 'Коричневый'
-  if (low.includes('beige') || /^(beijisaek)$/.test(compact)) return 'Бежевый'
-  if (low.includes('yellow') || /^(norangsaek)$/.test(compact)) return 'Желтый'
-  if (low.includes('orange') || /^(juhwangsaek)$/.test(compact)) return 'Оранжевый'
-  if (low.includes('purple') || low.includes('violet') || /^(borasaek)$/.test(compact)) return 'Фиолетовый'
-
-  return text
 }
 
 function shouldReplaceColor(value) {
   return isWeakColorValue(value)
-  const text = String(value || '').trim()
-  if (shouldReplaceText(text)) return true
-  return /^[a-z]+saek$/i.test(text.replace(/[\s_-]/g, ''))
 }
 
 function toAbsoluteImageUrl(raw) {
@@ -1253,7 +1232,7 @@ function mapCar(c) {
     bodyColor: normalizeColorLabel(c.body_color || '-'),
     interiorColor: normalizeInteriorColorLabel(c.interior_color || '', c.body_color || '', { allowBodyDuplicate: true }),
     location: normalizedLocation || 'Корея',
-    vin: c.vin || c.vehicle_no || '-',
+    vin: sanitizeVin(c.vin) || '-',
     tags,
     fuelType: normalizeTagLabel(c.fuel_type || ''),
     priceKRW: Number(c.price_krw) || 0,
@@ -1341,7 +1320,7 @@ function mergeCarWithEncar(baseCar, detail) {
       ? (normalizeInteriorColorLabel(detail?.interior_color || '', detail?.body_color || baseCar.bodyColor || '', { allowBodyDuplicate: true }) || baseCar.interiorColor || '')
       : baseCar.interiorColor,
     location: getShortLocationLabel(detail?.location_short || detail?.location || baseCar.location || 'Корея'),
-    vin: baseCar.vin === '-' ? (detail?.vin || detail?.vehicle_no || '-') : baseCar.vin,
+    vin: baseCar.vin === '-' ? (sanitizeVin(detail?.vin) || '-') : baseCar.vin,
     fuelType: shouldReplaceText(baseCar.fuelType) ? (normalizeTagLabel(detail?.fuel_type || '') || baseCar.fuelType || '') : baseCar.fuelType,
     images,
     createdAt: detail?.manage?.firstAdvertisedDateTime || baseCar.createdAt,
@@ -1594,7 +1573,7 @@ export default function CarDetailsPage() {
                 <div><span className="car-details-meta-label">Год</span><strong>{car.year || '-'}</strong></div>
                 <div><span className="car-details-meta-label">Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
                 <div><span className="car-details-meta-label">Местоположение</span><strong>{displayLocation || '-'}</strong></div>
-                <div><span className="car-details-meta-label">VIN / Номер</span><strong className="car-details-meta-value-vin">{(car.vin && car.vin !== '-') ? car.vin : (car.vehicleNo || '-')}</strong></div>
+                <div><span className="car-details-meta-label">VIN</span><strong className="car-details-meta-value-vin">{car.vin || '-'}</strong></div>
               </div>
 
               <div className="car-details-actions">

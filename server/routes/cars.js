@@ -16,7 +16,7 @@ import {
   resolveVehicleClass,
 } from '../lib/vehicleData.js'
 import { normalizeCarTextFields } from '../lib/carRecordNormalization.js'
-import { isStandardVin, normalizeVin } from '../lib/vin.js'
+import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
 
 const router = Router()
 const MIN_CAR_YEAR = 2019
@@ -335,6 +335,7 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
   const normalizedName = normalizedText.name ?? row.name
   const normalizedModel = normalizedText.model ?? row.model
   const normalizedBodyColor = normalizedText.body_color ?? normalizeColorName(row.body_color || '')
+  const sanitizedVin = sanitizeVin(row.vin)
   const fees = resolveVehicleFees(row, pricingSettings)
   const pricing = computePricing({
     priceKrw: row.price_krw,
@@ -374,6 +375,7 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
     loading: fees.loading,
     unloading: fees.unloading,
     storage: fees.storage,
+    vin: sanitizedVin || null,
     price_usd: pricing.price_usd,
     vat_refund: pricing.vat_refund,
     total: pricing.total,
@@ -666,7 +668,7 @@ router.post('/', async (req, res) => {
       commission, delivery, delivery_profile_code, loading, unloading, storage, pricing_locked, vat_refund, total,
       encar_url, encar_id, can_negotiate, tags,
     } = req.body
-    const normalizedVin = normalizeVin(vin)
+    const normalizedVin = sanitizeVin(vin)
     const duplicateVinId = await findDuplicateVinId(normalizedVin)
     if (duplicateVinId) {
       return res.status(409).json({ error: `VIN уже привязан к автомобилю #${duplicateVinId}` })
@@ -728,7 +730,7 @@ router.put('/:id', async (req, res) => {
     }
 
     if (payload.vin !== undefined) {
-      payload.vin = normalizeVin(payload.vin) || null
+      payload.vin = sanitizeVin(payload.vin) || null
       const duplicateVinId = await findDuplicateVinId(payload.vin, req.params.id)
       if (duplicateVinId) {
         return res.status(409).json({ error: `VIN уже привязан к автомобилю #${duplicateVinId}` })

@@ -26,6 +26,7 @@ import {
   normalizeTrimLevel,
 } from './vehicleData.js'
 import { resolveEncarOptionTexts } from './encarOptionDictionary.js'
+import { sanitizeVin } from './vin.js'
 
 const apiClient = axios.create({
   baseURL: 'https://api.encar.com',
@@ -604,7 +605,7 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     warranty_transmission_km: warrantyInfo?.transmission?.mileage || null,
     location: locationRaw,
     location_short: extractShortLocation(locationRaw),
-    vin: data?.vin || '',
+    vin: sanitizeVin(data?.vin),
     vehicle_no: data?.vehicleNo || '',
     price_krw: priceKRW,
     price_usd: pricing.price_usd,
@@ -791,7 +792,7 @@ export async function fetchEncarVehicleEnrichment(encarId) {
     name,
     model,
     location: String(contact.address || '').trim(),
-    vin: data?.vin || '',
+    vin: sanitizeVin(data?.vin),
     vehicle_no: data?.vehicleNo || '',
     price_krw: (Number(ad.price) || 0) * 10000,
     fuel_type: normalizeFuel(spec.fuelName),

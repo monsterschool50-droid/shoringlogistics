@@ -114,6 +114,19 @@ async function start() {
     await pool.query(schemaSQL)
     console.log('✅ База данных готова')
 
+    const invalidVinCleanup = await pool.query(`
+      UPDATE cars
+      SET vin = NULL,
+          updated_at = NOW()
+      WHERE vin IS NOT NULL
+        AND BTRIM(vin) <> ''
+        AND UPPER(BTRIM(vin)) !~ '^[A-HJ-NPR-Z0-9]{17}$'
+      RETURNING id
+    `)
+    if (invalidVinCleanup.rowCount) {
+      console.log(`🧹 Очищены некорректные VIN: ${invalidVinCleanup.rowCount}`)
+    }
+
     // Загружаем конфиг парсера из БД и восстанавливаем расписание
     try {
       const cfgResult = await pool.query('SELECT * FROM scraper_config WHERE id=1')
