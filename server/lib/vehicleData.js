@@ -1,5 +1,12 @@
 import { hasHangul, translateVehicleText } from '../scraper/translator.js'
 import { applyTrimFixes, normalizeLocationText, normalizeRequestedRomanizedColorAlias } from '../../shared/vehicleTextFixes.js'
+import {
+  isWeakBodyTypeLabel as isWeakCanonicalBodyTypeLabel,
+  normalizeBodyTypeLabel,
+  normalizeVehicleClassLabel,
+  resolveBodyTypeLabel,
+  resolveVehicleClassLabel,
+} from '../../shared/vehicleTaxonomy.js'
 
 export const PARKING_ADDRESS_KO = '인천 서구 오류동 1550'
 export const PARKING_ADDRESS_EN = '1550 Oryu-dong, Seo-gu, Incheon'
@@ -617,31 +624,7 @@ function normalizeRawBodyLabel(value) {
 }
 
 export function normalizeBodyType(value) {
-  const raw = cleanText(value)
-  if (!raw) return ''
-
-  const text = normalizeText(raw)
-  const low = text.toLowerCase()
-  if (low.includes('sedan') || raw.includes('\uC138\uB2E8')) return '\u0421\u0435\u0434\u0430\u043d'
-  if (low.includes('coupe') || raw.includes('\uCFE0\uD398')) return '\u041a\u0443\u043f\u0435'
-  if (low.includes('cabrio') || low.includes('cabriolet') || low.includes('convertible') || raw.includes('\uCEE8\uBC84\uD130\uBE14')) return '\u041a\u0430\u0431\u0440\u0438\u043e\u043b\u0435\u0442'
-  if (low.includes('hatch') || raw.includes('\uD574\uCE58\uBC31')) return '\u0425\u044d\u0442\u0447\u0431\u0435\u043a'
-  if (low.includes('wagon') || raw.includes('\uC65C\uAC74')) return '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b'
-  if (low.includes('van') || low.includes('minivan') || raw.includes('\uBC34') || raw.includes('\uBBF8\uB2C8\uBC34')) return '\u041c\u0438\u043d\u0438\u0432\u044d\u043d'
-  if (low.includes('pickup') || raw.includes('\uD53D\uC5C5')) return '\u041f\u0438\u043a\u0430\u043f'
-  if (low.includes('truck') || low.includes('cargo') || raw.includes('\uD654\uBB3C')) return '\u0413\u0440\u0443\u0437\u043e\u0432\u043e\u0439 / \u043f\u0438\u043a\u0430\u043f'
-  if (/gyeong(?:hyeong)?cha/i.test(text) || raw.includes('\uACBD\uCC28')) return '\u041c\u0438\u043d\u0438'
-  if (low.includes('wagon') || raw.includes('??????')) return '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b'
-  if (low.includes('van') || low.includes('minivan') || raw.includes('???') || raw.includes('??????')) return '\u041c\u0438\u043d\u0438\u0432\u044d\u043d'
-  if (low.includes('pickup') || raw.includes('??????')) return '\u041f\u0438\u043a\u0430\u043f'
-  if (low.includes('truck') || low.includes('cargo') || raw.includes('??????')) return '\u0413\u0440\u0443\u0437\u043e\u0432\u043e\u0439 / \u043f\u0438\u043a\u0430\u043f'
-  if (/gyeong(?:hyeong)?cha/i.test(text) || raw.includes('??????')) return '\u041c\u0438\u043d\u0438'
-  if (/sohyeongcha/i.test(text) || raw.includes('\uC18C\uD615\uCC28')) return '\u0421\u0435\u0434\u0430\u043d \u043c\u0430\u043b\u043e\u0433\u043e \u043a\u043b\u0430\u0441\u0441\u0430'
-  if (/junjunghyeongcha/i.test(text) || raw.includes('\uC900\uC911\uD615\uCC28')) return '\u0421\u0435\u0434\u0430\u043d \u043a\u043e\u043c\u043f\u0430\u043a\u0442-\u043a\u043b\u0430\u0441\u0441\u0430'
-  if (/junghyeongcha/i.test(text) || raw.includes('\uC911\uD615\uCC28')) return '\u0421\u0435\u0434\u0430\u043d \u0441\u0440\u0435\u0434\u043d\u0435\u0433\u043e \u043a\u043b\u0430\u0441\u0441\u0430'
-  if (/daehyeongcha/i.test(text) || raw.includes('\uB300\uD615\uCC28')) return '\u0421\u0435\u0434\u0430\u043d \u0431\u0438\u0437\u043d\u0435\u0441-\u043a\u043b\u0430\u0441\u0441\u0430'
-
-  return text
+  return normalizeBodyTypeLabel(normalizeText(value))
 }
 
 function inferPassengerBodyTypeFromText(...values) {
@@ -668,51 +651,25 @@ function inferPassengerBodyTypeFromText(...values) {
 }
 
 export function isWeakBodyType(value) {
-  const text = cleanText(value)
-  if (!text || text === '-') return true
-  return BODY_CLASS_LABELS.has(text)
+  return isWeakCanonicalBodyTypeLabel(value)
 }
 
 export function resolveBodyType(...values) {
   const [bodyValue, ...contextValues] = values
-  const normalized = normalizeBodyType(normalizeRawBodyLabel(bodyValue))
-  const inferred = inferPassengerBodyTypeFromText(normalized, ...contextValues)
+  return resolveBodyTypeLabel(normalizeRawBodyLabel(bodyValue), ...contextValues.map((value) => normalizeText(value)))
+}
 
-  if (
-    inferred &&
-    (
-      !normalized ||
-      (BODY_CLASS_LABELS.has(normalized) && inferred !== '\u0421\u0435\u0434\u0430\u043d') ||
-      (normalized === '\u0421\u043f\u043e\u0440\u0442\u043a\u0430\u0440' && inferred !== '\u0421\u043f\u043e\u0440\u0442\u043a\u0430\u0440') ||
-      normalized === '\u041a\u0440\u043e\u0441\u0441\u043e\u0432\u0435\u0440 / \u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436\u043d\u0438\u043a' ||
-      normalized === '\u041c\u0438\u043d\u0438\u0432\u044d\u043d' ||
-      normalized === '\u041c\u0438\u043d\u0438'
-    )
-  ) {
-    return inferred
-  }
+export function normalizeVehicleClass(value) {
+  return normalizeVehicleClassLabel(normalizeText(value))
+}
 
-  if (
-    normalized === '\u041c\u0438\u043d\u0438' ||
-    normalized === '\u041a\u0440\u043e\u0441\u0441\u043e\u0432\u0435\u0440 / \u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436\u043d\u0438\u043a' ||
-    normalized === '\u041f\u0438\u043a\u0430\u043f' ||
-    normalized === '\u0413\u0440\u0443\u0437\u043e\u0432\u043e\u0439 / \u043f\u0438\u043a\u0430\u043f' ||
-    normalized === '\u041c\u0438\u043d\u0438\u0432\u044d\u043d' ||
-    normalized === '\u0421\u0435\u0434\u0430\u043d' ||
-    normalized === '\u041a\u0443\u043f\u0435' ||
-    normalized === '\u041a\u0430\u0431\u0440\u0438\u043e\u043b\u0435\u0442' ||
-    normalized === '4-\u0434\u0432\u0435\u0440\u043d\u043e\u0435 \u043a\u0443\u043f\u0435' ||
-    normalized === '\u041b\u0438\u0444\u0442\u0431\u0435\u043a' ||
-    normalized === '\u0421\u043f\u043e\u0440\u0442\u043a\u0430\u0440' ||
-    normalized === '\u0425\u044d\u0442\u0447\u0431\u0435\u043a' ||
-    normalized === '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b'
-  ) {
-    return normalized
-  }
-
-  if (inferred) return inferred
-  if (BODY_CLASS_LABELS.has(normalized)) return normalized
-  return normalized
+export function resolveVehicleClass(...values) {
+  const [classValue, bodyValue, ...contextValues] = values
+  return resolveVehicleClassLabel(
+    normalizeText(classValue),
+    normalizeRawBodyLabel(bodyValue),
+    ...contextValues.map((value) => normalizeText(value)),
+  )
 }
 
 function translateTrimWords(value) {

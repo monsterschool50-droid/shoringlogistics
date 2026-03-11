@@ -13,6 +13,7 @@ import {
   normalizeKeyInfoLabel,
   normalizeTrimLabel,
   resolveDisplayBodyTypeLabel,
+  resolveVehicleClassLabelForDisplay,
   stripTrailingTrimLabel,
 } from '../lib/vehicleDisplay'
 
@@ -1273,6 +1274,7 @@ function mapCar(c) {
     createdAt: c.created_at,
     updatedAt: c.updated_at,
     bodyType: resolveDisplayBodyTypeLabel(c.body_type || '', normalizedName, normalizedModel, c.name || '', c.model || '') || '-',
+    vehicleClass: resolveVehicleClassLabelForDisplay(c.vehicle_class || '', c.body_type || '', normalizedName, normalizedModel, c.name || '', c.model || '') || '-',
     transmission: tags.find((t) => /автомат|механика|робот|cvt/i.test(String(t))) || '-',
     driveType: inferDriveType(
       driveSource,
@@ -1302,6 +1304,7 @@ function mapCarWithNormalizedSpecs(c) {
   return {
     ...base,
     bodyType: resolveDisplayBodyTypeLabel(c?.body_type || '', base.name, base.model, c?.name || '', c?.model || '') || base.bodyType || '-',
+    vehicleClass: resolveVehicleClassLabelForDisplay(c?.vehicle_class || '', c?.body_type || '', base.name, base.model, c?.name || '', c?.model || '') || base.vehicleClass || '-',
     transmission: normalizeTagLabel(c?.transmission || '') || pickTransmissionFromTags(tags) || base.transmission || '-',
     driveType: inferDriveType(
       driveSource,
@@ -1346,6 +1349,14 @@ function mergeCarWithEncar(baseCar, detail) {
     bodyType: (shouldReplaceText(baseCar.bodyType) || isWeakBodyTypeLabel(baseCar.bodyType))
       ? (resolveDisplayBodyTypeLabel(detail?.body_type || '', detail?.name || '', detail?.model || '', baseCar.name, baseCar.model) || baseCar.bodyType || '-')
       : baseCar.bodyType,
+    vehicleClass: resolveVehicleClassLabelForDisplay(
+      detail?.vehicle_class || '',
+      detail?.body_type || '',
+      detail?.name || '',
+      detail?.model || '',
+      baseCar.name,
+      baseCar.model,
+    ) || baseCar.vehicleClass || '-',
     transmission: shouldReplaceText(baseCar.transmission)
       ? (normalizeTagLabel(detail?.transmission || '') || baseCar.transmission || '-')
       : baseCar.transmission,
@@ -1375,6 +1386,7 @@ function mergeCarWithNormalizedEncar(baseCar, detail) {
   return {
     ...merged,
     bodyType: resolveDisplayBodyTypeLabel(detail?.body_type || '', detail?.name || '', detail?.model || '', merged.name, merged.model) || merged.bodyType || '-',
+    vehicleClass: resolveVehicleClassLabelForDisplay(detail?.vehicle_class || '', detail?.body_type || '', detail?.name || '', detail?.model || '', merged.name, merged.model) || merged.vehicleClass || '-',
     transmission: normalizeTagLabel(detail?.transmission || '') || merged.transmission || '-',
     driveType: inferDriveType(
       detail?.drive_type,
@@ -1669,6 +1681,7 @@ export default function CarDetailsPage() {
                 <div className="car-details-spec-item"><span>Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
                 <div className="car-details-spec-item"><span>Местоположение</span><strong>{displayLocation || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
+                <div className="car-details-spec-item"><span>Класс</span><strong>{car.vehicleClass || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Ключи</span><strong>{car.keyInfo || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Количество мест</span><strong>{car.seatCount || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Объем двигателя</span><strong>{car.displacement ? `${car.displacement} cc` : '-'}</strong></div>

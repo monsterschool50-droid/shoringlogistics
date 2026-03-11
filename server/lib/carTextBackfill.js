@@ -8,6 +8,9 @@ function createInitialFieldTotals() {
     name: 0,
     model: 0,
     trim_level: 0,
+    drive_type: 0,
+    body_type: 0,
+    vehicle_class: 0,
     body_color: 0,
     interior_color: 0,
     location: 0,
@@ -59,7 +62,7 @@ export async function runCarTextBackfill({ onProgress } = {}) {
   publish()
 
   const result = await pool.query(`
-    SELECT id, encar_id, name, model, trim_level, body_color, interior_color, location
+    SELECT id, encar_id, name, model, trim_level, drive_type, body_type, vehicle_class, body_color, interior_color, location
     FROM cars
     ORDER BY updated_at ASC NULLS FIRST, id ASC
   `)

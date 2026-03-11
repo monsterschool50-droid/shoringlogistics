@@ -5,9 +5,13 @@ import { fetchEncarVehicleEnrichment } from '../lib/encarVehicle.js'
 import { getPricingSettings, savePricingSettings } from '../lib/pricingSettings.js'
 import {
   classifyVehicleOrigin,
+  isWeakBodyType,
   normalizeColorName,
+  normalizeDrive as normalizeDriveLabel,
   normalizeInteriorColorName,
   normalizeTrimLevel,
+  resolveBodyType,
+  resolveVehicleClass,
   VEHICLE_ORIGIN_LABELS,
 } from '../lib/vehicleData.js'
 import { createCarTextBackfillState, runCarTextBackfill } from '../lib/carTextBackfill.js'
@@ -336,7 +340,7 @@ function normalizeCatalogExportLimit(value) {
 }
 
 function isWeakBodyTypeForEnrichment(value) {
-  return WEAK_BODY_TYPES.has(cleanText(value))
+  return isWeakBodyType(value)
 }
 
 function shouldRefreshTrim(value) {
@@ -485,6 +489,17 @@ async function enrichCar(car) {
       patch.body_type = detail.body_type
     }
 
+    const resolvedVehicleClass = resolveVehicleClass(
+      detail.vehicle_class || '',
+      patch.body_type || detail.body_type || car.body_type || '',
+      detail.name || car.name || '',
+      detail.model || car.model || '',
+      detail.trim_level || car.trim_level || '',
+    )
+    if (cleanText(resolvedVehicleClass) && resolvedVehicleClass !== cleanText(car.vehicle_class)) {
+      patch.vehicle_class = resolvedVehicleClass
+    }
+
     if (shouldRefreshTrim(car.trim_level) && cleanText(detail.trim_level)) {
       patch.trim_level = detail.trim_level
     }
@@ -625,7 +640,7 @@ async function runEmptyFieldEnrichment(options = {}) {
     const candidateWhereSql = getEnrichCandidateWhereSql()
     const result = scope === ENRICH_SCOPE_LATEST
       ? await pool.query(`
-        SELECT id, encar_id, name, model, year, vin, body_type, trim_level, body_color, interior_color,
+        SELECT id, encar_id, name, model, year, vin, body_type, vehicle_class, trim_level, body_color, interior_color,
                warranty_company, warranty_body_months, warranty_body_km, warranty_transmission_months, warranty_transmission_km, option_features,
                enrich_checked_at, enrich_last_status, enrich_last_error, enrich_last_encar_id
         FROM cars
@@ -634,7 +649,7 @@ async function runEmptyFieldEnrichment(options = {}) {
         LIMIT $1
       `, [latestLimit])
       : await pool.query(`
-        SELECT id, encar_id, name, model, year, vin, body_type, trim_level, body_color, interior_color,
+        SELECT id, encar_id, name, model, year, vin, body_type, vehicle_class, trim_level, body_color, interior_color,
                warranty_company, warranty_body_months, warranty_body_km, warranty_transmission_months, warranty_transmission_km, option_features,
                enrich_checked_at, enrich_last_status, enrich_last_error, enrich_last_encar_id
         FROM cars
@@ -791,6 +806,26 @@ function normalizeBody(value) {
   return ''
 }
 
+function normalizeDriveFilter(value, row = {}) {
+  const direct = normalizeDriveLabel(value)
+  if (direct) return direct
+
+  return normalizeDriveLabel([
+    row?.car_name,
+    row?.model,
+    row?.trim_level,
+  ].filter(Boolean).join(' '))
+}
+
+function normalizeBodyFilter(value, row = {}) {
+  return resolveBodyType(
+    value,
+    row?.car_name,
+    row?.model,
+    row?.trim_level,
+  )
+}
+
 function normalizeColor(value) {
   const src = String(value || '').trim()
   if (!src) return ''
@@ -841,7 +876,7 @@ function aggregate(rows, normalizer) {
   const acc = new Map()
   for (const row of rows || []) {
     const rawName = row?.name ?? row?.tag ?? ''
-    const normalized = normalizer(rawName)
+    const normalized = normalizer(rawName, row)
     if (!normalized) continue
     const count = Number(row?.count) || 0
     acc.set(normalized, (acc.get(normalized) || 0) + count)
@@ -1025,7 +1060,7 @@ router.get('/filter-options', async (_req, res) => {
     const exchangeSnapshot = await getExchangeRateSnapshot()
     const siteRateSql = Number((exchangeSnapshot.siteRate || 1).toFixed(2))
     const priceUsdSql = `ROUND((COALESCE(price_krw, 0)::numeric / ${siteRateSql})::numeric, 0)`
-    const [nameCounts, originSourceRows, fuelCounts, tagCounts, driveCounts, bodySourceRows, bodyColorRows, interiorColorRows, yearRange, priceRange, mileageRange, total] = await Promise.all([
+    const [nameCounts, originSourceRows, fuelCounts, tagCounts, driveSourceRows, bodySourceRows, bodyColorRows, interiorColorRows, yearRange, priceRange, mileageRange, total] = await Promise.all([
       pool.query(`
         SELECT name, COUNT(*)::int AS count
         FROM cars
@@ -1053,35 +1088,14 @@ router.get('/filter-options', async (_req, res) => {
         GROUP BY tag
       `),
       pool.query(`
-        SELECT drive_type AS name, COUNT(*)::int AS count
+        SELECT COALESCE(drive_type, '') AS name, COALESCE(name, '') AS car_name, COALESCE(model, '') AS model, COALESCE(trim_level, '') AS trim_level, COUNT(*)::int AS count
         FROM cars
-        WHERE drive_type IS NOT NULL AND drive_type != ''
-        GROUP BY drive_type
+        GROUP BY COALESCE(drive_type, ''), COALESCE(name, ''), COALESCE(model, ''), COALESCE(trim_level, '')
       `),
       pool.query(`
-        SELECT source.name, SUM(source.count)::int AS count
-        FROM (
-          SELECT body_type AS name, COUNT(*)::int AS count
-          FROM cars
-          WHERE body_type IS NOT NULL AND body_type != ''
-          GROUP BY body_type
-          UNION ALL
-          SELECT tag AS name, COUNT(*)::int AS count
-          FROM cars c
-          CROSS JOIN LATERAL UNNEST(COALESCE(c.tags, '{}'::text[])) AS tag
-          GROUP BY tag
-          UNION ALL
-          SELECT model AS name, COUNT(*)::int AS count
-          FROM cars
-          WHERE model IS NOT NULL AND model != ''
-          GROUP BY model
-          UNION ALL
-          SELECT name AS name, COUNT(*)::int AS count
-          FROM cars
-          WHERE name IS NOT NULL AND name != ''
-          GROUP BY name
-        ) AS source
-        GROUP BY source.name
+        SELECT COALESCE(body_type, '') AS name, COALESCE(name, '') AS car_name, COALESCE(model, '') AS model, COALESCE(trim_level, '') AS trim_level, COUNT(*)::int AS count
+        FROM cars
+        GROUP BY COALESCE(body_type, ''), COALESCE(name, ''), COALESCE(model, ''), COALESCE(trim_level, '')
       `),
       pool.query(`
         SELECT body_color AS name, COUNT(*)::int AS count
@@ -1108,8 +1122,8 @@ router.get('/filter-options', async (_req, res) => {
     const brands = aggregateBrands(nameCounts.rows)
     const originTypes = aggregateOrigins(originSourceRows.rows)
     const fuelTypes = aggregate([...fuelCounts.rows, ...tagCounts.rows], normalizeFuel)
-    const driveTypes = aggregate([...tagCounts.rows, ...driveCounts.rows], normalizeDrive)
-    const bodyTypes = aggregate(bodySourceRows.rows, normalizeBody)
+    const driveTypes = aggregate(driveSourceRows.rows, normalizeDriveFilter)
+    const bodyTypes = aggregate(bodySourceRows.rows, normalizeBodyFilter)
     const bodyColors = aggregateColors(bodyColorRows.rows)
     const interiorColors = aggregateColors(interiorColorRows.rows)
 

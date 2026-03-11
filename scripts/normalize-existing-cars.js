@@ -2,6 +2,7 @@ import pool from '../server/db.js'
 import { runCarTextBackfill } from '../server/lib/carTextBackfill.js'
 
 async function main() {
+  await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS vehicle_class VARCHAR(100)`)
   const summary = await runCarTextBackfill()
 
   console.log(`Checked ${summary.total} cars`)

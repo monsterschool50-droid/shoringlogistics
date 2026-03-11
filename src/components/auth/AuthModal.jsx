@@ -66,6 +66,11 @@ function mapFirebaseError(error, fallbackMessage) {
       return 'Введите номер телефона'
     case 'auth/captcha-check-failed':
       return 'Подтвердите reCAPTCHA и попробуйте снова'
+    case 'auth/missing-app-credential':
+      return 'reCAPTCHA не передала токен подтверждения. Пройдите её ещё раз'
+    case 'auth/missing-recaptcha-token':
+    case 'auth/invalid-recaptcha-token':
+      return 'reCAPTCHA-токен невалиден. Пройдите проверку ещё раз'
     case 'auth/unauthorized-domain':
       return 'Текущий домен не добавлен в Authorized domains Firebase'
     case 'auth/operation-not-allowed':
@@ -76,6 +81,12 @@ function mapFirebaseError(error, fallbackMessage) {
       return 'Слишком много попыток. Попробуйте позже'
     case 'auth/invalid-app-credential':
       return 'Не удалось подтвердить приложение. Обновите страницу'
+    case 'auth/network-request-failed':
+      return 'Ошибка сети при обращении к Firebase. Проверьте интернет и попробуйте снова'
+    case 'auth/invalid-api-key':
+      return 'Firebase API key отклонён. Проверьте конфигурацию проекта'
+    case 'auth/recaptcha-not-enabled':
+      return 'reCAPTCHA Enterprise не включена для проекта Firebase'
     case 'auth/invalid-verification-code':
       return 'Неверный SMS-код'
     case 'auth/code-expired':
@@ -86,6 +97,31 @@ function mapFirebaseError(error, fallbackMessage) {
     default:
       return error?.message || fallbackMessage
   }
+}
+
+function shouldRefreshRecaptchaForError(error) {
+  return new Set([
+    'auth/captcha-check-failed',
+    'auth/invalid-app-credential',
+    'auth/missing-app-credential',
+    'auth/missing-recaptcha-token',
+    'auth/invalid-recaptcha-token',
+  ]).has(error?.code)
+}
+
+function logPhoneAuthFailure(error, { targetPhone, recaptchaVerified, recaptchaReady, authStep }) {
+  const authDomain = firebaseAuth?.app?.options?.authDomain || ''
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+  console.error('PHONE_AUTH_REQUEST_FAILED', {
+    code: error?.code || '',
+    message: error?.message || '',
+    targetPhone,
+    hostname,
+    authDomain,
+    recaptchaVerified,
+    recaptchaReady,
+    authStep,
+  })
 }
 
 export default function AuthModal({
@@ -261,7 +297,6 @@ export default function AuthModal({
     clearRecaptcha()
     setRecaptchaReady(false)
     setRecaptchaVerified(IS_FIREBASE_TEST_MODE)
-    setError('')
 
     firebaseAuth.settings.appVerificationDisabledForTesting = IS_FIREBASE_TEST_MODE
 
@@ -270,6 +305,7 @@ export default function AuthModal({
       callback: () => {
         setRecaptchaVerified(true)
         setError('')
+        setStatus('')
       },
       'expired-callback': () => {
         setRecaptchaVerified(false)
@@ -303,6 +339,7 @@ export default function AuthModal({
 
   const handlePhoneChange = (value) => {
     setPhone(value)
+    setError('')
     if (requestedPhone && composePhoneNumber(countryId, value) !== requestedPhone) {
       resetVerificationState()
     }
@@ -310,6 +347,7 @@ export default function AuthModal({
 
   const handleCountryChange = (nextCountryId) => {
     setCountryId(nextCountryId)
+    setError('')
     if (requestedPhone && composePhoneNumber(nextCountryId, phone) !== requestedPhone) {
       resetVerificationState()
     }
@@ -396,6 +434,13 @@ export default function AuthModal({
         return
       }
 
+      logPhoneAuthFailure(requestError, {
+        targetPhone,
+        recaptchaVerified,
+        recaptchaReady,
+        authStep,
+      })
+
       if (!resendFromVerificationStep) {
         confirmationResultRef.current = null
         setConfirmationReady(false)
@@ -412,9 +457,11 @@ export default function AuthModal({
         setCooldownUntil(0)
       }
       setNow(Date.now())
-      setStatus('SMS-\u0441\u0435\u0441\u0441\u0438\u044f \u043d\u0435 \u0441\u043e\u0437\u0434\u0430\u043b\u0430\u0441\u044c. \u041f\u0440\u043e\u0439\u0434\u0438\u0442\u0435 reCAPTCHA \u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u0438\u0442\u0435 \u043a\u043e\u0434 \u0437\u0430\u043d\u043e\u0432\u043e.')
+      setStatus('')
       setError(mapFirebaseError(requestError, 'Не удалось отправить код'))
-      refreshRecaptcha()
+      if (shouldRefreshRecaptchaForError(requestError)) {
+        refreshRecaptcha()
+      }
     } finally {
       setSubmittingRequest(false)
     }

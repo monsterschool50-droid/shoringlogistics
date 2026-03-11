@@ -1,10 +1,14 @@
 import { applyTrimFixes, applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
 import {
   extractTrimLevelFromTitle,
+  inferDrive,
   normalizeColorName,
+  normalizeDrive,
   normalizeInteriorColorName,
   normalizeLocationName,
   normalizeText,
+  resolveBodyType,
+  resolveVehicleClass,
   normalizeTrimLevel,
 } from './vehicleData.js'
 
@@ -33,10 +37,40 @@ export function normalizeCarTextFields(input = {}) {
     )
   const trimCandidate = normalizedDirectTrim || derivedTrim
   const normalizedTrim = trimCandidate || (rawTrimValue === null ? null : rawTrimValue === undefined ? undefined : '')
+  const driveSource = input.drive_type
+  const normalizedDriveValue = driveSource === undefined
+    ? undefined
+    : (normalizeDrive(driveSource) || inferDrive(
+      driveSource,
+      normalizedTrim ?? rawTrimValue ?? '',
+      normalizedName ?? input.name ?? '',
+      normalizedModel ?? input.model ?? '',
+      input.tags ?? [],
+    ))
+  const normalizedBodyType = resolveBodyType(
+    input.body_type ?? '',
+    normalizedName ?? input.name ?? '',
+    normalizedModel ?? input.model ?? '',
+    normalizedTrim ?? rawTrimValue ?? '',
+    input.name ?? '',
+    input.model ?? '',
+  )
+  const normalizedVehicleClass = resolveVehicleClass(
+    input.vehicle_class ?? '',
+    input.body_type ?? normalizedBodyType ?? '',
+    normalizedName ?? input.name ?? '',
+    normalizedModel ?? input.model ?? '',
+    normalizedTrim ?? rawTrimValue ?? '',
+    input.name ?? '',
+    input.model ?? '',
+  )
 
   return {
     name: normalizedName,
     model: normalizedModel,
+    drive_type: normalizedDriveValue,
+    body_type: normalizedBodyType,
+    vehicle_class: normalizedVehicleClass,
     trim_level: normalizedTrim,
     body_color: bodyColor,
     interior_color: normalizeNullableText(input.interior_color, (value) => normalizeInteriorColorName(value, bodyColorForInterior, { allowBodyDuplicate: true })),

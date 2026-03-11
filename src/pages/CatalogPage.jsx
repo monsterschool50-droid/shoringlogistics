@@ -16,6 +16,7 @@ import {
   normalizeKeyInfoLabel,
   normalizeTrimLabel,
   resolveDisplayBodyTypeLabel,
+  resolveVehicleClassLabelForDisplay,
   stripTrailingTrimLabel,
 } from '../lib/vehicleDisplay'
 
@@ -360,6 +361,7 @@ function carMatchesSearch(car, query) {
     car.vin,
     car.encarId,
     car.bodyType,
+    car.vehicleClass,
     car.driveType,
     car.fuelType,
     car.transmission,
@@ -417,6 +419,7 @@ function buildCarUpdatePatch(prevCar, nextCar) {
   if (nextCar.transmission && nextCar.transmission !== prevCar.transmission) patch.transmission = nextCar.transmission
   if (nextCar.driveType && nextCar.driveType !== prevCar.driveType) patch.drive_type = nextCar.driveType
   if (nextCar.bodyType && nextCar.bodyType !== (prevCar.rawBodyType || prevCar.bodyType)) patch.body_type = nextCar.bodyType
+  if (nextCar.vehicleClass && nextCar.vehicleClass !== prevCar.vehicleClass) patch.vehicle_class = nextCar.vehicleClass
   if (nextCar.displacement && nextCar.displacement !== prevCar.displacement) patch.displacement = nextCar.displacement
   if (nextCar.trimLevel && nextCar.trimLevel !== prevCar.trimLevel) patch.trim_level = nextCar.trimLevel
   if (nextCar.keyInfo && nextCar.keyInfo !== prevCar.keyInfo) patch.key_info = nextCar.keyInfo
@@ -507,6 +510,7 @@ async function fetchEncarDetail(encarId) {
         transmission: normalizeTagLabel(detail?.transmission || ''),
         driveType: normalizeDriveLabel(detail?.drive_type || ''),
         bodyType: resolveDisplayBodyTypeLabel(detail?.body_type || '', detail?.name || '', detail?.model || ''),
+        vehicleClass: resolveVehicleClassLabelForDisplay(detail?.vehicle_class || '', detail?.body_type || '', detail?.name || '', detail?.model || ''),
         trimLevel: detailTrim,
         keyInfo: normalizeKeyInfoLabel(detail?.key_info || ''),
         displacement: Number(detail?.displacement) || 0,
@@ -600,6 +604,7 @@ function mapCar(c) {
     ...(Array.isArray(c.tags) ? c.tags : []),
   ) || normalizeDisplayText(driveSource) || '-'
   const bodyType = resolveDisplayBodyTypeLabel(c.body_type || '', normalizedName, normalizedModel, c.name || '', c.model || '') || '-'
+  const vehicleClass = resolveVehicleClassLabelForDisplay(c.vehicle_class || '', c.body_type || bodyType, normalizedName, normalizedModel, c.name || '', c.model || '') || '-'
   const trimLevel = normalizeTrimLabel(c.trim_level || '') || extractTrimLabelFromTitle(normalizedName, normalizedModel, c.name || '', c.model || '')
   const displacement = Number(c.displacement) || 0
   const engineVolume = resolveEngineVolume({
@@ -620,6 +625,7 @@ function mapCar(c) {
     transmission,
     driveType,
     bodyType,
+    vehicleClass,
     rawBodyType: String(c.body_type || '').trim(),
     trimLevel,
     keyInfo: normalizeKeyInfoLabel(c.key_info || ''),
@@ -808,6 +814,9 @@ export default function CatalogPage() {
             if (isWeakBodyTypeLabel(car.rawBodyType || car.bodyType) && detail.bodyType) {
               next.bodyType = detail.bodyType
               next.rawBodyType = detail.bodyType
+            }
+            if ((!car.vehicleClass || car.vehicleClass === '-') && detail.vehicleClass) {
+              next.vehicleClass = detail.vehicleClass
             }
             if (!car.trimLevel && detail.trimLevel) next.trimLevel = detail.trimLevel
             if (!car.keyInfo && detail.keyInfo) next.keyInfo = detail.keyInfo

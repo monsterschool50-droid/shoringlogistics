@@ -13,6 +13,7 @@ import {
   normalizeInteriorColorName,
   normalizeLocationName,
   normalizeTrimLevel,
+  resolveVehicleClass,
 } from '../lib/vehicleData.js'
 import { normalizeCarTextFields } from '../lib/carRecordNormalization.js'
 import { isStandardVin, normalizeVin } from '../lib/vin.js'
@@ -348,6 +349,15 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
     ...row,
     name: normalizedName,
     model: normalizedModel,
+    vehicle_class: resolveVehicleClass(
+      row.vehicle_class || '',
+      row.body_type || '',
+      normalizedName || '',
+      normalizedModel || '',
+      row.trim_level || '',
+      row.name || '',
+      row.model || '',
+    ),
     body_color: normalizedBodyColor,
     interior_color: normalizedText.interior_color || normalizeInteriorColorName(row.interior_color || '', normalizedBodyColor || '', { allowBodyDuplicate: true }),
     option_features: normalizeOptionFeatures(row.option_features),
@@ -419,6 +429,7 @@ router.get('/', async (req, res) => {
         OR COALESCE(c.vin::text, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.encar_id::text, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.body_type, '') ILIKE ANY($${p}::text[])
+        OR COALESCE(c.vehicle_class, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.drive_type, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.fuel_type, '') ILIKE ANY($${p}::text[])
         OR COALESCE(c.transmission, '') ILIKE ANY($${p}::text[])
@@ -443,6 +454,7 @@ router.get('/', async (req, res) => {
           OR COALESCE(c.vin::text, '') ILIKE $${p}
           OR COALESCE(c.encar_id::text, '') ILIKE $${p}
           OR COALESCE(c.body_type, '') ILIKE $${p}
+          OR COALESCE(c.vehicle_class, '') ILIKE $${p}
           OR COALESCE(c.drive_type, '') ILIKE $${p}
           OR COALESCE(c.fuel_type, '') ILIKE $${p}
           OR COALESCE(c.transmission, '') ILIKE $${p}
@@ -644,7 +656,7 @@ router.post('/', async (req, res) => {
 
     const {
       name, model, mileage,
-      fuel_type, transmission, drive_type, body_type, trim_level, key_info, displacement,
+      fuel_type, transmission, drive_type, body_type, vehicle_class, trim_level, key_info, displacement,
       body_color, body_color_dots,
       interior_color, interior_color_dots,
       warranty_company, warranty_body_months, warranty_body_km, warranty_transmission_months, warranty_transmission_km,
@@ -675,17 +687,18 @@ router.post('/', async (req, res) => {
     const result = await pool.query(
       `INSERT INTO cars
         (name, model, year, mileage,
-         fuel_type, transmission, drive_type, body_type, trim_level, key_info, displacement,
+         fuel_type, transmission, drive_type, body_type, vehicle_class, trim_level, key_info, displacement,
          body_color, body_color_dots, interior_color, interior_color_dots,
          warranty_company, warranty_body_months, warranty_body_km, warranty_transmission_months, warranty_transmission_km, option_features,
          location, vin, price_krw, price_usd,
          commission, delivery, delivery_profile_code, loading, unloading, storage, pricing_locked, vat_refund, total,
          encar_url, encar_id, can_negotiate, tags)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)
        RETURNING *`,
       [
         normalizedText.name ?? name, normalizedText.model ?? model, normalizedYear, mileage || 0,
-        fuel_type, transmission, drive_type, body_type, normalizedText.trim_level ?? trim_level, key_info, displacement || 0,
+        fuel_type, transmission, normalizedText.drive_type ?? drive_type, normalizedText.body_type ?? body_type,
+        normalizedText.vehicle_class ?? vehicle_class ?? null, normalizedText.trim_level ?? trim_level, key_info, displacement || 0,
         normalizedText.body_color ?? body_color, body_color_dots || [], normalizedText.interior_color ?? interior_color, interior_color_dots || [],
         warranty_company || null, warranty_body_months ?? null, warranty_body_km ?? null, warranty_transmission_months ?? null, warranty_transmission_km ?? null,
         normalizeOptionFeatures(option_features), normalizedText.location || location, normalizedVin || null, price_krw || 0, price_usd || 0,
@@ -734,7 +747,7 @@ router.put('/:id', async (req, res) => {
 
     const fields = [
       'name', 'model', 'year', 'mileage',
-      'fuel_type', 'transmission', 'drive_type', 'body_type', 'trim_level', 'key_info', 'displacement',
+      'fuel_type', 'transmission', 'drive_type', 'body_type', 'vehicle_class', 'trim_level', 'key_info', 'displacement',
       'body_color', 'body_color_dots', 'interior_color', 'interior_color_dots',
       'warranty_company', 'warranty_body_months', 'warranty_body_km', 'warranty_transmission_months', 'warranty_transmission_km',
       'option_features',

@@ -79,6 +79,18 @@ const MIDDLE_SUV_HINT_RE = /\b(santa\s*fe|santafe|sorento|sportage|tucson|qm6|to
 const CAR_LIKE_BODY_TYPES = new Set(['\u0421\u0435\u0434\u0430\u043d', '\u0421\u0435\u0434\u0430\u043d \u043c\u0430\u043b\u043e\u0433\u043e \u043a\u043b\u0430\u0441\u0441\u0430', '\u0421\u0435\u0434\u0430\u043d \u043a\u043e\u043c\u043f\u0430\u043a\u0442-\u043a\u043b\u0430\u0441\u0441\u0430', '\u0421\u0435\u0434\u0430\u043d \u0441\u0440\u0435\u0434\u043d\u0435\u0433\u043e \u043a\u043b\u0430\u0441\u0441\u0430', '\u0421\u0435\u0434\u0430\u043d \u0431\u0438\u0437\u043d\u0435\u0441-\u043a\u043b\u0430\u0441\u0441\u0430', '\u0425\u044d\u0442\u0447\u0431\u0435\u043a', '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b', '\u041a\u0443\u043f\u0435', '\u041a\u0430\u0431\u0440\u0438\u043e\u043b\u0435\u0442'])
 const HEAVY_BODY_TYPES = new Set(['Пикап', 'Грузовой / пикап', 'Минивэн'])
 
+const CANONICAL_CAR_LIKE_BODY_TYPES = new Set([
+  'Седан',
+  '4-дверное купе',
+  'Лифтбек',
+  'Хэтчбек',
+  'Универсал',
+  'Купе',
+  'Кабриолет',
+  'Родстер',
+])
+const CANONICAL_HEAVY_BODY_TYPES = new Set(['Пикап', 'Грузовик', 'Минивэн'])
+
 let cachedSettings = null
 let cacheExpiresAt = 0
 let pendingSettingsPromise = null
@@ -174,7 +186,9 @@ export function inferDeliveryProfileCode(vehicle = {}, settings = DEFAULT_PRICIN
   const haystack = buildVehicleSearchText({ ...vehicle, body_type: bodyType }).toLowerCase()
 
   if (bodyType === 'Мини') return findProfile(settings, 'mini_car') ? 'mini_car' : ''
-  if (HEAVY_BODY_TYPES.has(bodyType)) return findProfile(settings, 'suv_big') ? 'suv_big' : ''
+  if (HEAVY_BODY_TYPES.has(bodyType) || CANONICAL_HEAVY_BODY_TYPES.has(bodyType)) {
+    return findProfile(settings, 'suv_big') ? 'suv_big' : ''
+  }
 
   if (bodyType === 'Кроссовер / внедорожник') {
     if (BIG_SUV_HINT_RE.test(haystack) && findProfile(settings, 'suv_big')) return 'suv_big'
@@ -183,7 +197,7 @@ export function inferDeliveryProfileCode(vehicle = {}, settings = DEFAULT_PRICIN
     if (findProfile(settings, 'suv_middle')) return 'suv_middle'
   }
 
-  if (CAR_LIKE_BODY_TYPES.has(bodyType)) {
+  if (CAR_LIKE_BODY_TYPES.has(bodyType) || CANONICAL_CAR_LIKE_BODY_TYPES.has(bodyType)) {
     if (PREMIUM_SEDAN_HINT_RE.test(haystack) && findProfile(settings, 'sedan_lux')) return 'sedan_lux'
     if (findProfile(settings, 'sedan_bishkek')) return 'sedan_bishkek'
   }

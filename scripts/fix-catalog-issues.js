@@ -131,6 +131,7 @@ async function repairTechnicalRows() {
       transmission,
       drive_type,
       body_type,
+      vehicle_class,
       commission,
       delivery,
       delivery_profile_code,
@@ -173,6 +174,7 @@ async function repairTechnicalRows() {
       transmission: 0,
       drive_type: 0,
       body_type: 0,
+      vehicle_class: 0,
     },
   }
 
@@ -207,6 +209,7 @@ async function repairTechnicalRows() {
         if (detail.transmission) patch.transmission = detail.transmission
         if (detail.drive_type) patch.drive_type = detail.drive_type
         if (detail.body_type) patch.body_type = detail.body_type
+        if (detail.vehicle_class) patch.vehicle_class = detail.vehicle_class
       } catch (error) {
         summary.detail_failed += 1
       }
@@ -216,12 +219,15 @@ async function repairTechnicalRows() {
       name: patch.name ?? row.name,
       model: patch.model ?? row.model,
       trim_level: patch.trim_level ?? row.trim_level,
+      drive_type: patch.drive_type ?? row.drive_type,
+      body_type: patch.body_type ?? row.body_type,
+      vehicle_class: patch.vehicle_class ?? row.vehicle_class,
       body_color: patch.body_color ?? row.body_color,
       interior_color: patch.interior_color ?? row.interior_color,
       location: patch.location ?? row.location,
     }
     const normalizedText = normalizeCarTextFields(currentForText)
-    for (const field of ['name', 'model', 'trim_level', 'body_color', 'interior_color', 'location']) {
+    for (const field of ['name', 'model', 'trim_level', 'drive_type', 'body_type', 'vehicle_class', 'body_color', 'interior_color', 'location']) {
       if (normalizedText[field] !== undefined) {
         patch[field] = normalizedText[field]
       }
@@ -306,6 +312,7 @@ async function countCatalogIssues() {
 }
 
 async function main() {
+  await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS vehicle_class VARCHAR(100)`)
   const beforeDuplicates = await findDuplicateVinGroups()
   console.log(`VIN duplicate groups before cleanup: ${beforeDuplicates.length}`)
 

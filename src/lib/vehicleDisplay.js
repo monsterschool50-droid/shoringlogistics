@@ -1,4 +1,9 @@
 import { applyTrimFixes, normalizeLocationText, normalizeRequestedRomanizedColorAlias } from '../../shared/vehicleTextFixes.js'
+import {
+  resolveBodyTypeLabel,
+  resolveVehicleClassLabel,
+  isWeakBodyTypeLabel as isWeakCanonicalBodyTypeLabel,
+} from '../../shared/vehicleTaxonomy.js'
 
 export const VAT_REFUND_RATE = 0.06
 export const VEHICLE_ORIGIN_LABELS = Object.freeze({
@@ -384,50 +389,15 @@ function inferPassengerBodyTypeFromText(...values) {
 }
 
 export function isWeakBodyTypeLabel(value) {
-  const text = cleanText(value)
-  if (!text || text === '-') return true
-  return BODY_CLASS_LABELS.has(text)
+  return isWeakCanonicalBodyTypeLabel(value)
 }
 
 export function resolveDisplayBodyTypeLabel(bodyValue, ...contextValues) {
-  const normalized = normalizeRawBodyLabel(bodyValue)
-  const actual = inferPassengerBodyTypeFromText(normalized, ...contextValues)
+  return resolveBodyTypeLabel(normalizeRawBodyLabel(bodyValue), ...contextValues.map((value) => normalizeText(value)))
+}
 
-  if (
-    actual &&
-    (
-      !normalized ||
-      (BODY_CLASS_LABELS.has(normalized) && actual !== '\u0421\u0435\u0434\u0430\u043d') ||
-      (normalized === '\u0421\u043f\u043e\u0440\u0442\u043a\u0430\u0440' && actual !== '\u0421\u043f\u043e\u0440\u0442\u043a\u0430\u0440') ||
-      normalized === '\u041a\u0440\u043e\u0441\u0441\u043e\u0432\u0435\u0440 / \u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436\u043d\u0438\u043a' ||
-      normalized === '\u041c\u0438\u043d\u0438\u0432\u044d\u043d' ||
-      normalized === '\u041c\u0438\u043d\u0438'
-    )
-  ) {
-    return actual
-  }
-
-  if (
-    normalized === '\u041c\u0438\u043d\u0438' ||
-    normalized === '\u041a\u0440\u043e\u0441\u0441\u043e\u0432\u0435\u0440 / \u0432\u043d\u0435\u0434\u043e\u0440\u043e\u0436\u043d\u0438\u043a' ||
-    normalized === '\u041f\u0438\u043a\u0430\u043f' ||
-    normalized === '\u0413\u0440\u0443\u0437\u043e\u0432\u043e\u0439 / \u043f\u0438\u043a\u0430\u043f' ||
-    normalized === '\u041c\u0438\u043d\u0438\u0432\u044d\u043d' ||
-    normalized === '\u0421\u0435\u0434\u0430\u043d' ||
-    normalized === '\u041a\u0443\u043f\u0435' ||
-    normalized === '\u041a\u0430\u0431\u0440\u0438\u043e\u043b\u0435\u0442' ||
-    normalized === '4-\u0434\u0432\u0435\u0440\u043d\u043e\u0435 \u043a\u0443\u043f\u0435' ||
-    normalized === '\u041b\u0438\u0444\u0442\u0431\u0435\u043a' ||
-    normalized === '\u0421\u043f\u043e\u0440\u0442\u043a\u0430\u0440' ||
-    normalized === '\u0425\u044d\u0442\u0447\u0431\u0435\u043a' ||
-    normalized === '\u0423\u043d\u0438\u0432\u0435\u0440\u0441\u0430\u043b'
-  ) {
-    return normalized
-  }
-
-  if (actual) return actual
-  if (BODY_CLASS_LABELS.has(normalized)) return normalized
-  return normalized
+export function resolveVehicleClassLabelForDisplay(classValue, bodyValue, ...contextValues) {
+  return resolveVehicleClassLabel(classValue, normalizeRawBodyLabel(bodyValue), ...contextValues.map((value) => normalizeText(value)))
 }
 
 export function normalizeColorLabel(value) {

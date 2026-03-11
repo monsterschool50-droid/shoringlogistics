@@ -6,6 +6,24 @@ import {
   VEHICLE_ORIGIN_LABELS,
 } from '../../lib/vehicleDisplay'
 import { normalizeKnownBrandAlias } from '../../../shared/brandAliases'
+import { BODY_TYPE_LABELS } from '../../../shared/vehicleTaxonomy.js'
+
+const CANONICAL_BODY_FILTER_ITEMS = [
+  { name: BODY_TYPE_LABELS.suv, count: 0 },
+  { name: BODY_TYPE_LABELS.sedan, count: 0 },
+  { name: BODY_TYPE_LABELS.coupe, count: 0 },
+  { name: BODY_TYPE_LABELS.fourDoorCoupe, count: 0 },
+  { name: BODY_TYPE_LABELS.cabriolet, count: 0 },
+  { name: BODY_TYPE_LABELS.roadster, count: 0 },
+  { name: BODY_TYPE_LABELS.liftback, count: 0 },
+  { name: BODY_TYPE_LABELS.hatchback, count: 0 },
+  { name: BODY_TYPE_LABELS.wagon, count: 0 },
+  { name: BODY_TYPE_LABELS.minivan, count: 0 },
+  { name: BODY_TYPE_LABELS.pickup, count: 0 },
+  { name: BODY_TYPE_LABELS.truck, count: 0 },
+]
+
+const CANONICAL_BODY_ORDER = CANONICAL_BODY_FILTER_ITEMS.map((item) => item.name)
 
 const ChevronIcon = ({ open }) => (
   <svg
@@ -103,6 +121,8 @@ const FALLBACK = {
     { name: 'Светло-серый', count: 0, color: '#d1d5db', border: '#9ca3af' },
   ],
 }
+
+FALLBACK.bodyTypes = CANONICAL_BODY_FILTER_ITEMS
 
 const EMPTY_LOCAL_FILTERS = {
   minPrice: '', maxPrice: '',
@@ -579,7 +599,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
     [catalogCars]
   )
   const liveBodyTypes = useMemo(
-    () => buildLiveOptionCounts(catalogCars, (car) => car?.bodyType, BODY_ORDER),
+    () => buildLiveOptionCounts(catalogCars, (car) => car?.bodyType, CANONICAL_BODY_ORDER),
     [catalogCars]
   )
   const liveBodyColors = useMemo(() => buildLiveColorOptions(catalogCars, 'bodyColor'), [catalogCars])
@@ -604,7 +624,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
     [liveFuelTypes, options.fuelTypes]
   )
   const bodyTypeOptions = useMemo(
-    () => (options.bodyTypes?.length ? mergeOptionItems(options.bodyTypes, liveBodyTypes, BODY_ORDER) : liveBodyTypes),
+    () => (options.bodyTypes?.length ? mergeOptionItems(options.bodyTypes, liveBodyTypes, CANONICAL_BODY_ORDER) : liveBodyTypes),
     [liveBodyTypes, options.bodyTypes]
   )
   const bodyColorOptions = useMemo(

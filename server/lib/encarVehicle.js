@@ -20,6 +20,7 @@ import {
   normalizeManufacturer,
   normalizeText,
   resolveBodyType,
+  resolveVehicleClass,
   normalizeTransmission,
   normalizeTrimLevel,
 } from './vehicleData.js'
@@ -432,6 +433,17 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     ad.title,
     ad.subTitle,
   )
+  const vehicleClass = resolveVehicleClass(
+    category.className || category.vehicleClassName || '',
+    bodyType,
+    name,
+    model,
+    trimLevel,
+    category.modelGroupEnglishName,
+    category.modelGroupName,
+    ad.title,
+    ad.subTitle,
+  )
   const driveType = inferDrive(driveRaw, name, model)
   const fees = resolveVehicleFees({
     name,
@@ -553,6 +565,7 @@ export async function fetchEncarVehicleDetail(encarId, { includeInspection = fal
     transmission: normalizeTransmission(spec.transmissionName),
     drive_type: driveType,
     body_type: bodyType,
+    vehicle_class: vehicleClass,
     trim_level: trimLevel,
     key_info: keyInfo,
     option_features: optionFeatures,
@@ -662,6 +675,26 @@ export async function fetchEncarVehicleEnrichment(encarId) {
   )
 
   const bodyColor = normalizeColorName(spec.colorName)
+  const bodyType = resolveBodyType(
+    spec.bodyName,
+    name,
+    model,
+    category.modelGroupEnglishName,
+    category.modelGroupName,
+    ad.title,
+    ad.subTitle,
+  )
+  const vehicleClass = resolveVehicleClass(
+    category.className || category.vehicleClassName || '',
+    bodyType,
+    name,
+    model,
+    trimLevel,
+    category.modelGroupEnglishName,
+    category.modelGroupName,
+    ad.title,
+    ad.subTitle,
+  )
   const warrantyInfo = extractWarrantyInfo(category)
   const optionTexts = await resolveEncarOptionTexts(options)
   const optionFeatures = extractOptionFeatures({
@@ -713,15 +746,8 @@ export async function fetchEncarVehicleEnrichment(encarId) {
         .map((photo) => toAbsolutePhotoUrl(photo?.path || photo?.location || photo?.url))
         .filter(Boolean)
       : [],
-    body_type: resolveBodyType(
-      spec.bodyName,
-      name,
-      model,
-      category.modelGroupEnglishName,
-      category.modelGroupName,
-      ad.title,
-      ad.subTitle,
-    ),
+    body_type: bodyType,
+    vehicle_class: vehicleClass,
     trim_level: trimLevel,
     vehicle_id: data?.vehicleId || data?.id || null,
     encar_url: `https://fem.encar.com/cars/detail/${encarId}`,
