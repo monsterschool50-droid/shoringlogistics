@@ -92,7 +92,7 @@ const SPECIAL_CC_MATCH_TOLERANCE = 10
 
 export const CUSTOMS_DIRECTION_OPTIONS = [
   { value: 'usa', label: DIRECTION_LABELS.usa, flag: '🇺🇸' },
-  { value: 'asia', label: DIRECTION_LABELS.asia, flag: '🇰🇷' },
+  { value: 'asia', label: DIRECTION_LABELS.asia, flag: '🇰🇷 🇨🇳' },
   { value: 'japan', label: DIRECTION_LABELS.japan, flag: '🇯🇵' },
 ]
 
