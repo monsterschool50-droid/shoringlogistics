@@ -11,6 +11,7 @@ import {
   resolveVehicleClass,
   normalizeTrimLevel,
 } from './vehicleData.js'
+import { normalizeCarIdentityFields } from './carIdentityNormalization.js'
 
 function normalizeNullableText(value, normalizer) {
   if (value === undefined) return undefined
@@ -47,31 +48,41 @@ export function normalizeCarTextFields(input = {}) {
       normalizedModel ?? input.model ?? '',
       input.tags ?? [],
     ))
+  const identityNormalized = normalizeCarIdentityFields({
+    name: normalizedName,
+    model: normalizedModel,
+    trim_level: normalizedTrim,
+    drive_type: normalizedDriveValue,
+  })
+  const finalName = identityNormalized.name ?? normalizedName
+  const finalModel = identityNormalized.model ?? normalizedModel
+  const finalTrim = identityNormalized.trim_level ?? normalizedTrim
+  const finalDrive = identityNormalized.drive_type === undefined ? normalizedDriveValue : identityNormalized.drive_type
   const normalizedBodyType = resolveBodyType(
     input.body_type ?? '',
-    normalizedName ?? input.name ?? '',
-    normalizedModel ?? input.model ?? '',
-    normalizedTrim ?? rawTrimValue ?? '',
+    finalName ?? input.name ?? '',
+    finalModel ?? input.model ?? '',
+    finalTrim ?? rawTrimValue ?? '',
     input.name ?? '',
     input.model ?? '',
   )
   const normalizedVehicleClass = resolveVehicleClass(
     input.vehicle_class ?? '',
     input.body_type ?? normalizedBodyType ?? '',
-    normalizedName ?? input.name ?? '',
-    normalizedModel ?? input.model ?? '',
-    normalizedTrim ?? rawTrimValue ?? '',
+    finalName ?? input.name ?? '',
+    finalModel ?? input.model ?? '',
+    finalTrim ?? rawTrimValue ?? '',
     input.name ?? '',
     input.model ?? '',
   )
 
   return {
-    name: normalizedName,
-    model: normalizedModel,
-    drive_type: normalizedDriveValue,
+    name: finalName,
+    model: finalModel,
+    drive_type: finalDrive,
     body_type: normalizedBodyType,
     vehicle_class: normalizedVehicleClass,
-    trim_level: normalizedTrim,
+    trim_level: finalTrim,
     body_color: bodyColor,
     interior_color: normalizeNullableText(input.interior_color, (value) => normalizeInteriorColorName(value, bodyColorForInterior, { allowBodyDuplicate: true })),
     location: normalizeNullableText(input.location, (value) => normalizeLocationName(value)),

@@ -8,6 +8,7 @@ import {
   normalizeDrive,
   normalizeInteriorColorName,
 } from '../server/lib/vehicleData.js'
+import { normalizeCarTextFields } from '../server/lib/carRecordNormalization.js'
 import {
   extractWarrantyInfo,
   resolveDriveTypeEvidence,
@@ -393,6 +394,95 @@ function run() {
   }))
   assert.equal(conflictingDrive.value, '')
   assert.equal(conflictingDrive.diagnostics.some((entry) => entry.reason === 'conflicting_same_priority_no_decision'), true)
+
+  assert.equal(normalizeDrive('2WD'), '')
+
+  const touringHonda = normalizeCarTextFields({
+    name: 'Honda Accord 2.0 Hybrid Tueoring',
+    model: 'Honda Accord 2.0 Hybrid Tueoring',
+    drive_type: '',
+  })
+  assert.equal(touringHonda.name, 'Honda Accord 2.0 Hybrid Touring')
+  assert.equal(touringHonda.model, 'Honda Accord 2.0 Hybrid Touring')
+  assert.equal(touringHonda.drive_type, 'Передний (FWD)')
+
+  const touringBmw = normalizeCarTextFields({
+    name: 'BMW 3 Series 320d Tueoring M Sport',
+    trim_level: 'Tueoring M Sport',
+  })
+  assert.equal(touringBmw.name, 'BMW 3 Series 320d Touring M Sport')
+  assert.equal(touringBmw.trim_level, 'Touring M Sport')
+
+  const onlineBmw = normalizeCarTextFields({
+    name: 'BMW X6 xDrive40i M Sport Onrain Exclusive',
+    trim_level: 'M Sport Onrain Exclusive',
+  })
+  assert.equal(onlineBmw.name, 'BMW X6 xDrive40i M Sport Online Exclusive')
+  assert.equal(onlineBmw.trim_level, 'M Sport Online Exclusive')
+
+  const premiereChevrolet = normalizeCarTextFields({
+    name: 'Chevrolet Malibu 1.3 Turbo Peurimieo',
+    trim_level: 'Peurimieo',
+  })
+  assert.equal(premiereChevrolet.name, 'Chevrolet Malibu 1.3 Turbo Premiere')
+  assert.equal(premiereChevrolet.trim_level, 'Premiere')
+
+  const santafeHyundai = normalizeCarTextFields({
+    name: 'Hyundai Santafe Prestige',
+    model: 'Hyundai Santafe Prestige',
+  })
+  assert.equal(santafeHyundai.name, 'Hyundai Santa Fe Prestige')
+  assert.equal(santafeHyundai.model, 'Hyundai Santa Fe Prestige')
+
+  const inspirationTrim = normalizeCarTextFields({
+    name: 'Hyundai Tucson Inspiration 2WD',
+    trim_level: 'Inspire 2WD',
+  })
+  assert.equal(inspirationTrim.trim_level, 'Inspiration 2WD')
+
+  const compactBmwXdrive = normalizeCarTextFields({
+    name: 'BMW X5 xDrive 40i M Sport',
+    trim_level: 'xDrive 40i M Sport',
+  })
+  assert.equal(compactBmwXdrive.name, 'BMW X5 xDrive40i M Sport')
+  assert.equal(compactBmwXdrive.trim_level, 'xDrive40i M Sport')
+
+  const hondaCrv2wd = normalizeCarTextFields({
+    name: 'Honda CR-V 1.5 EX-L 2WD',
+    drive_type: '',
+  })
+  assert.equal(hondaCrv2wd.drive_type, 'Передний (FWD)')
+
+  const hondaCrv4wd = normalizeCarTextFields({
+    name: 'Honda CR-V 2.0 Hybrid Touring 4WD',
+    drive_type: 'Полный (4WD)',
+  })
+  assert.equal(hondaCrv4wd.drive_type, 'Полный (4WD)')
+
+  const bmwIx3 = normalizeCarTextFields({
+    name: 'BMW iX3 M Sport',
+    drive_type: '',
+  })
+  assert.equal(bmwIx3.drive_type, 'Задний (RWD)')
+
+  const kiaCarnival = normalizeCarTextFields({
+    name: 'Kia Carnival HEV 9 seats Signature',
+    drive_type: '',
+  })
+  assert.equal(kiaCarnival.drive_type, 'Передний (FWD)')
+
+  const canonicalDrivePreserved = normalizeCarTextFields({
+    name: 'Honda Accord 2.0 Hybrid Touring',
+    drive_type: 'Полный (AWD)',
+  })
+  assert.equal(canonicalDrivePreserved.drive_type, 'Полный (AWD)')
+
+  const unrelatedTitle = normalizeCarTextFields({
+    name: 'Generic Tueoring Package',
+    trim_level: 'Tueoring Package',
+  })
+  assert.equal(unrelatedTitle.name, 'Generic Tueoring Package')
+  assert.equal(unrelatedTitle.trim_level, 'Tueoring Package')
 
   const warranty = extractWarrantyInfo({
     warranty: {

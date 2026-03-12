@@ -1,10 +1,21 @@
 import pool from '../server/db.js'
 import { runCarTextBackfill } from '../server/lib/carTextBackfill.js'
 
+function resolveRequestedFields() {
+  return String(globalThis.process?.env?.CAR_TEXT_BACKFILL_FIELDS || '')
+    .split(',')
+    .map((field) => field.trim())
+    .filter(Boolean)
+}
+
 async function main() {
   await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS vehicle_class VARCHAR(100)`)
-  const summary = await runCarTextBackfill()
+  const requestedFields = resolveRequestedFields()
+  const summary = await runCarTextBackfill({
+    fields: requestedFields,
+  })
 
+  console.log(`Fields ${summary.fields.join(', ')}`)
   console.log(`Checked ${summary.total} cars`)
   console.log(`Updated ${summary.updated} cars`)
   console.log(`Skipped ${summary.skipped} cars`)

@@ -15,6 +15,7 @@ import {
   VEHICLE_ORIGIN_LABELS,
 } from '../lib/vehicleData.js'
 import { createCarTextBackfillState, runCarTextBackfill } from '../lib/carTextBackfill.js'
+import { normalizeCarTextFields } from '../lib/carRecordNormalization.js'
 import { normalizeKnownBrandAlias } from '../../shared/brandAliases.js'
 import { CAR_LISTING_TYPES, normalizeCarListingType } from '../../shared/catalogTypes.js'
 import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
@@ -557,23 +558,35 @@ async function enrichCar(car, context = {}) {
     const detail = await fetchEncarVehicleEnrichment(car.encar_id, {
       targets: buildEnrichFetchTargets(car),
     })
+    const normalizedDetail = normalizeCarTextFields({
+      name: detail.name || car.name,
+      model: detail.model || car.model,
+      trim_level: detail.trim_level ?? car.trim_level,
+      drive_type: detail.drive_type ?? car.drive_type,
+      body_type: detail.body_type ?? car.body_type,
+      vehicle_class: detail.vehicle_class ?? car.vehicle_class,
+      body_color: detail.body_color ?? car.body_color,
+      interior_color: detail.interior_color ?? car.interior_color,
+      location: car.location,
+      tags: car.tags ?? [],
+    })
     const parseNotes = buildEnrichParseNotes(detail, car)
     const patch = {}
 
-    if (shouldRefreshDriveType(car.drive_type) && cleanText(detail.drive_type)) {
-      patch.drive_type = detail.drive_type
+    if (shouldRefreshDriveType(car.drive_type) && cleanText(normalizedDetail.drive_type)) {
+      patch.drive_type = normalizedDetail.drive_type
     }
 
     if (shouldRefreshKeyInfo(car.key_info) && cleanText(detail.key_info)) {
       patch.key_info = detail.key_info
     }
 
-    if (shouldRefreshBodyColor(car.body_color) && cleanText(detail.body_color)) {
-      patch.body_color = detail.body_color
+    if (shouldRefreshBodyColor(car.body_color) && cleanText(normalizedDetail.body_color)) {
+      patch.body_color = normalizedDetail.body_color
     }
 
-    if (shouldRefreshInteriorColor(car.interior_color, patch.body_color || car.body_color) && cleanText(detail.interior_color)) {
-      patch.interior_color = detail.interior_color
+    if (shouldRefreshInteriorColor(car.interior_color, patch.body_color || car.body_color) && cleanText(normalizedDetail.interior_color)) {
+      patch.interior_color = normalizedDetail.interior_color
     }
 
     if (shouldRefreshWarranty(car)) {
@@ -588,23 +601,23 @@ async function enrichCar(car, context = {}) {
       patch.option_features = detail.option_features
     }
 
-    if (isWeakBodyTypeForEnrichment(car.body_type) && cleanText(detail.body_type)) {
-      patch.body_type = detail.body_type
+    if (isWeakBodyTypeForEnrichment(car.body_type) && cleanText(normalizedDetail.body_type)) {
+      patch.body_type = normalizedDetail.body_type
     }
 
     const resolvedVehicleClass = resolveVehicleClass(
-      detail.vehicle_class || '',
-      patch.body_type || detail.body_type || car.body_type || '',
-      detail.name || car.name || '',
-      detail.model || car.model || '',
-      detail.trim_level || car.trim_level || '',
+      normalizedDetail.vehicle_class || '',
+      patch.body_type || normalizedDetail.body_type || car.body_type || '',
+      normalizedDetail.name || car.name || '',
+      normalizedDetail.model || car.model || '',
+      normalizedDetail.trim_level || car.trim_level || '',
     )
     if (cleanText(resolvedVehicleClass) && resolvedVehicleClass !== cleanText(car.vehicle_class)) {
       patch.vehicle_class = resolvedVehicleClass
     }
 
-    if (shouldRefreshTrim(car.trim_level) && cleanText(detail.trim_level)) {
-      patch.trim_level = detail.trim_level
+    if (shouldRefreshTrim(car.trim_level) && cleanText(normalizedDetail.trim_level)) {
+      patch.trim_level = normalizedDetail.trim_level
     }
 
     const sanitizedDetailVin = sanitizeVin(detail.vin)

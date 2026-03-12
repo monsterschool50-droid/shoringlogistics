@@ -1,5 +1,6 @@
 import pool from '../server/db.js'
 import { fetchEncarVehicleEnrichment } from '../server/lib/encarVehicle.js'
+import { normalizeCarTextFields } from '../server/lib/carRecordNormalization.js'
 import { normalizeDrive, normalizeInteriorColorName } from '../server/lib/vehicleData.js'
 import { isStandardVin, normalizeVin } from '../server/lib/vin.js'
 
@@ -244,7 +245,7 @@ async function fetchCandidates() {
   if (!whereChecks.length) return []
 
   let sql = `
-    SELECT id, encar_id, name, year, body_color, interior_color, drive_type, key_info, vin, trim_level, option_features,
+    SELECT id, encar_id, name, model, year, body_color, interior_color, drive_type, key_info, vin, trim_level, option_features,
            warranty_company, warranty_body_months, warranty_body_km, warranty_transmission_months, warranty_transmission_km
     FROM cars
     WHERE encar_id IS NOT NULL
@@ -340,15 +341,23 @@ async function main() {
         const detail = await fetchEncarVehicleEnrichment(row.encar_id, {
           targets: buildBackfillFetchTargets(row),
         })
+        const normalizedDetail = normalizeCarTextFields({
+          name: detail.name || row.name,
+          model: detail.model || row.model,
+          trim_level: detail.trim_level ?? row.trim_level,
+          drive_type: detail.drive_type ?? row.drive_type,
+          body_color: detail.body_color ?? row.body_color,
+          interior_color: detail.interior_color ?? row.interior_color,
+        })
         const patch = {}
         const nextInterior = normalizeInteriorColorName(
-          cleanText(detail.interior_color),
+          cleanText(normalizedDetail.interior_color),
           row.body_color || '',
           { allowBodyDuplicate: true },
         )
         const currentInterior = cleanText(row.interior_color)
         const normalizedCurrentInterior = getNormalizedStoredInterior(row)
-        const nextDrive = cleanText(detail.drive_type)
+        const nextDrive = cleanText(normalizedDetail.drive_type)
         const currentDrive = cleanText(row.drive_type)
         const nextKeyInfo = cleanText(detail.key_info)
         const currentKeyInfo = cleanText(row.key_info)
@@ -378,8 +387,8 @@ async function main() {
           stats.vin_filled += 1
         }
 
-        if (isTrimCandidate(row) && cleanText(detail.trim_level)) {
-          patch.trim_level = cleanText(detail.trim_level)
+        if (isTrimCandidate(row) && cleanText(normalizedDetail.trim_level)) {
+          patch.trim_level = cleanText(normalizedDetail.trim_level)
           stats.trim_filled += 1
         }
 

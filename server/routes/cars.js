@@ -763,7 +763,18 @@ router.post('/', adminMutationProtection, async (req, res) => {
       return res.status(400).json({ error: `Автомобиль не будет сохранён: ${vehicleBlockReason}` })
     }
 
-    const normalizedText = normalizeCarTextFields({ name, model, trim_level, body_color, interior_color, location })
+    const normalizedText = normalizeCarTextFields({
+      name,
+      model,
+      trim_level,
+      drive_type,
+      body_type,
+      vehicle_class,
+      body_color,
+      interior_color,
+      location,
+      tags,
+    })
 
     const result = await pool.query(
       `INSERT INTO cars

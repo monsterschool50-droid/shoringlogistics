@@ -2,6 +2,27 @@ import pool from '../db.js'
 import { diffNormalizedCarTextFields } from './carRecordNormalization.js'
 
 const MAX_REPORT_ITEMS = 200
+const NORMALIZABLE_CAR_TEXT_FIELDS = Object.freeze([
+  'name',
+  'model',
+  'trim_level',
+  'drive_type',
+  'body_type',
+  'vehicle_class',
+  'body_color',
+  'interior_color',
+  'location',
+])
+
+function normalizeRequestedFields(fields) {
+  if (!Array.isArray(fields) || !fields.length) return [...NORMALIZABLE_CAR_TEXT_FIELDS]
+  const requested = [...new Set(
+    fields
+      .map((field) => String(field || '').trim())
+      .filter((field) => NORMALIZABLE_CAR_TEXT_FIELDS.includes(field)),
+  )]
+  return requested.length ? requested : [...NORMALIZABLE_CAR_TEXT_FIELDS]
+}
 
 function createInitialFieldTotals() {
   return {
@@ -47,13 +68,16 @@ export function createCarTextBackfillState() {
     last_error: '',
     report: [],
     field_totals: createInitialFieldTotals(),
+    fields: [...NORMALIZABLE_CAR_TEXT_FIELDS],
   }
 }
 
-export async function runCarTextBackfill({ onProgress } = {}) {
+export async function runCarTextBackfill({ onProgress, fields } = {}) {
   const state = createCarTextBackfillState()
+  const requestedFields = normalizeRequestedFields(fields)
   state.running = true
   state.started_at = new Date().toISOString()
+  state.fields = requestedFields
 
   const publish = () => {
     onProgress?.(cloneState(state))
@@ -80,15 +104,16 @@ export async function runCarTextBackfill({ onProgress } = {}) {
 
     try {
       const { normalized, changes, changedFields } = diffNormalizedCarTextFields(row)
+      const filteredChangedFields = changedFields.filter((field) => requestedFields.includes(field))
 
-      if (!changedFields.length) {
+      if (!filteredChangedFields.length) {
         state.skipped += 1
       } else {
         const setClauses = []
         const params = []
         let index = 1
 
-        for (const field of changedFields) {
+        for (const field of filteredChangedFields) {
           setClauses.push(`${field} = $${index++}`)
           params.push(normalized[field])
           state.field_totals[field] += 1
@@ -108,7 +133,7 @@ export async function runCarTextBackfill({ onProgress } = {}) {
           encar_id: row.encar_id,
           name: row.name || row.model || '',
           status: 'updated',
-          changes: changedFields.map((field) => ({
+          changes: filteredChangedFields.map((field) => ({
             field,
             before: changes[field]?.before ?? '',
             after: changes[field]?.after ?? '',
