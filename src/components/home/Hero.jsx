@@ -85,8 +85,15 @@ const stats = [
   {
     value: '🔥',
     label: 'Срочная продажа',
-    href: '#whatsapp-sale',
-    extra: <div className="stat-note">объявления из WhatsApp</div>,
+    to: '/urgent-sale',
+    extra: <div className="stat-note">Нажмите чтобы перейти</div>,
+    cardClass: 'stat-card-clickable',
+  },
+  {
+    value: '🛠️',
+    label: 'Битые авто и запчасти',
+    to: '/damaged-stock',
+    extra: <div className="stat-note">Нажмите чтобы перейти</div>,
     cardClass: 'stat-card-clickable',
   },
 ]
@@ -144,7 +151,7 @@ export default function Hero() {
           </div>
 
           <div className="stats-grid">
-            {stats.map(({ value, label, valueClass, extra, href, cardClass = '' }) => {
+            {stats.map(({ value, label, valueClass, extra, to, cardClass = '' }) => {
               const content = (
                 <>
                   <div className={`stat-value ${valueClass}`}>{value}</div>
@@ -153,11 +160,11 @@ export default function Hero() {
                 </>
               )
 
-              if (href) {
+              if (to) {
                 return (
-                  <a key={label} href={href} className={`stat-card ${cardClass}`.trim()}>
+                  <Link key={label} to={to} className={`stat-card ${cardClass}`.trim()}>
                     {content}
-                  </a>
+                  </Link>
                 )
               }
 

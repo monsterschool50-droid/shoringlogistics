@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import AdminEncar from '../components/admin/AdminEncar'
+import PartForm from '../components/admin/PartForm.jsx'
+import PartImageManager from '../components/admin/PartImageManager.jsx'
 import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
+import { CAR_LISTING_TYPES } from '../../shared/catalogTypes.js'
 
 /* ── SVG Icon ── */
 const Ic = ({ d, s = 18 }) => (
@@ -46,6 +49,17 @@ const MAX_CATALOG_EXPORT_LIMIT = 50000
 const ADMIN_LOGIN_MAX_ATTEMPTS = 3
 const ADMIN_LOGIN_LOCKOUT_KEY = 'tlv-admin-login-lockout-until'
 const ADMIN_SESSION_STORAGE_KEY = 'tlv-admin-session-token'
+const SECTION_CATALOG = CAR_LISTING_TYPES.main
+const SECTION_URGENT = CAR_LISTING_TYPES.urgent
+const SECTION_DAMAGED = CAR_LISTING_TYPES.damaged
+const SECTION_PARTS = 'parts'
+
+const ADMIN_SECTION_OPTIONS = [
+    { id: SECTION_CATALOG, label: 'Основной каталог' },
+    { id: SECTION_URGENT, label: 'Срочная продажа' },
+    { id: SECTION_DAMAGED, label: 'Битые авто' },
+    { id: SECTION_PARTS, label: 'Запчасти' },
+]
 
 function readAdminSessionToken() {
     if (typeof window === 'undefined') return ''
@@ -142,6 +156,16 @@ function normalizeAdminVehicleTitle(value, { keepBrand = true } = {}) {
     return text.replace(/\s+/g, ' ').trim()
 }
 
+function getSectionLabel(section) {
+    return ADMIN_SECTION_OPTIONS.find(option => option.id === section)?.label || 'Объявления'
+}
+
+function getCarListingBadge(section) {
+    if (section === SECTION_URGENT) return 'Срочная продажа'
+    if (section === SECTION_DAMAGED) return 'Битое авто'
+    return 'Основной каталог'
+}
+
 /* ── API ── */
 async function apiFetch(url, opts = {}) {
     const headers = new Headers(opts.headers || {})
@@ -164,6 +188,12 @@ const api = {
     deleteCar: id => apiFetch(`/api/cars/${id}`, { method: 'DELETE' }),
     uploadImages: (id, files) => { const fd = new FormData(); files.forEach(f => fd.append('images', f)); return apiFetch(`/api/cars/${id}/images`, { method: 'POST', body: fd }) },
     deleteImage: id => apiFetch(`/api/images/${id}`, { method: 'DELETE' }),
+    getParts: p => apiFetch('/api/parts?' + new URLSearchParams({ limit: 20, page: 1, sort: 'newest', ...p })),
+    createPart: d => apiFetch('/api/parts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
+    updatePart: (id, d) => apiFetch(`/api/parts/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
+    deletePart: id => apiFetch(`/api/parts/${id}`, { method: 'DELETE' }),
+    uploadPartImages: (id, files) => { const fd = new FormData(); files.forEach(f => fd.append('images', f)); return apiFetch(`/api/parts/${id}/images`, { method: 'POST', body: fd }) },
+    deletePartImage: id => apiFetch(`/api/part-images/${id}`, { method: 'DELETE' }),
     fetchEncar: id => apiFetch(`/api/encar/${id}`),
     getStats: () => apiFetch('/api/admin/stats'),
     getPricingSettings: () => apiFetch('/api/admin/pricing-settings'),
@@ -316,6 +346,7 @@ function Modal({ title, onClose, children, wide }) {
 
 /* ── Car Form ── */
 const BLANK = {
+    listing_type: SECTION_CATALOG,
     name: '',
     model: '',
     year: '',
@@ -425,6 +456,15 @@ function CarForm({ init = BLANK, onSave, onCancel, busy, pricingSettings }) {
                 </button>
             </div>
             {encarErr && <div className="adm-err">{encarErr}</div>}
+
+            <div className="adm-field" style={{ marginBottom: 12 }}>
+                <label className="adm-label">Раздел размещения</label>
+                <select className="adm-select" value={f.listing_type || SECTION_CATALOG} onChange={e => set('listing_type', e.target.value)}>
+                    <option value={SECTION_CATALOG}>Основной каталог</option>
+                    <option value={SECTION_URGENT}>Срочная продажа</option>
+                    <option value={SECTION_DAMAGED}>Битое авто</option>
+                </select>
+            </div>
 
             <div className="adm-sec-title">📋 Информация</div>
             <Row kids={[<F key="n" label="Марка" k="name" ph="Hyundai" />, <F key="m" label="Модель" k="model" ph="Sonata" />]} />
@@ -577,7 +617,7 @@ function PriceEditor({ car, onSave, onClose, pricingSettings }) {
                 <span>Фиксировать ручные расходы для этой машины</span>
             </label>
             <div className="adm-price-grid">
-                {[['price_usd', 'Цена USD'], ['commission', 'Комиссия'], ['delivery', 'Доставка'], ['loading', 'Погрузка'], ['unloading', 'Выгрузка'], ['storage', 'Стоянка'], ['vat_refund', 'Возврат НДС']].map(([k, label]) => (
+                {[['price_usd', 'Цена USD'], ['commission', 'Комиссия'], ['delivery', 'Доставка'], ['loading', 'Погрузка'], ['unloading', 'Выгрузка'], ['storage', 'Стоянка'], ['vat_refund', 'Возврат НДС']].map(([k]) => (
                     <div key={k} className="adm-field">
                         <label className="adm-label">{k === 'price_usd' ? 'Цена USD' : k === 'commission' ? 'Комиссия' : k === 'delivery' ? 'Доставка' : k === 'loading' ? 'Погрузка' : k === 'unloading' ? 'Выгрузка' : k === 'storage' ? 'Стоянка' : 'Возврат НДС'}</label>
                         <input
@@ -879,6 +919,7 @@ function Dashboard({ onGo }) {
 
 /* ── Cars List ── */
 function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
+    const [section, setSection] = useState(SECTION_CATALOG)
     const [cars, setCars] = useState([])
     const [total, setTotal] = useState(0)
     const [pages, setPages] = useState(1)
@@ -888,9 +929,12 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [editCar, setEditCar] = useState(null)
+    const [editPart, setEditPart] = useState(null)
     const [imgCar, setImgCar] = useState(null)
+    const [imgPart, setImgPart] = useState(null)
     const [priceCar, setPriceCar] = useState(null)
     const [delCar, setDelCar] = useState(null)
+    const [delPart, setDelPart] = useState(null)
     const [adding, setAdding] = useState(!!initAdd)
     const [busy, setBusy] = useState(false)
     const [exporting, setExporting] = useState(false)
@@ -944,33 +988,46 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
     const [selected, setSelected] = useState(new Set())
     const prevEnrichRunningRef = useRef(false)
     const prevNormalizeCarsRunningRef = useRef(false)
+    const isPartsSection = section === SECTION_PARTS
+    const sectionLabel = getSectionLabel(section)
 
     const load = useCallback(async (pg, sq, so) => {
         setLoading(true); setError(null)
         try {
-            const p = { page: pg, limit: 20, sort: so, adminSearch: '1' }
+            const p = { page: pg, limit: 20, sort: so }
             const query = String(sq || '').trim()
             if (query) p.q = query
-            const d = await api.getCars(p)
-            setCars(d.cars || []); setTotal(d.total || 0); setPages(d.pages || 1)
+            if (isPartsSection) {
+                const d = await api.getParts(p)
+                setCars(d.parts || []); setTotal(d.total || 0); setPages(d.pages || 1)
+            } else {
+                p.adminSearch = '1'
+                p.listingType = section
+                const d = await api.getCars(p)
+                setCars(d.cars || []); setTotal(d.total || 0); setPages(d.pages || 1)
+            }
         } catch (e) { setError(e.message) }
         setLoading(false)
-    }, [])
+    }, [isPartsSection, section])
 
-    useEffect(() => { load(page, search, sort) }, [page, sort, load, pricingRevision])
+    useEffect(() => { load(page, search, sort) }, [page, sort, load, pricingRevision, section])
 
     const loadEnrichStatus = useCallback(async () => {
         try {
             const data = await api.getEnrichStatus()
             setEnrichStatus(data)
-        } catch { }
+        } catch {
+            /* ignore status polling errors */
+        }
     }, [])
 
     const loadNormalizeCarsStatus = useCallback(async () => {
         try {
             const data = await api.getNormalizeExistingCarsStatus()
             setNormalizeCarsStatus(data)
-        } catch { }
+        } catch {
+            /* ignore status polling errors */
+        }
     }, [])
 
     useEffect(() => {
@@ -1013,6 +1070,21 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
         window.localStorage.setItem(ENRICH_REPORT_VISIBILITY_KEY, isEnrichReportOpen ? '1' : '0')
     }, [isEnrichReportOpen])
 
+    useEffect(() => {
+        setSelected(new Set())
+        setPage(1)
+        setSort('newest')
+        setSearch('')
+        setAdding(false)
+        setEditCar(null)
+        setEditPart(null)
+        setImgCar(null)
+        setImgPart(null)
+        setPriceCar(null)
+        setDelCar(null)
+        setDelPart(null)
+    }, [section])
+
     const doSearch = e => {
         e.preventDefault()
         const query = search.trim()
@@ -1025,9 +1097,16 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
     const save = async data => {
         setBusy(true)
         try {
-            if (editCar?.id) { await api.updateCar(editCar.id, data); toast('Обновлено ✓', 'success') }
-            else { await api.createCar(data); toast('Добавлено ✓', 'success') }
-            setEditCar(null); setAdding(false); load(page, search, sort)
+            if (isPartsSection) {
+                if (editPart?.id) { await api.updatePart(editPart.id, data); toast('Обновлено ✓', 'success') }
+                else { await api.createPart(data); toast('Добавлено ✓', 'success') }
+                setEditPart(null)
+            } else {
+                if (editCar?.id) { await api.updateCar(editCar.id, data); toast('Обновлено ✓', 'success') }
+                else { await api.createCar(data); toast('Добавлено ✓', 'success') }
+                setEditCar(null)
+            }
+            setAdding(false); load(page, search, sort)
         } catch { toast('Ошибка сохранения', 'error') }
         setBusy(false)
     }
@@ -1038,14 +1117,31 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
     }
 
     const del = async id => {
-        try { await api.deleteCar(id); toast('Удалено', 'success'); setDelCar(null); load(page, search, sort) }
+        try {
+            if (isPartsSection) {
+                await api.deletePart(id)
+                setDelPart(null)
+            } else {
+                await api.deleteCar(id)
+                setDelCar(null)
+            }
+            toast('Удалено', 'success'); load(page, search, sort)
+        }
         catch { toast('Ошибка', 'error') }
     }
 
     const delSelected = async () => {
-        if (!confirm(`Удалить ${selected.size} авто?`)) return
-        for (const id of selected) { try { await api.deleteCar(id) } catch { } }
-        setSelected(new Set()); load(page, search, sort); toast(`Удалено ${selected.size} авто`, 'success')
+        const entityLabel = isPartsSection ? 'запчастей' : 'авто'
+        if (!confirm(`Удалить ${selected.size} ${entityLabel}?`)) return
+        for (const id of selected) {
+            try {
+                if (isPartsSection) await api.deletePart(id)
+                else await api.deleteCar(id)
+            } catch {
+                /* ignore individual delete errors during bulk removal */
+            }
+        }
+        setSelected(new Set()); load(page, search, sort); toast(`Удалено ${selected.size} ${entityLabel}`, 'success')
     }
 
     const downloadCatalogExport = async () => {
@@ -1106,22 +1202,146 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
 
     const toggleSel = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
     const toggleAll = () => setSelected(s => s.size === cars.length ? new Set() : new Set(cars.map(c => c.id)))
+    const emptyLabel = isPartsSection ? 'Запчастей нет.' : 'Автомобилей нет.'
+    const addFirstLabel = isPartsSection ? 'Добавить первую' : 'Добавить первый'
+    const totalLabel = isPartsSection ? 'записей' : 'авто'
+    const paginationLabel = isPartsSection ? 'запчастей' : 'авто'
+    const addButtonLabel = isPartsSection ? 'Добавить запчасть' : 'Добавить авто'
+    const sortOptions = isPartsSection
+        ? [
+            { value: 'newest', label: 'Новые' },
+            { value: 'price_asc', label: 'Цена ↑' },
+            { value: 'price_desc', label: 'Цена ↓' },
+        ]
+        : [
+            { value: 'newest', label: 'Новые' },
+            { value: 'price_asc', label: 'Цена ↑' },
+            { value: 'price_desc', label: 'Цена ↓' },
+            { value: 'mileage', label: 'Пробег ↑' },
+            { value: 'year_desc', label: 'Год ↓' },
+        ]
+
+    const tableContent = isPartsSection ? (
+        <div className="adm-table-wrap">
+            <table className="adm-table">
+                <thead><tr>
+                    <th><input type="checkbox" checked={selected.size === cars.length && cars.length > 0} onChange={toggleAll} style={{ accentColor: '#6366f1' }} /></th>
+                    <th>ID</th><th>Фото</th><th>Запчасть</th><th>Совместимость</th><th>Цена</th><th>Наличие</th><th>Действия</th>
+                </tr></thead>
+                <tbody>
+                    {cars.map(part => (
+                        <tr key={part.id} className={selected.has(part.id) ? 'adm-tr-sel' : ''}>
+                            <td><input type="checkbox" checked={selected.has(part.id)} onChange={() => toggleSel(part.id)} style={{ accentColor: '#6366f1' }} /></td>
+                            <td className="adm-td-id">#{part.id}</td>
+                            <td>
+                                <div className="adm-thumb-wrap">
+                                    {part.images?.length > 0
+                                        ? <img className="adm-thumb" src={part.images[0].url} alt="" loading="lazy" />
+                                        : <div className="adm-thumb-empty"><Ic d={IC.img} s={18} /></div>}
+                                    <span className="adm-thumb-cnt">{(part.images || []).length}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div className="adm-car-name">{part.title || '-'}</div>
+                                <div className="adm-car-model">{part.category || 'Запчасть'}</div>
+                                {part.article_number && <div className="adm-car-vin">Артикул: {part.article_number}</div>}
+                            </td>
+                            <td>
+                                <div>{[part.brand, part.model].filter(Boolean).join(' ') || '-'}</div>
+                                <div className="adm-car-sub">{[part.generation_body, part.year_range].filter(Boolean).join(' • ') || 'Совместимость не указана'}</div>
+                            </td>
+                            <td className="adm-td-usd">{fmtU(part.price)}</td>
+                            <td>
+                                <span className={`adm-tag-sm${part.in_stock ? '' : ' adm-tag-more'}`}>
+                                    {part.availability_text || (part.in_stock ? 'В наличии' : 'Нет в наличии')}
+                                </span>
+                            </td>
+                            <td>
+                                <div className="adm-row-acts">
+                                    <button className="adm-act adm-act-edit" title="Редактировать" onClick={() => { setEditPart(part); setAdding(false) }}><Ic d={IC.edit} s={14} /></button>
+                                    <button className="adm-act adm-act-img" title="Фото" onClick={() => setImgPart(part)}><Ic d={IC.photo} s={14} /></button>
+                                    <button className="adm-act adm-act-del" title="Удалить" onClick={() => setDelPart(part)}><Ic d={IC.trash} s={14} /></button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    ) : (
+        <div className="adm-table-wrap">
+            <table className="adm-table">
+                <thead><tr>
+                    <th><input type="checkbox" checked={selected.size === cars.length && cars.length > 0} onChange={toggleAll} style={{ accentColor: '#6366f1' }} /></th>
+                    <th>ID</th><th>Фото</th><th>Автомобиль</th><th>Раздел</th><th>Год/Пробег</th>
+                    <th>Цена KRW</th><th>Цена USD</th><th>До Бишкека</th><th>Теги</th><th>Действия</th>
+                </tr></thead>
+                <tbody>
+                    {cars.map(car => (
+                        (() => {
+                            const displayName = normalizeAdminVehicleTitle(car.name, { keepBrand: true }) || car.name
+                            const displayModel = normalizeAdminVehicleTitle(car.model, { keepBrand: false }) || car.model
+                            return (
+                                <tr key={car.id} className={selected.has(car.id) ? 'adm-tr-sel' : ''}>
+                                    <td><input type="checkbox" checked={selected.has(car.id)} onChange={() => toggleSel(car.id)} style={{ accentColor: '#6366f1' }} /></td>
+                                    <td className="adm-td-id">#{car.id}</td>
+                                    <td>
+                                        <div className="adm-thumb-wrap">
+                                            {car.images?.length > 0
+                                                ? <img className="adm-thumb" src={car.images[0].url} alt="" loading="lazy" />
+                                                : <div className="adm-thumb-empty"><Ic d={IC.img} s={18} /></div>}
+                                            <span className="adm-thumb-cnt">{(car.images || []).length}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="adm-car-name">{displayName}</div>
+                                        <div className="adm-car-model">{displayModel}</div>
+                                        {car.vin && <div className="adm-car-vin">VIN: {car.vin}</div>}
+                                    </td>
+                                    <td><span className="adm-tag-sm">{getCarListingBadge(car.listing_type || section)}</span></td>
+                                    <td><div>{car.year}</div><div className="adm-car-sub">{Number(car.mileage || 0).toLocaleString()} км</div></td>
+                                    <td className="adm-td-krw">{fmtK(car.price_krw)}</td>
+                                    <td className="adm-td-usd">{fmtU(car.price_usd)}</td>
+                                    <td className="adm-td-total">{fmtU(car.total)}</td>
+                                    <td>
+                                        <div className="adm-tags-cell">
+                                            {(car.tags || []).slice(0, 2).map(t => <span key={t} className="adm-tag-sm">{t}</span>)}
+                                            {(car.tags || []).length > 2 && <span className="adm-tag-sm adm-tag-more">+{car.tags.length - 2}</span>}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="adm-row-acts">
+                                            <button className="adm-act adm-act-edit" title="Редактировать" onClick={() => { setEditCar(car); setAdding(false) }}><Ic d={IC.edit} s={14} /></button>
+                                            <button className="adm-act adm-act-price" title="Цены" onClick={() => setPriceCar(car)}><Ic d={IC.calc} s={14} /></button>
+                                            <button className="adm-act adm-act-img" title="Фото" onClick={() => setImgCar(car)}><Ic d={IC.photo} s={14} /></button>
+                                            {car.encar_url && <a className="adm-act adm-act-link" href={car.encar_url} target="_blank" rel="noreferrer" title="Encar"><Ic d={IC.ext} s={14} /></a>}
+                                            <button className="adm-act adm-act-del" title="Удалить" onClick={() => setDelCar(car)}><Ic d={IC.trash} s={14} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })()
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    )
 
     return (
         <div>
             {/* Header */}
             <div className="adm-page-hd">
                 <div>
-                    <h2 className="adm-section-heading">🚗 Автомобили</h2>
-                    <div className="adm-meta">{loading ? '...' : `Всего: ${total.toLocaleString()}`}</div>
-                    {(enrichStatus.running || enrichStatus.finished_at) && (
+                    <h2 className="adm-section-heading">🗂️ {sectionLabel}</h2>
+                    <div className="adm-meta">{loading ? '...' : `Всего: ${total.toLocaleString()} ${totalLabel}`}</div>
+                    {!isPartsSection && (enrichStatus.running || enrichStatus.finished_at) && (
                         <div className="adm-meta" style={{ marginTop: 4 }}>
                             {enrichStatus.running
                                 ? `Обогащение (${formatEnrichScopeLabel(enrichStatus.scope, enrichStatus.latest_limit)}): ${enrichStatus.processed}/${enrichStatus.total} • обновлено ${enrichStatus.updated} • удалено ${enrichStatus.removed || 0} • ошибок ${enrichStatus.errors}`
                                 : `Последнее обогащение (${formatEnrichScopeLabel(enrichStatus.scope, enrichStatus.latest_limit)}): обновлено ${enrichStatus.updated} • удалено ${enrichStatus.removed || 0} • пропущено ${enrichStatus.skipped} • ошибок ${enrichStatus.errors}`}
                         </div>
                     )}
-                    {(normalizeCarsStatus.running || normalizeCarsStatus.finished_at) && (
+                    {!isPartsSection && (normalizeCarsStatus.running || normalizeCarsStatus.finished_at) && (
                         <div className="adm-meta" style={{ marginTop: 4 }}>
                             {normalizeCarsStatus.running
                                 ? `Нормализация: ${normalizeCarsStatus.processed}/${normalizeCarsStatus.total} • обновлено ${normalizeCarsStatus.updated} • ошибок ${normalizeCarsStatus.errors}`
@@ -1130,6 +1350,8 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
                     )}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
+                    {!isPartsSection && (
+                        <>
                     <button className="adm-btn adm-btn-sm" onClick={startNormalizeExistingCars} disabled={normalizingCars || normalizeCarsStatus.running || enriching || enrichStatus.running}>
                         <Ic d={IC.tag} s={14} /> {normalizeCarsStatus.running ? 'Нормализация...' : (normalizingCars ? 'Запуск...' : 'Нормализовать названия')}
                     </button>
@@ -1183,11 +1405,26 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
                             <Ic d={IC.download} s={14} /> {exporting ? 'Экспорт...' : 'Скачать JSON'}
                         </button>
                     </div>
+                        </>
+                    )}
                     {selected.size > 0 && <button className="adm-btn adm-btn-danger" onClick={delSelected}><Ic d={IC.trash} s={14} />Удалить ({selected.size})</button>}
-                    <button className="adm-btn adm-btn-primary" onClick={() => { setAdding(true); setEditCar(null) }}>
-                        <Ic d={IC.plus} s={15} /> Добавить
+                    <button className="adm-btn adm-btn-primary" onClick={() => { setAdding(true); setEditCar(null); setEditPart(null) }}>
+                        <Ic d={IC.plus} s={15} /> {addButtonLabel}
                     </button>
                 </div>
+            </div>
+
+            <div className="adm-section-switcher">
+                {ADMIN_SECTION_OPTIONS.map(option => (
+                    <button
+                        key={option.id}
+                        type="button"
+                        className={`adm-section-switcher-btn${section === option.id ? ' is-active' : ''}`}
+                        onClick={() => setSection(option.id)}
+                    >
+                        {option.label}
+                    </button>
+                ))}
             </div>
 
             {/* Toolbar */}
@@ -1195,42 +1432,40 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
                 <form className="adm-search-form" onSubmit={doSearch}>
                     <div className="adm-search-wrap">
                         <Ic d={IC.search} s={15} />
-                        <input className="adm-search-input" placeholder="Поиск по VIN, названию, ID или Encar ID..." value={search} onChange={e => setSearch(e.target.value)} />
+                        <input className="adm-search-input" placeholder={isPartsSection ? 'Поиск по названию, артикулу или модели...' : 'Поиск по VIN, названию, ID или Encar ID...'} value={search} onChange={e => setSearch(e.target.value)} />
                     </div>
                     <button className="adm-btn adm-btn-sm" type="submit">Найти</button>
                     <button className="adm-btn adm-btn-sm adm-btn-cancel" type="button" onClick={reset}>Сбросить</button>
                 </form>
                 <select className="adm-select" value={sort} onChange={e => { setSort(e.target.value); setPage(1) }}>
-                    <option value="newest">Новые</option>
-                    <option value="price_asc">Цена ↑</option>
-                    <option value="price_desc">Цена ↓</option>
-                    <option value="mileage">Пробег ↑</option>
-                    <option value="year_desc">Год ↓</option>
+                    {sortOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
                 </select>
                 <button className="adm-btn adm-btn-sm" onClick={() => load(page, search, sort)}><Ic d={IC.ref} s={14} /></button>
             </div>
 
-            {normalizeCarsStatus.current?.name && normalizeCarsStatus.running && (
+            {!isPartsSection && normalizeCarsStatus.current?.name && normalizeCarsStatus.running && (
                 <div className="adm-car-sub" style={{ marginBottom: 12 }}>
                     Сейчас нормализуется: {normalizeCarsStatus.current.name} (ID: {normalizeCarsStatus.current.id}{normalizeCarsStatus.current.encar_id ? `, Encar: ${normalizeCarsStatus.current.encar_id}` : ''})
                 </div>
             )}
-            {!!normalizeCarsStatus.last_error && (
+            {!isPartsSection && !!normalizeCarsStatus.last_error && (
                 <div className="adm-car-sub" style={{ marginBottom: 12, color: '#fca5a5' }}>
                     Последняя ошибка нормализации: {normalizeCarsStatus.last_error}
                 </div>
             )}
-            {enrichStatus.current?.name && enrichStatus.running && (
+            {!isPartsSection && enrichStatus.current?.name && enrichStatus.running && (
                 <div className="adm-car-sub" style={{ marginBottom: 12 }}>
                     Сейчас обрабатывается: {enrichStatus.current.name} (ID: {enrichStatus.current.id}, Encar: {enrichStatus.current.encar_id})
                 </div>
             )}
-            {!!enrichStatus.last_error && (
+            {!isPartsSection && !!enrichStatus.last_error && (
                 <div className="adm-car-sub" style={{ marginBottom: 12, color: '#fca5a5' }}>
                     Последняя ошибка: {enrichStatus.last_error}
                 </div>
             )}
-            {!!enrichStatus.report?.length && (
+            {!isPartsSection && !!enrichStatus.report?.length && (
                 <div className="adm-chart-box" style={{ marginBottom: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: isEnrichReportOpen ? 12 : 0 }}>
                         <div className="adm-chart-title" style={{ margin: 0 }}>Что изменило обогащение</div>
@@ -1312,63 +1547,9 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
             ) : loading ? (
                 <div className="adm-loading"><div className="adm-spin" /></div>
             ) : cars.length === 0 ? (
-                <div className="adm-empty">Автомобилей нет. <button className="adm-link" onClick={() => setAdding(true)}>Добавить первый</button></div>
+                <div className="adm-empty">{emptyLabel} <button className="adm-link" onClick={() => setAdding(true)}>{addFirstLabel}</button></div>
             ) : (
-                <div className="adm-table-wrap">
-                    <table className="adm-table">
-                        <thead><tr>
-                            <th><input type="checkbox" checked={selected.size === cars.length && cars.length > 0} onChange={toggleAll} style={{ accentColor: '#6366f1' }} /></th>
-                            <th>ID</th><th>Фото</th><th>Автомобиль</th><th>Год/Пробег</th>
-                            <th>Цена KRW</th><th>Цена USD</th><th>До Бишкека</th><th>Теги</th><th>Действия</th>
-                        </tr></thead>
-                        <tbody>
-                            {cars.map(car => (
-                                (() => {
-                                    const displayName = normalizeAdminVehicleTitle(car.name, { keepBrand: true }) || car.name
-                                    const displayModel = normalizeAdminVehicleTitle(car.model, { keepBrand: false }) || car.model
-                                    return (
-                                <tr key={car.id} className={selected.has(car.id) ? 'adm-tr-sel' : ''}>
-                                    <td><input type="checkbox" checked={selected.has(car.id)} onChange={() => toggleSel(car.id)} style={{ accentColor: '#6366f1' }} /></td>
-                                    <td className="adm-td-id">#{car.id}</td>
-                                    <td>
-                                        <div className="adm-thumb-wrap">
-                                            {car.images?.length > 0
-                                                ? <img className="adm-thumb" src={car.images[0].url} alt="" loading="lazy" />
-                                                : <div className="adm-thumb-empty"><Ic d={IC.img} s={18} /></div>}
-                                            <span className="adm-thumb-cnt">{(car.images || []).length}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="adm-car-name">{displayName}</div>
-                                        <div className="adm-car-model">{displayModel}</div>
-                                        {car.vin && <div className="adm-car-vin">VIN: {car.vin}</div>}
-                                    </td>
-                                    <td><div>{car.year}</div><div className="adm-car-sub">{Number(car.mileage || 0).toLocaleString()} км</div></td>
-                                    <td className="adm-td-krw">{fmtK(car.price_krw)}</td>
-                                    <td className="adm-td-usd">{fmtU(car.price_usd)}</td>
-                                    <td className="adm-td-total">{fmtU(car.total)}</td>
-                                    <td>
-                                        <div className="adm-tags-cell">
-                                            {(car.tags || []).slice(0, 2).map(t => <span key={t} className="adm-tag-sm">{t}</span>)}
-                                            {(car.tags || []).length > 2 && <span className="adm-tag-sm adm-tag-more">+{car.tags.length - 2}</span>}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="adm-row-acts">
-                                            <button className="adm-act adm-act-edit" title="Редактировать" onClick={() => { setEditCar(car); setAdding(false) }}><Ic d={IC.edit} s={14} /></button>
-                                            <button className="adm-act adm-act-price" title="Цены" onClick={() => setPriceCar(car)}><Ic d={IC.calc} s={14} /></button>
-                                            <button className="adm-act adm-act-img" title="Фото" onClick={() => setImgCar(car)}><Ic d={IC.photo} s={14} /></button>
-                                            {car.encar_url && <a className="adm-act adm-act-link" href={car.encar_url} target="_blank" rel="noreferrer" title="Encar"><Ic d={IC.ext} s={14} /></a>}
-                                            <button className="adm-act adm-act-del" title="Удалить" onClick={() => setDelCar(car)}><Ic d={IC.trash} s={14} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                    )
-                                })()
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                tableContent
             )}
 
             {/* Pagination */}
@@ -1380,26 +1561,59 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
                         return <button key={pn} className={`adm-btn adm-btn-sm${pn === page ? ' adm-btn-active' : ''}`} onClick={() => setPage(pn)}>{pn}</button>
                     })}
                     <button className="adm-btn adm-btn-sm" disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Вперёд →</button>
-                    <span className="adm-pg-info">Стр. {page}/{pages} • {total} авто</span>
+                    <span className="adm-pg-info">Стр. {page}/{pages} • {total} {paginationLabel}</span>
                 </div>
             )}
 
             {/* Modals */}
-            {(adding || editCar) && (
-                <Modal title={editCar ? `Редактировать: ${editCar.name}` : 'Добавить авто'} onClose={() => { setAdding(false); setEditCar(null) }} wide>
-                    <CarForm init={editCar || BLANK} onSave={save} onCancel={() => { setAdding(false); setEditCar(null) }} busy={busy} pricingSettings={pricingSettings} />
-                </Modal>
-            )}
-            {imgCar && <Modal title={`Фото: ${imgCar.name}`} onClose={() => setImgCar(null)} wide><ImgMgr car={imgCar} onClose={() => setImgCar(null)} toast={toast} /></Modal>}
-            {priceCar && <Modal title={`Цены: ${priceCar.name}`} onClose={() => setPriceCar(null)}><PriceEditor car={priceCar} onSave={savePrices} onClose={() => setPriceCar(null)} pricingSettings={pricingSettings} /></Modal>}
-            {delCar && (
-                <Modal title="Подтверждение удаления" onClose={() => setDelCar(null)}>
-                    <p style={{ color: '#e2e8f0', marginBottom: 16 }}>Удалить <strong>{delCar.name}</strong> (ID: {delCar.id})?<br />Это действие необратимо — все фото тоже удалятся.</p>
-                    <div className="adm-form-actions">
-                        <button className="adm-btn adm-btn-cancel" onClick={() => setDelCar(null)}>Отмена</button>
-                        <button className="adm-btn adm-btn-danger" onClick={() => del(delCar.id)}>🗑️ Удалить</button>
-                    </div>
-                </Modal>
+            {isPartsSection ? (
+                <>
+                    {(adding || editPart) && (
+                        <Modal title={editPart ? `Редактировать: ${editPart.title}` : 'Добавить запчасть'} onClose={() => { setAdding(false); setEditPart(null) }} wide>
+                            <PartForm key={editPart?.id || 'new-part'} init={editPart || undefined} onSave={save} onCancel={() => { setAdding(false); setEditPart(null) }} busy={busy} />
+                        </Modal>
+                    )}
+                    {imgPart && (
+                        <Modal title={`Фото: ${imgPart.title}`} onClose={() => setImgPart(null)} wide>
+                            <PartImageManager
+                                part={imgPart}
+                                onClose={() => setImgPart(null)}
+                                onUpload={api.uploadPartImages}
+                                onDelete={api.deletePartImage}
+                                toast={toast}
+                                renderIcon={(icon, size) => <Ic d={IC[icon]} s={size} />}
+                            />
+                        </Modal>
+                    )}
+                    {delPart && (
+                        <Modal title="Подтверждение удаления" onClose={() => setDelPart(null)}>
+                            <p style={{ color: '#e2e8f0', marginBottom: 16 }}>Удалить <strong>{delPart.title}</strong> (ID: {delPart.id})?<br />Это действие необратимо.</p>
+                            <div className="adm-form-actions">
+                                <button className="adm-btn adm-btn-cancel" onClick={() => setDelPart(null)}>Отмена</button>
+                                <button className="adm-btn adm-btn-danger" onClick={() => del(delPart.id)}>🗑️ Удалить</button>
+                            </div>
+                        </Modal>
+                    )}
+                </>
+            ) : (
+                <>
+                    {(adding || editCar) && (
+                        <Modal title={editCar ? `Редактировать: ${editCar.name}` : 'Добавить авто'} onClose={() => { setAdding(false); setEditCar(null) }} wide>
+                            <CarForm init={editCar || BLANK} onSave={save} onCancel={() => { setAdding(false); setEditCar(null) }} busy={busy} pricingSettings={pricingSettings} />
+                        </Modal>
+                    )}
+                    {imgCar && <Modal title={`Фото: ${imgCar.name}`} onClose={() => setImgCar(null)} wide><ImgMgr car={imgCar} onClose={() => setImgCar(null)} toast={toast} /></Modal>}
+                    {priceCar && <Modal title={`Цены: ${priceCar.name}`} onClose={() => setPriceCar(null)}><PriceEditor car={priceCar} onSave={savePrices} onClose={() => setPriceCar(null)} pricingSettings={pricingSettings} /></Modal>}
+                    {delCar && (
+                        <Modal title="Подтверждение удаления" onClose={() => setDelCar(null)}>
+                            <p style={{ color: '#e2e8f0', marginBottom: 16 }}>Удалить <strong>{delCar.name}</strong> (ID: {delCar.id})?<br />Это действие необратимо — все фото тоже удалятся.</p>
+                            <div className="adm-form-actions">
+                                <button className="adm-btn adm-btn-cancel" onClick={() => setDelCar(null)}>Отмена</button>
+                                <button className="adm-btn adm-btn-danger" onClick={() => del(delCar.id)}>🗑️ Удалить</button>
+                            </div>
+                        </Modal>
+                    )}
+                </>
             )}
         </div>
     )
@@ -1594,7 +1808,7 @@ export default function AdminPage() {
 
     const nav = [
         { id: 'dashboard', label: 'Дашборд',     icon: IC.dash },
-        { id: 'cars',      label: 'Автомобили',   icon: IC.car  },
+        { id: 'cars',      label: 'Объявления',   icon: IC.car  },
         { id: 'scraper',   label: 'Encar Парсер', icon: IC.bolt },
         { id: 'calc',      label: 'Калькулятор',  icon: IC.calc },
         { id: 'settings',  label: 'Настройки',    icon: IC.set  },

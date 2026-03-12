@@ -18,10 +18,17 @@ import {
 import { normalizeCarTextFields } from '../lib/carRecordNormalization.js'
 import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
 import { requireAdminSession } from '../lib/adminAuth.js'
+import { CAR_LISTING_TYPES, normalizeCarListingType } from '../../shared/catalogTypes.js'
 
 const router = Router()
 const MIN_CAR_YEAR = 2019
 const adminMutationProtection = requireAdminSession()
+
+function resolveRequestedListingType(value, { allowAll = false } = {}) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (allowAll && (normalized === 'all' || normalized === '*')) return 'all'
+  return normalizeCarListingType(value, CAR_LISTING_TYPES.main)
+}
 
 function parseCatalogYear(value) {
   const match = String(value ?? '').match(/\d{4}/)
@@ -363,6 +370,7 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
 
   return {
     ...row,
+    listing_type: resolveRequestedListingType(row.listing_type),
     name: normalizedName,
     model: normalizedModel,
     vehicle_class: resolveVehicleClass(
@@ -408,6 +416,7 @@ router.get('/', async (req, res) => {
       minYear, maxYear,
       minMileage, maxMileage,
       fuel, drive, body, color, interiorColor, origin,
+      listingType,
       adminSearch,
       sort = 'newest',
       page = 1, limit = 20,
@@ -422,6 +431,7 @@ router.get('/', async (req, res) => {
     let p = 1
 
     const qText = String(q || '').trim()
+    const requestedListingType = resolveRequestedListingType(listingType, { allowAll: true })
     const isAdminSearch = ['1', 'true', 'yes'].includes(String(adminSearch || '').toLowerCase())
     const brandValues = parseListFilter(brand)
     const fuelValues = parseListFilter(fuel)
@@ -499,6 +509,11 @@ router.get('/', async (req, res) => {
 
     conditions.push(`NOT ${buildBlockedCatalogPriceSql('c')}`)
     conditions.push(`NOT ${buildBlockedGenericVehicleSql('c')}`)
+
+    if (requestedListingType !== 'all') {
+      conditions.push(`c.listing_type = $${p++}`)
+      params.push(requestedListingType)
+    }
 
     if (brandValues.length) {
       const patterns = uniqPatterns(brandValues.flatMap(brandPatterns))
@@ -677,8 +692,17 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    const requestedListingType = resolveRequestedListingType(req.query?.listingType, { allowAll: true })
     const exchangeSnapshot = await getExchangeRateSnapshot()
     const pricingSettings = await getPricingSettings()
+    const detailParams = [req.params.id]
+    let detailListingSql = ''
+
+    if (requestedListingType !== 'all') {
+      detailParams.push(requestedListingType)
+      detailListingSql = ` AND c.listing_type = $${detailParams.length}`
+    }
+
     const result = await pool.query(
       `SELECT c.*,
         COALESCE(
@@ -688,10 +712,11 @@ router.get('/:id', async (req, res) => {
        FROM cars c
        LEFT JOIN car_images ci ON ci.car_id = c.id
        WHERE c.id = $1
+         ${detailListingSql}
          AND NOT ${buildBlockedCatalogPriceSql('c')}
          AND NOT ${buildBlockedGenericVehicleSql('c')}
        GROUP BY c.id`,
-      [req.params.id]
+      detailParams
     )
     if (!result.rows.length) return res.status(404).json({ error: 'Не найдено' })
     return res.json(decorateCarRow(result.rows[0], exchangeSnapshot, pricingSettings))
@@ -710,6 +735,7 @@ router.post('/', adminMutationProtection, async (req, res) => {
 
     const {
       name, model, mileage,
+      listing_type,
       fuel_type, transmission, drive_type, body_type, vehicle_class, trim_level, key_info, displacement,
       body_color, body_color_dots,
       interior_color, interior_color_dots,
@@ -721,6 +747,7 @@ router.post('/', adminMutationProtection, async (req, res) => {
       encar_url, encar_id, can_negotiate, tags,
     } = req.body
     const normalizedVin = sanitizeVin(vin)
+    const normalizedListingType = resolveRequestedListingType(listing_type)
     const duplicateVinId = await findDuplicateVinId(normalizedVin)
     if (duplicateVinId) {
       return res.status(409).json({ error: `VIN уже привязан к автомобилю #${duplicateVinId}` })
@@ -740,16 +767,17 @@ router.post('/', adminMutationProtection, async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO cars
-        (name, model, year, mileage,
+        (listing_type, name, model, year, mileage,
          fuel_type, transmission, drive_type, body_type, vehicle_class, trim_level, key_info, displacement,
          body_color, body_color_dots, interior_color, interior_color_dots,
          warranty_company, warranty_body_months, warranty_body_km, warranty_transmission_months, warranty_transmission_km, option_features,
          location, vin, price_krw, price_usd,
          commission, delivery, delivery_profile_code, loading, unloading, storage, pricing_locked, vat_refund, total,
          encar_url, encar_id, can_negotiate, tags)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
        RETURNING *`,
       [
+        normalizedListingType,
         normalizedText.name ?? name, normalizedText.model ?? model, normalizedYear, mileage || 0,
         fuel_type, transmission, normalizedText.drive_type ?? drive_type, normalizedText.body_type ?? body_type,
         normalizedText.vehicle_class ?? vehicle_class ?? null, normalizedText.trim_level ?? trim_level, key_info, displacement || 0,
@@ -773,6 +801,9 @@ router.post('/', adminMutationProtection, async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const payload = { ...(req.body || {}) }
+    if (payload.listing_type !== undefined) {
+      payload.listing_type = resolveRequestedListingType(payload.listing_type)
+    }
     if (payload.year !== undefined) {
       const normalizedYear = normalizeCatalogYear(payload.year)
       if (!normalizedYear) {
@@ -800,7 +831,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const fields = [
-      'name', 'model', 'year', 'mileage',
+      'listing_type', 'name', 'model', 'year', 'mileage',
       'fuel_type', 'transmission', 'drive_type', 'body_type', 'vehicle_class', 'trim_level', 'key_info', 'displacement',
       'body_color', 'body_color_dots', 'interior_color', 'interior_color_dots',
       'warranty_company', 'warranty_body_months', 'warranty_body_km', 'warranty_transmission_months', 'warranty_transmission_km',

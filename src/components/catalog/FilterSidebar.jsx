@@ -569,7 +569,7 @@ function buildLiveColorOptions(cars, field) {
 }
 
 /* ── Main component ── */
-export default function FilterSidebar({ filters, onFiltersChange, onClose, catalogCars = [] }) {
+export default function FilterSidebar({ filters, onFiltersChange, onClose, catalogCars = [], listingType = 'main' }) {
   const [open, setOpen] = useState({
     price: true, year: true, mileage: true, origin: true, brands: true,
     drive: true, characteristics: true, body: true,
@@ -664,7 +664,9 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
 
   // Fetch filter options from backend
   useEffect(() => {
-    fetch('/api/admin/filter-options')
+    const params = new URLSearchParams()
+    if (listingType) params.set('listingType', listingType)
+    fetch(`/api/admin/filter-options${params.toString() ? `?${params}` : ''}`)
       .then(r => r.json())
       .then(data => {
         setOptions(prev => ({
@@ -682,7 +684,7 @@ export default function FilterSidebar({ filters, onFiltersChange, onClose, catal
       })
       .catch(() => {/* Используем fallback */ })
       .finally(() => setLoadingOpts(false))
-  }, [])
+  }, [listingType])
 
   const toggle = (key) => setOpen(s => ({ ...s, [key]: !s[key] }))
 

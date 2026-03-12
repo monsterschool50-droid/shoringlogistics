@@ -10,6 +10,7 @@ import encarRouter from './routes/encar.js'
 import adminRouter from './routes/admin.js'
 import authRouter from './routes/auth.js'
 import scraperRouter from './routes/scraper.js'
+import partsRouter from './routes/parts.js'
 import { startScheduler } from './scraper/scheduler.js'
 import { state as scraperState } from './scraper/state.js'
 import {
@@ -48,6 +49,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.use('/api/cars', carsRouter)
 app.use('/api/cars', imagesRouter)
+app.use('/api/parts', partsRouter)
 app.use('/api/encar', encarRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/admin', adminRouter)
@@ -55,6 +57,10 @@ app.use('/api/scraper', scraperRouter)
 app.delete('/api/images/:id', (req, res, next) => {
   req.url = `/${req.params.id}`
   imagesRouter(req, res, next)
+})
+app.delete('/api/part-images/:id', (req, res, next) => {
+  req.url = `/images/${req.params.id}`
+  partsRouter(req, res, next)
 })
 
 app.get('/api/health', (_req, res) => {

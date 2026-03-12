@@ -16,6 +16,7 @@ import {
 } from '../lib/vehicleData.js'
 import { createCarTextBackfillState, runCarTextBackfill } from '../lib/carTextBackfill.js'
 import { normalizeKnownBrandAlias } from '../../shared/brandAliases.js'
+import { CAR_LISTING_TYPES, normalizeCarListingType } from '../../shared/catalogTypes.js'
 import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
 import {
   createAdminSessionToken,
@@ -38,6 +39,12 @@ const MAX_LATEST_ENRICH_LIMIT = 50000
 const DEFAULT_CATALOG_EXPORT_LIMIT = 5000
 const MAX_CATALOG_EXPORT_LIMIT = 50000
 const WEAK_BODY_TYPES = new Set(['', '-', 'SUV', 'Вэн', 'Малый класс', 'Компактный класс', 'Средний класс', 'Бизнес-класс'])
+
+function resolveRequestedListingType(value, { allowAll = false } = {}) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (allowAll && (normalized === 'all' || normalized === '*')) return 'all'
+  return normalizeCarListingType(value, CAR_LISTING_TYPES.main)
+}
 const CANONICAL_DRIVE_TYPES = new Set(['Передний (FWD)', 'Задний (RWD)', 'Полный (AWD)', 'Полный (4WD)'])
 const WEAK_KEY_INFO_VALUES = new Set(['Ключи есть', 'Есть запасной ключ', 'Пульт-ключ', 'Карта-ключ', 'Ключ-карта'])
 const enrichState = {
@@ -1164,68 +1171,90 @@ router.put('/pricing-settings', adminRouteProtection, async (req, res) => {
   }
 })
 
-router.get('/filter-options', async (_req, res) => {
+router.get('/filter-options', async (req, res) => {
   try {
+    const requestedListingType = resolveRequestedListingType(req.query?.listingType, { allowAll: true })
     const exchangeSnapshot = await getExchangeRateSnapshot()
     const siteRateSql = Number((exchangeSnapshot.siteRate || 1).toFixed(2))
     const priceUsdSql = `ROUND((COALESCE(price_krw, 0)::numeric / ${siteRateSql})::numeric, 0)`
+    const listingParams = requestedListingType === 'all' ? [] : [requestedListingType]
+    const listingWhere = (alias = '') => (
+      requestedListingType === 'all'
+        ? ''
+        : `WHERE ${alias ? `${alias}.` : ''}listing_type = $1`
+    )
+    const yearParams = requestedListingType === 'all'
+      ? [MIN_CATALOG_YEAR]
+      : [requestedListingType, MIN_CATALOG_YEAR]
+    const yearWhere = requestedListingType === 'all'
+      ? `WHERE year ~ '^[0-9]{4}$' AND year::integer >= $1`
+      : `WHERE listing_type = $1 AND year ~ '^[0-9]{4}$' AND year::integer >= $2`
+
     const [nameCounts, originSourceRows, fuelCounts, tagCounts, driveSourceRows, bodySourceRows, bodyColorRows, interiorColorRows, yearRange, priceRange, mileageRange, total] = await Promise.all([
       pool.query(`
         SELECT name, COUNT(*)::int AS count
         FROM cars
-        WHERE name IS NOT NULL AND name != ''
+        ${listingWhere()}
+        ${requestedListingType === 'all' ? 'WHERE' : 'AND'} name IS NOT NULL AND name != ''
         GROUP BY name
-      `),
+      `, listingParams),
       pool.query(`
         SELECT
           COALESCE(NULLIF(name, ''), model) AS name,
           COALESCE(model, '') AS model,
           COUNT(*)::int AS count
         FROM cars
+        ${listingWhere()}
         GROUP BY COALESCE(NULLIF(name, ''), model), COALESCE(model, '')
-      `),
+      `, listingParams),
       pool.query(`
         SELECT fuel_type AS name, COUNT(*)::int AS count
         FROM cars
-        WHERE fuel_type IS NOT NULL AND fuel_type != ''
+        ${listingWhere()}
+        ${requestedListingType === 'all' ? 'WHERE' : 'AND'} fuel_type IS NOT NULL AND fuel_type != ''
         GROUP BY fuel_type
-      `),
+      `, listingParams),
       pool.query(`
         SELECT tag AS name, COUNT(*)::int AS count
         FROM cars c
         CROSS JOIN LATERAL UNNEST(COALESCE(c.tags, '{}'::text[])) AS tag
+        ${listingWhere('c')}
         GROUP BY tag
-      `),
+      `, listingParams),
       pool.query(`
         SELECT COALESCE(drive_type, '') AS name, COALESCE(name, '') AS car_name, COALESCE(model, '') AS model, COALESCE(trim_level, '') AS trim_level, COUNT(*)::int AS count
         FROM cars
+        ${listingWhere()}
         GROUP BY COALESCE(drive_type, ''), COALESCE(name, ''), COALESCE(model, ''), COALESCE(trim_level, '')
-      `),
+      `, listingParams),
       pool.query(`
         SELECT COALESCE(body_type, '') AS name, COALESCE(name, '') AS car_name, COALESCE(model, '') AS model, COALESCE(trim_level, '') AS trim_level, COUNT(*)::int AS count
         FROM cars
+        ${listingWhere()}
         GROUP BY COALESCE(body_type, ''), COALESCE(name, ''), COALESCE(model, ''), COALESCE(trim_level, '')
-      `),
+      `, listingParams),
       pool.query(`
         SELECT body_color AS name, COUNT(*)::int AS count
         FROM cars
-        WHERE body_color IS NOT NULL AND body_color != ''
+        ${listingWhere()}
+        ${requestedListingType === 'all' ? 'WHERE' : 'AND'} body_color IS NOT NULL AND body_color != ''
         GROUP BY body_color
-      `),
+      `, listingParams),
       pool.query(`
         SELECT interior_color AS name, COUNT(*)::int AS count
         FROM cars
-        WHERE interior_color IS NOT NULL AND interior_color != ''
+        ${listingWhere()}
+        ${requestedListingType === 'all' ? 'WHERE' : 'AND'} interior_color IS NOT NULL AND interior_color != ''
         GROUP BY interior_color
-      `),
+      `, listingParams),
       pool.query(`
         SELECT MIN(year::integer) AS min_year, MAX(year::integer) AS max_year
         FROM cars
-        WHERE year ~ '^[0-9]{4}$' AND year::integer >= $1
-      `, [MIN_CATALOG_YEAR]),
-      pool.query(`SELECT MIN(${priceUsdSql}) AS min_price, MAX(${priceUsdSql}) AS max_price FROM cars`),
-      pool.query(`SELECT MIN(mileage) AS min_mileage, MAX(mileage) AS max_mileage FROM cars`),
-      pool.query(`SELECT COUNT(*)::int AS count FROM cars`),
+        ${yearWhere}
+      `, yearParams),
+      pool.query(`SELECT MIN(${priceUsdSql}) AS min_price, MAX(${priceUsdSql}) AS max_price FROM cars ${listingWhere()}`, listingParams),
+      pool.query(`SELECT MIN(mileage) AS min_mileage, MAX(mileage) AS max_mileage FROM cars ${listingWhere()}`, listingParams),
+      pool.query(`SELECT COUNT(*)::int AS count FROM cars ${listingWhere()}`, listingParams),
     ])
 
     const brands = aggregateBrands(nameCounts.rows)
@@ -1266,19 +1295,27 @@ router.get('/stats', adminRouteProtection, async (_req, res) => {
     const exchangeSnapshot = await getExchangeRateSnapshot()
     const siteRateSql = Number((exchangeSnapshot.siteRate || 1).toFixed(2))
     const priceUsdSql = `ROUND((COALESCE(price_krw, 0)::numeric / ${siteRateSql})::numeric, 0)`
-    const [totalRows, recentRows, avgPriceRows, topBrandRows] = await Promise.all([
+    const [totalRows, recentRows, avgPriceRows, topBrandRows, listingTypeRows, totalPartsRows] = await Promise.all([
       pool.query('SELECT COUNT(*)::int AS count FROM cars'),
       pool.query("SELECT COUNT(*)::int AS count FROM cars WHERE created_at > NOW() - INTERVAL '7 days'"),
       pool.query(`SELECT ROUND(AVG(${priceUsdSql})::numeric, 0) AS avg FROM cars WHERE price_krw > 0`),
       pool.query('SELECT name, COUNT(*)::int AS count FROM cars GROUP BY name ORDER BY count DESC LIMIT 100'),
+      pool.query('SELECT listing_type, COUNT(*)::int AS count FROM cars GROUP BY listing_type'),
+      pool.query('SELECT COUNT(*)::int AS count FROM parts'),
     ])
 
     const topBrands = aggregateBrands(topBrandRows.rows).slice(0, 5)
+    const byListingType = listingTypeRows.rows.reduce((acc, row) => {
+      acc[normalizeCarListingType(row.listing_type)] = row.count || 0
+      return acc
+    }, {})
 
     return res.json({
       totalCars: totalRows.rows[0]?.count || 0,
       addedThisWeek: recentRows.rows[0]?.count || 0,
       avgPriceUSD: parseInt(avgPriceRows.rows[0]?.avg || 0, 10),
+      totalParts: totalPartsRows.rows[0]?.count || 0,
+      byListingType,
       topBrands,
     })
   } catch (err) {

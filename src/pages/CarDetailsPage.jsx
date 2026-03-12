@@ -17,6 +17,7 @@ import {
   resolveVehicleClassLabelForDisplay,
   stripTrailingTrimLabel,
 } from '../lib/vehicleDisplay'
+import { CAR_SECTION_CONFIG } from '../lib/catalogSections.js'
 
 const VAT_REFUND_PERCENT = Math.round(VAT_REFUND_RATE * 100)
 
@@ -1378,7 +1379,7 @@ function mergeCarWithNormalizedEncar(baseCar, detail) {
   }
 }
 
-export default function CarDetailsPage() {
+export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
   const { id } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -1399,7 +1400,8 @@ export default function CarDetailsPage() {
 
     const run = async () => {
       try {
-        const res = await fetch(`/api/cars/${id}`)
+        const params = new URLSearchParams({ listingType: section.listingType })
+        const res = await fetch(`/api/cars/${id}?${params}`)
         if (!res.ok) throw new Error(res.status === 404 ? 'Машина не найдена' : 'Ошибка загрузки карточки')
 
         const data = await res.json()
@@ -1458,7 +1460,7 @@ export default function CarDetailsPage() {
 
     run()
     return () => { active = false }
-  }, [id])
+  }, [id, section.listingType])
 
   const imageCount = car?.images?.length || 1
   const boundedIdx = Math.min(imgIdx, imageCount - 1)
@@ -1495,7 +1497,7 @@ export default function CarDetailsPage() {
 
   if (loading) {
     return (
-      <div className="catalog-page">
+      <div className={`catalog-page catalog-page-${section.heroTone || 'main'}`}>
         <div className="cat-layout">
           <div className="cat-loading">
             <div className="cat-loading-spinner" />
@@ -1508,10 +1510,10 @@ export default function CarDetailsPage() {
 
   if (error || !car) {
     return (
-      <div className="catalog-page">
+      <div className={`catalog-page catalog-page-${section.heroTone || 'main'}`}>
         <div className="cat-layout">
           <div className="cat-error">
-            ⚠️ {error || 'Машина не найдена'} — <Link to="/catalog">Вернуться в каталог</Link>
+            ⚠️ {error || 'Машина не найдена'} — <Link to={section.path}>Вернуться в раздел</Link>
           </div>
         </div>
       </div>
@@ -1519,19 +1521,19 @@ export default function CarDetailsPage() {
   }
 
   return (
-    <div className="catalog-page">
+    <div className={`catalog-page catalog-page-${section.heroTone || 'main'}`}>
       <div className="cat-breadcrumb">
         <div className="cat-breadcrumb-inner">
           <Link to="/" className="cat-bc-link"><HomeIcon /> Главная</Link>
           <span className="cat-bc-sep"><ChevronRightIcon /></span>
-          <Link to="/catalog" className="cat-bc-link">Каталог</Link>
+          <Link to={section.path} className="cat-bc-link">{section.breadcrumbLabel}</Link>
           <span className="cat-bc-sep"><ChevronRightIcon /></span>
           <span className="cat-bc-current">{car.name}</span>
         </div>
       </div>
 
       <div className="car-details-wrap">
-        <button className="car-details-back" onClick={() => navigate(-1)}><BackIcon /> Назад</button>
+        <button className="car-details-back" onClick={() => navigate(section.path)}><BackIcon /> Назад</button>
 
         <div className="car-details-grid">
           <section className="car-details-left">
@@ -1564,6 +1566,7 @@ export default function CarDetailsPage() {
             </div>
 
             <div className="car-details-title-card">
+              {section.cardBadgeLabel ? <div className="car-details-section-badge">{section.cardBadgeLabel}</div> : null}
               <h1 className="car-details-title">{car.name}</h1>
               <p className="car-details-sub">{car.model || '-'}</p>
               {!!car.trimLevel && <div className="car-details-chip-line"><span>Комплектация:</span><strong>{car.trimLevel}</strong></div>}
@@ -1578,7 +1581,7 @@ export default function CarDetailsPage() {
 
               <div className="car-details-actions">
                 <a href={`https://wa.me/821056650943?text=Хочу заказать: ${car.name} (${car.year}), VIN: ${car.vin || '-'}`} target="_blank" rel="noreferrer" className="btn-car-green">Заказать</a>
-                <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-outline">На Encar</a>
+                {car.encarUrl ? <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-outline">На Encar</a> : null}
               </div>
             </div>
           </section>
@@ -1734,7 +1737,9 @@ export default function CarDetailsPage() {
             )}
           </div>
           <div className="car-details-actions">
-            <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-primary">{translateInspectionText('Open in Encar')}</a>
+            {car.encarUrl ? (
+              <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-primary">{translateInspectionText('Open in Encar')}</a>
+            ) : null}
             {car.inspection?.sourceUrl && (
               <a href={car.inspection.sourceUrl} target="_blank" rel="noreferrer" className="btn-car-green">{translateInspectionText('Open inspection')}</a>
             )}

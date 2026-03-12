@@ -4,6 +4,7 @@ import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
 import { sanitizeVin } from '../../shared/vin.js'
 import FilterSidebar from '../components/catalog/FilterSidebar'
 import CarCard from '../components/catalog/CarCard'
+import { CAR_SECTION_CONFIG, buildCarDetailsPath } from '../lib/catalogSections.js'
 import {
   appendDisplayTrimSuffix,
   extractTrimLabelFromTitle,
@@ -743,7 +744,7 @@ const SORT_OPTIONS = [
   { value: 'mileage_desc', label: 'Пробег: больше' },
 ]
 
-export default function CatalogPage() {
+export default function CatalogPage({ section = CAR_SECTION_CONFIG.main, introContent = null }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sort, setSort] = useState('newest')
@@ -864,6 +865,7 @@ export default function CatalogPage() {
       if (signal?.aborted || requestId !== activeCatalogRequestRef.current) return false
 
       const params = appendFilterParams(new URLSearchParams(), filters)
+      params.set('listingType', section.listingType)
       params.set('sort', sort)
       params.set('page', String(currentPage))
       params.set('limit', String(fallbackLimit))
@@ -894,7 +896,7 @@ export default function CatalogPage() {
     setHasRetryableError(false)
     setError(filteredCars.length ? null : '\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e')
     return true
-  }, [sort, filters, searchQuery])
+  }, [sort, filters, searchQuery, section.listingType])
 
   const runCatalogEnrichment = useCallback(async ({ carsToEnrich, requestId, append = false } = {}) => {
     if (!Array.isArray(carsToEnrich) || !carsToEnrich.some(needsEncarEnrichment)) return
@@ -1076,6 +1078,7 @@ export default function CatalogPage() {
       }
 
       const params = appendFilterParams(new URLSearchParams(), filters)
+      params.set('listingType', section.listingType)
       params.set('sort', sort)
       params.set('page', String(targetPage))
       params.set('limit', String(CATALOG_PAGE_SIZE))
@@ -1147,7 +1150,7 @@ export default function CatalogPage() {
         setIsAutoLoadingMore(false)
       }
     }
-  }, [sort, page, filters, searchQuery, fetchCarsFallback, clearScheduledRetry, scheduleCatalogRetry, catalogRequestKey, runCatalogEnrichment])
+  }, [sort, page, filters, searchQuery, fetchCarsFallback, clearScheduledRetry, scheduleCatalogRetry, catalogRequestKey, runCatalogEnrichment, section.listingType])
 
   useEffect(() => {
     fetchCarsRef.current = fetchCars
@@ -1252,7 +1255,7 @@ export default function CatalogPage() {
   }, [sortOpen])
 
   const clearSearch = () => {
-    navigate('/catalog', { replace: true })
+    navigate(section.path, { replace: true })
   }
 
   const pageRangeLabel = visiblePageStart === visiblePageEnd
@@ -1268,12 +1271,12 @@ export default function CatalogPage() {
   }
 
   return (
-    <div className="catalog-page">
+    <div className={`catalog-page catalog-page-${section.heroTone || 'main'}`}>
       <div className="cat-breadcrumb">
         <div className="cat-breadcrumb-inner">
           <Link to="/" className="cat-bc-link"><HomeIcon /> Главная</Link>
           <span className="cat-bc-sep"><ChevronRightIcon /></span>
-          <span className="cat-bc-current">Каталог</span>
+          <span className="cat-bc-current">{section.breadcrumbLabel}</span>
         </div>
       </div>
 
@@ -1282,6 +1285,7 @@ export default function CatalogPage() {
           <FilterSidebar
             filters={filters}
             catalogCars={cars}
+            listingType={section.listingType}
             onFiltersChange={(f) => { setFilters(f); setPage(1) }}
             onClose={() => setSidebarOpen(false)}
           />
@@ -1331,8 +1335,9 @@ export default function CatalogPage() {
             </a>
           </div>
 
-          <h1 className="cat-title">Каталог автомобилей — Корея</h1>
-          <p className="cat-subtitle">Список машин с Encar (переводы ru/en/ko)</p>
+          {introContent}
+          <h1 className="cat-title">{section.title}</h1>
+          <p className="cat-subtitle">{section.subtitle}</p>
 
           {hasSearchQuery && (
             <div className="cat-search-summary">
@@ -1352,7 +1357,7 @@ export default function CatalogPage() {
 
           <div className="cat-results-bar">
             <div>
-              <div className="cat-results-heading">Доступные автомобили</div>
+              <div className="cat-results-heading">{section.resultsHeading}</div>
               <div className="cat-results-count">
                 {loading && cars.length === 0
                   ? 'Загрузка...'
@@ -1415,14 +1420,21 @@ export default function CatalogPage() {
           {loading && cars.length === 0 ? (
             <div className="cat-loading">
               <div className="cat-loading-spinner" />
-              <span>Загрузка автомобилей...</span>
+              <span>{section.loadingMessage}</span>
             </div>
           ) : (
             <>
               <div className="cars-list">
                 {cars.length === 0
-                  ? <div className="cat-empty">Автомобили не найдены. Измените фильтры.</div>
-                  : cars.map((car) => <CarCard key={car.id} car={car} />)}
+                  ? <div className="cat-empty">{section.emptyMessage}</div>
+                  : cars.map((car) => (
+                    <CarCard
+                      key={car.id}
+                      car={car}
+                      detailsHref={buildCarDetailsPath(section, car.id)}
+                      listingBadgeLabel={section.cardBadgeLabel}
+                    />
+                  ))}
               </div>
 
               {(canAutoLoadMore || isAutoLoadingMore) && (

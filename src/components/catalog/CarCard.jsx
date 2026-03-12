@@ -163,7 +163,7 @@ function buildServiceBadges(car) {
   return badges
 }
 
-export default function CarCard({ car }) {
+export default function CarCard({ car, detailsHref = `/catalog/${car?.id}`, listingBadgeLabel = '' }) {
   const navigate = useNavigate()
   const [imgIdx, setImgIdx] = useState(0)
   const [failedUrls, setFailedUrls] = useState([])
@@ -205,7 +205,7 @@ export default function CarCard({ car }) {
     setImgIdx(0)
   }
 
-  const openDetails = () => navigate(`/catalog/${car.id}`)
+  const openDetails = () => navigate(detailsHref)
 
   const onCardClick = (e) => {
     if (e.defaultPrevented) return
@@ -264,6 +264,7 @@ export default function CarCard({ car }) {
           )}
 
           <span className="car-img-counter">{boundedIdx + 1}/{imageCount}</span>
+          {listingBadgeLabel ? <span className="car-img-listing-badge">{listingBadgeLabel}</span> : null}
           {car.encarUrl && <span className="car-img-encar-badge">encar</span>}
         </div>
 
@@ -391,10 +392,12 @@ export default function CarCard({ car }) {
       </div>
 
       <div className="car-card-actions">
-        <Link to={`/catalog/${car.id}`} className="btn-car-primary">Открыть детали</Link>
-        <a href={car.encarUrl || '#'} target="_blank" rel="noreferrer" className="btn-car-outline">
-          Encar →
-        </a>
+        <Link to={detailsHref} className="btn-car-primary">Открыть детали</Link>
+        {car.encarUrl ? (
+          <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-outline">
+            Encar →
+          </a>
+        ) : null}
         <a
           href={`https://wa.me/821056650943?text=${encodeURIComponent(`Хочу заказать: ${car.name} (${car.year}), VIN: ${car.vin || '-'}`)}`}
           target="_blank"

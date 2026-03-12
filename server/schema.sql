@@ -1,6 +1,7 @@
 -- Таблица машин
 CREATE TABLE IF NOT EXISTS cars (
   id               SERIAL PRIMARY KEY,
+  listing_type     VARCHAR(20) NOT NULL DEFAULT 'main',
   name             VARCHAR(255) NOT NULL,
   model            VARCHAR(100),
   year             VARCHAR(20),
@@ -53,6 +54,34 @@ CREATE TABLE IF NOT EXISTS car_images (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS parts (
+  id                 SERIAL PRIMARY KEY,
+  title              VARCHAR(255) NOT NULL,
+  brand              VARCHAR(100),
+  model              VARCHAR(100),
+  generation_body    VARCHAR(120),
+  year_range         VARCHAR(80),
+  side_location      VARCHAR(120),
+  category           VARCHAR(120),
+  condition          VARCHAR(120),
+  price              NUMERIC(10,2) DEFAULT 0,
+  description        TEXT,
+  article_number     VARCHAR(80),
+  availability_text  VARCHAR(120),
+  in_stock           BOOLEAN NOT NULL DEFAULT true,
+  donor_vehicle      VARCHAR(255),
+  created_at         TIMESTAMP DEFAULT NOW(),
+  updated_at         TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS part_images (
+  id         SERIAL PRIMARY KEY,
+  part_id     INTEGER NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
+  url        TEXT NOT NULL,
+  position   INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Дополнительные колонки если не существуют
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS fuel_type VARCHAR(100);
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS transmission VARCHAR(100);
@@ -74,17 +103,25 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_checked_at TIMESTAMPTZ;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_last_status VARCHAR(20);
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_last_error TEXT;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_last_encar_id VARCHAR(50);
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS listing_type VARCHAR(20) NOT NULL DEFAULT 'main';
 
 -- Индексы для быстрых фильтров
 CREATE INDEX IF NOT EXISTS idx_cars_price_usd  ON cars(price_usd);
 CREATE INDEX IF NOT EXISTS idx_cars_year       ON cars(year);
 CREATE INDEX IF NOT EXISTS idx_cars_mileage    ON cars(mileage);
 CREATE INDEX IF NOT EXISTS idx_cars_encar_id   ON cars(encar_id);
+CREATE INDEX IF NOT EXISTS idx_cars_listing_type ON cars(listing_type);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cars_vin_unique
   ON cars (UPPER(BTRIM(vin)))
   WHERE vin IS NOT NULL
     AND UPPER(BTRIM(vin)) ~ '^[A-HJ-NPR-Z0-9]{17}$';
 CREATE INDEX IF NOT EXISTS idx_car_images_car  ON car_images(car_id);
+CREATE INDEX IF NOT EXISTS idx_parts_brand ON parts(brand);
+CREATE INDEX IF NOT EXISTS idx_parts_model ON parts(model);
+CREATE INDEX IF NOT EXISTS idx_parts_category ON parts(category);
+CREATE INDEX IF NOT EXISTS idx_parts_price ON parts(price);
+CREATE INDEX IF NOT EXISTS idx_parts_in_stock ON parts(in_stock);
+CREATE INDEX IF NOT EXISTS idx_part_images_part ON part_images(part_id);
 
 -- Опции фильтров (управляется через Админ → Фильтры)
 CREATE TABLE IF NOT EXISTS filter_options (

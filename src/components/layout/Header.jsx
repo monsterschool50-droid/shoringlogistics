@@ -4,6 +4,7 @@ import { useTheme } from '../../hooks/useTheme'
 import { useAuth } from '../../hooks/useAuth.js'
 import AuthModal from '../auth/AuthModal.jsx'
 import logoImg from '../../assets/logo.png'
+import { getSearchTargetPath } from '../../lib/catalogSections.js'
 
 const SearchIcon = () => (
   <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,6 +61,8 @@ const AVTLogo = () => (
 const navLinks = [
   { label: 'Главная', to: '/' },
   { label: 'Каталог', to: '/catalog' },
+  { label: 'Срочная продажа', to: '/urgent-sale' },
+  { label: 'Битые авто и запчасти', to: '/damaged-stock' },
   { label: 'Контакты', to: '/contacts' },
 ]
 
@@ -135,6 +138,7 @@ export default function Header() {
   const { theme, toggle } = useTheme()
   const locationQuery = new URLSearchParams(location.search).get('q') || ''
   const effectiveSearchTerm = searchDirty ? searchTerm : locationQuery
+  const searchTargetPath = getSearchTargetPath(location.pathname)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10)
@@ -147,7 +151,7 @@ export default function Header() {
 
     const currentQuery = locationQuery
     const nextQuery = searchTerm.trim()
-    if (currentQuery === nextQuery && location.pathname === '/catalog') {
+    if (currentQuery === nextQuery && location.pathname === searchTargetPath) {
       const timer = setTimeout(() => {
         setSearchDirty(false)
       }, 0)
@@ -155,7 +159,7 @@ export default function Header() {
     }
 
     const timer = setTimeout(() => {
-      if (!nextQuery && location.pathname !== '/catalog' && !currentQuery) {
+      if (!nextQuery && location.pathname !== searchTargetPath && !currentQuery) {
         setSearchDirty(false)
         return
       }
@@ -163,20 +167,21 @@ export default function Header() {
       const params = new URLSearchParams(location.search)
       if (nextQuery) params.set('q', nextQuery)
       else params.delete('q')
+      params.delete('page')
 
-      navigate(`/catalog${params.toString() ? `?${params}` : ''}`, { replace: true })
+      navigate(`${searchTargetPath}${params.toString() ? `?${params}` : ''}`, { replace: true })
       setSearchDirty(false)
     }, 250)
 
     return () => clearTimeout(timer)
-  }, [location.pathname, location.search, locationQuery, navigate, searchDirty, searchTerm])
+  }, [location.pathname, location.search, locationQuery, navigate, searchDirty, searchTargetPath, searchTerm])
 
   const submitSearch = (event) => {
     event.preventDefault()
     const query = effectiveSearchTerm.trim()
     const params = new URLSearchParams()
     if (query) params.set('q', query)
-    navigate(`/catalog${params.toString() ? `?${params}` : ''}`, { replace: true })
+    navigate(`${searchTargetPath}${params.toString() ? `?${params}` : ''}`, { replace: true })
     setMobileOpen(false)
     setSearchDirty(false)
   }
@@ -210,7 +215,7 @@ export default function Header() {
               <Link
                 key={to}
                 to={to}
-                className={location.pathname === to ? 'active' : ''}
+                className={location.pathname === to || (to !== '/' && location.pathname.startsWith(`${to}/`)) ? 'active' : ''}
               >
                 {label}
               </Link>
@@ -223,7 +228,7 @@ export default function Header() {
             </span>
             <input
               type="text"
-              placeholder="Марка / модель / VIN / Encar ID"
+              placeholder="Марка / модель / VIN / артикул"
               className="search-input"
               value={effectiveSearchTerm}
               onChange={(event) => handleSearchChange(event.target.value)}
@@ -267,7 +272,7 @@ export default function Header() {
               <Link
                 key={to}
                 to={to}
-                className={`mobile-nav-link${location.pathname === to ? ' active' : ''}`}
+                className={`mobile-nav-link${location.pathname === to || (to !== '/' && location.pathname.startsWith(`${to}/`)) ? ' active' : ''}`}
                 onClick={() => setMobileOpen(false)}
               >
                 {label}

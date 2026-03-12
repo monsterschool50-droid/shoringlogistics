@@ -859,7 +859,19 @@ body {
 
 @media (min-width: 640px) {
   .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .stats-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .stats-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
@@ -9544,5 +9556,560 @@ body {
 
   .auth-modal-title {
     font-size: 24px;
+  }
+}
+
+.car-img-listing-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(12, 18, 28, 0.72);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  backdrop-filter: blur(10px);
+}
+
+.car-details-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid rgba(209, 213, 219, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 247, 237, 0.88);
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+
+.car-details-section-badge.is-muted {
+  background: rgba(248, 250, 252, 0.92);
+  color: #475569;
+}
+
+.catalog-page-urgent .cat-title,
+.catalog-page-urgent .cat-results-heading {
+  color: #9a3412;
+}
+
+.catalog-page-damaged .cat-title,
+.catalog-page-damaged .cat-results-heading {
+  color: #991b1b;
+}
+
+.catalog-page-urgent .cat-results-bar,
+.catalog-page-damaged .cat-results-bar {
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 247, 237, 0.94), rgba(255, 255, 255, 0.92));
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  padding: 18px 22px;
+}
+
+.catalog-page-damaged .cat-results-bar {
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.94), rgba(255, 255, 255, 0.92));
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.damaged-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.92));
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.damaged-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 160px;
+  border-radius: 999px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  padding: 12px 18px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.damaged-tab:hover {
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.damaged-tab.is-active {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(185, 28, 28, 0.24);
+}
+
+.parts-page-shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 20px 56px;
+}
+
+.parts-page-head {
+  margin-bottom: 22px;
+}
+
+.parts-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top left, rgba(248, 113, 113, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.07);
+}
+
+.parts-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.part-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.part-card:hover,
+.part-card:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
+  border-color: rgba(248, 113, 113, 0.35);
+  outline: none;
+}
+
+.part-card-media {
+  position: relative;
+  aspect-ratio: 1.35;
+  background:
+    radial-gradient(circle at top, rgba(148, 163, 184, 0.18), transparent 44%),
+    linear-gradient(180deg, #f8fafc, #e2e8f0);
+}
+
+.part-card-image,
+.part-details-main-image img,
+.part-details-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.part-card-placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 700;
+  background:
+    repeating-linear-gradient(135deg, rgba(226, 232, 240, 0.85), rgba(226, 232, 240, 0.85) 14px, rgba(241, 245, 249, 0.92) 14px, rgba(241, 245, 249, 0.92) 28px);
+}
+
+.part-card-stock {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+}
+
+.part-card-stock.is-in-stock {
+  background: rgba(220, 252, 231, 0.96);
+  color: #166534;
+}
+
+.part-card-stock.is-out-of-stock {
+  background: rgba(254, 226, 226, 0.96);
+  color: #b91c1c;
+}
+
+.part-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+
+.part-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.part-card-category,
+.part-card-article {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.part-card-category {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+}
+
+.part-card-article {
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
+}
+
+.part-card-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.part-card-fitment,
+.part-card-description,
+.part-details-description {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.part-card-grid,
+.part-details-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.part-card-grid > div,
+.part-details-spec-grid > div {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.98);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.part-card-grid span,
+.part-details-spec-grid span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.part-card-grid strong,
+.part-details-spec-grid strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.part-card-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.part-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: auto;
+}
+
+.part-card-price {
+  color: #111827;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.part-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.part-details-wrap {
+  padding-top: 8px;
+}
+
+.part-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 22px;
+}
+
+.part-details-gallery,
+.part-details-info .car-details-title-card {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.96));
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.part-details-main-image {
+  aspect-ratio: 1.15;
+  background:
+    radial-gradient(circle at top, rgba(148, 163, 184, 0.18), transparent 42%),
+    linear-gradient(180deg, #f8fafc, #e2e8f0);
+}
+
+.part-details-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 10px;
+  padding: 14px;
+}
+
+.part-details-thumb {
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 0;
+  background: #fff;
+  cursor: pointer;
+}
+
+.part-details-thumb.is-active {
+  border-color: #dc2626;
+  box-shadow: 0 10px 20px rgba(220, 38, 38, 0.18);
+}
+
+.part-details-info .car-details-title-card {
+  height: 100%;
+}
+
+.part-details-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 20px;
+}
+
+.part-details-description {
+  margin-top: 18px;
+  font-size: 15px;
+}
+
+.adm-section-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.adm-section-switcher-btn {
+  border: 1px solid rgba(71, 85, 105, 0.28);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.42);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 14px;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.adm-section-switcher-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148, 163, 184, 0.55);
+  color: #fff;
+}
+
+.adm-section-switcher-btn.is-active {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(185, 28, 28, 0.28);
+}
+
+[data-theme="dark"] .car-details-section-badge {
+  border-color: rgba(180, 83, 9, 0.45);
+  background: rgba(120, 53, 15, 0.3);
+  color: #fdba74;
+}
+
+[data-theme="dark"] .car-details-section-badge.is-muted {
+  border-color: rgba(71, 85, 105, 0.55);
+  background: rgba(30, 41, 59, 0.78);
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .catalog-page-urgent .cat-results-bar,
+[data-theme="dark"] .catalog-page-damaged .cat-results-bar,
+[data-theme="dark"] .damaged-tabs,
+[data-theme="dark"] .parts-filter-bar,
+[data-theme="dark"] .part-card,
+[data-theme="dark"] .part-details-gallery,
+[data-theme="dark"] .part-details-info .car-details-title-card {
+  border-color: rgba(51, 65, 85, 0.95);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.94));
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+}
+
+[data-theme="dark"] .damaged-tab {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .damaged-tab:hover {
+  background: rgba(148, 163, 184, 0.08);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .part-card-title,
+[data-theme="dark"] .part-card-grid strong,
+[data-theme="dark"] .part-details-spec-grid strong,
+[data-theme="dark"] .part-card-price {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .part-card-fitment,
+[data-theme="dark"] .part-card-description,
+[data-theme="dark"] .part-details-description {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .part-card-article {
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .part-card-grid > div,
+[data-theme="dark"] .part-details-spec-grid > div {
+  border-color: rgba(51, 65, 85, 0.92);
+  background: rgba(15, 23, 42, 0.82);
+}
+
+@media (max-width: 1100px) {
+  .parts-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .parts-list,
+  .part-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .part-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 780px) {
+  .parts-page-shell {
+    padding: 0 14px 44px;
+  }
+
+  .damaged-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    border-radius: 24px;
+  }
+
+  .damaged-tab {
+    min-width: 0;
+  }
+
+  .parts-filter-bar,
+  .parts-list,
+  .part-card-grid,
+  .part-details-spec-grid,
+  .part-card-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .parts-list {
+    display: grid;
+  }
+
+  .part-card-footer,
+  .part-details-price-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .part-card-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .parts-filter-bar {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .parts-list {
+    grid-template-columns: 1fr;
+  }
+
+  .part-card-title {
+    font-size: 19px;
+  }
+
+  .part-card-price {
+    font-size: 24px;
+  }
+
+  .part-details-thumbs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
