@@ -17,6 +17,17 @@ import {
 import { createCarTextBackfillState, runCarTextBackfill } from '../lib/carTextBackfill.js'
 import { normalizeKnownBrandAlias } from '../../shared/brandAliases.js'
 import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
+import {
+  createAdminSessionToken,
+  isAdminPasswordConfigured,
+  requireAdminSession,
+  verifyAdminPassword,
+} from '../lib/adminAuth.js'
+import {
+  applyNoStoreHeaders,
+  createRateLimitMiddleware,
+  createRateLimitStore,
+} from '../lib/requestSecurity.js'
 
 const router = Router()
 const MIN_CATALOG_YEAR = 2019
@@ -63,6 +74,18 @@ const ENRICH_ERROR_RETRY_HOURS = (() => {
 })()
 const ADMIN_LOGIN_MAX_ATTEMPTS = 3
 const ADMIN_LOGIN_LOCKOUT_HOURS = 1
+const adminLoginRateLimitStore = createRateLimitStore('admin-login')
+const adminRouteProtection = requireAdminSession()
+const adminLoginRateLimit = createRateLimitMiddleware({
+  store: adminLoginRateLimitStore,
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyFn: getAdminLoginIdentifier,
+  message: 'Слишком много попыток входа в админку. Повторите позже.',
+  logLabel: 'ADMIN_LOGIN_RATE_LIMIT',
+})
+
+router.use(applyNoStoreHeaders)
 
 const HANGUL_RE = /[\uAC00-\uD7A3]/u
 const ENRICH_TRIM_ROMANIZED_RE = /\b(choegogeuphyeong|gibonhyeong|kaelrigeuraepi|geuraebiti|bijeon|seupesyeol|direokseu|intelrijeonteu|maseuteojeu|koeo|rimujin|raunji|teurendi|kaempingka|camping\s+car|idongsamucha|hairimujin|hailimujin|peulreoseu|peurimieo|peurimio)\b/i
@@ -1041,12 +1064,20 @@ router.get('/login/status', async (req, res) => {
   }
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', adminLoginRateLimit, async (req, res) => {
   const identifier = getAdminLoginIdentifier(req)
-  const { password } = req.body || {}
-  const correctPass = globalThis.process?.env?.ADMIN_PASSWORD || 'admin123'
+  const password = String(req.body?.password || '').slice(0, 256)
 
   try {
+    if (!isAdminPasswordConfigured()) {
+      console.error(`ADMIN_LOGIN_CONFIG_MISSING | identifier=${identifier}`)
+      return res.status(503).json({
+        ok: false,
+        error: 'Вход администратора временно недоступен',
+        lockout: buildAdminLockoutState(null),
+      })
+    }
+
     const currentRow = await getAdminLoginAttemptRow(identifier)
     const currentLockout = buildAdminLockoutState(currentRow)
 
@@ -1059,12 +1090,12 @@ router.post('/login', async (req, res) => {
       })
     }
 
-    if (password === correctPass) {
+    if (verifyAdminPassword(password)) {
       await clearAdminLoginAttempts(identifier)
       console.info(`ADMIN_LOGIN_SUCCESS | identifier=${identifier}`)
       return res.json({
         ok: true,
-        token: 'adm-ok',
+        token: createAdminSessionToken(),
         lockout: buildAdminLockoutState(null),
       })
     }
@@ -1097,7 +1128,7 @@ router.post('/login', async (req, res) => {
   }
 })
 
-router.get('/pricing-settings', async (_req, res) => {
+router.get('/pricing-settings', adminRouteProtection, async (_req, res) => {
   try {
     const [pricingSettings, exchangeSnapshot] = await Promise.all([
       getPricingSettings(),
@@ -1116,7 +1147,7 @@ router.get('/pricing-settings', async (_req, res) => {
   }
 })
 
-router.put('/pricing-settings', async (req, res) => {
+router.put('/pricing-settings', adminRouteProtection, async (req, res) => {
   try {
     const saved = await savePricingSettings(req.body || {})
     const exchangeSnapshot = await getExchangeRateSnapshot()
@@ -1230,7 +1261,7 @@ router.get('/filter-options', async (_req, res) => {
   }
 })
 
-router.get('/stats', async (_req, res) => {
+router.get('/stats', adminRouteProtection, async (_req, res) => {
   try {
     const exchangeSnapshot = await getExchangeRateSnapshot()
     const siteRateSql = Number((exchangeSnapshot.siteRate || 1).toFixed(2))
@@ -1256,11 +1287,11 @@ router.get('/stats', async (_req, res) => {
   }
 })
 
-router.get('/enrich-empty-fields/status', (_req, res) => {
+router.get('/enrich-empty-fields/status', adminRouteProtection, (_req, res) => {
   return res.json(enrichState)
 })
 
-router.post('/enrich-empty-fields/start', async (_req, res) => {
+router.post('/enrich-empty-fields/start', adminRouteProtection, async (_req, res) => {
   if (normalizeCarsState.running) {
     return res.status(409).json({ error: 'Normalization is already running' })
   }
@@ -1292,11 +1323,11 @@ router.post('/enrich-empty-fields/start', async (_req, res) => {
   })
 })
 
-router.get('/normalize-existing-cars/status', (_req, res) => {
+router.get('/normalize-existing-cars/status', adminRouteProtection, (_req, res) => {
   return res.json(normalizeCarsState)
 })
 
-router.post('/normalize-existing-cars/start', async (_req, res) => {
+router.post('/normalize-existing-cars/start', adminRouteProtection, async (_req, res) => {
   if (enrichState.running) {
     return res.status(409).json({ error: 'Enrichment is already running' })
   }
@@ -1328,7 +1359,7 @@ router.post('/normalize-existing-cars/start', async (_req, res) => {
   return res.json({ ok: true, message: 'РќРѕСЂРјР°Р»РёР·Р°С†РёСЏ СѓР¶Рµ СЃРѕС…СЂР°РЅРµРЅРЅС‹С… РјР°С€РёРЅ Р·Р°РїСѓС‰РµРЅР°' })
 })
 
-router.get('/catalog-export', async (req, res) => {
+router.get('/catalog-export', adminRouteProtection, async (req, res) => {
   try {
     const exportLimit = normalizeCatalogExportLimit(req.query?.limit)
     const queryParams = []

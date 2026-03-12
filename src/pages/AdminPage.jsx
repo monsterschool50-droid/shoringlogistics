@@ -45,6 +45,28 @@ const DEFAULT_CATALOG_EXPORT_LIMIT = 5000
 const MAX_CATALOG_EXPORT_LIMIT = 50000
 const ADMIN_LOGIN_MAX_ATTEMPTS = 3
 const ADMIN_LOGIN_LOCKOUT_KEY = 'tlv-admin-login-lockout-until'
+const ADMIN_SESSION_STORAGE_KEY = 'tlv-admin-session-token'
+
+function readAdminSessionToken() {
+    if (typeof window === 'undefined') return ''
+    return String(window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) || '')
+}
+
+function writeAdminSessionToken(token) {
+    if (typeof window === 'undefined') return
+    if (!token) {
+        window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY)
+        return
+    }
+    window.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, String(token))
+}
+
+function clearAdminSessionStorage() {
+    if (typeof window === 'undefined') return
+    window.sessionStorage.removeItem('adm')
+    window.sessionStorage.removeItem(ADMIN_SESSION_STORAGE_KEY)
+    window.dispatchEvent(new Event('tlv-admin-session-cleared'))
+}
 
 function syncAdminLoginLockoutStorage(blockedUntil) {
     if (typeof window === 'undefined') return
@@ -122,7 +144,16 @@ function normalizeAdminVehicleTitle(value, { keepBrand = true } = {}) {
 
 /* ── API ── */
 async function apiFetch(url, opts = {}) {
-    const r = await fetch(url, opts)
+    const headers = new Headers(opts.headers || {})
+    const adminToken = readAdminSessionToken()
+    if (adminToken) {
+        headers.set('X-Admin-Session', adminToken)
+    }
+
+    const r = await fetch(url, { ...opts, headers })
+    if ((r.status === 401 || r.status === 403) && adminToken) {
+        clearAdminSessionStorage()
+    }
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     return r.json()
 }
@@ -143,7 +174,17 @@ const api = {
             params.set('limit', String(limit))
         }
         const suffix = params.toString()
-        return fetch(`/api/admin/catalog-export${suffix ? `?${suffix}` : ''}`)
+        const headers = new Headers()
+        const adminToken = readAdminSessionToken()
+        if (adminToken) {
+            headers.set('X-Admin-Session', adminToken)
+        }
+        return fetch(`/api/admin/catalog-export${suffix ? `?${suffix}` : ''}`, { headers }).then((response) => {
+            if ((response.status === 401 || response.status === 403) && adminToken) {
+                clearAdminSessionStorage()
+            }
+            return response
+        })
     },
     getEnrichStatus: () => apiFetch('/api/admin/enrich-empty-fields/status'),
     startEnrichEmptyFields: d => apiFetch('/api/admin/enrich-empty-fields/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d || {}) }),
@@ -1442,7 +1483,7 @@ function Login({ onLogin }) {
                 setPw('')
                 setErr('')
                 applyLockoutState(null)
-                onLogin()
+                onLogin(payload?.token || '')
                 return
             }
 
@@ -1508,7 +1549,7 @@ function Login({ onLogin }) {
 
 /* ── Root ── */
 export default function AdminPage() {
-    const [auth, setAuth] = useState(() => sessionStorage.getItem('adm') === 'ok')
+    const [auth, setAuth] = useState(() => Boolean(readAdminSessionToken()))
     const [tab, setTab] = useState('dashboard')
     const [sidebar, setSidebar] = useState(true)
     const { list: toasts, add: toast } = useToast()
@@ -1516,6 +1557,12 @@ export default function AdminPage() {
     const [pricingSettings, setPricingSettings] = useState(PRICING_FALLBACK)
     const [pricingLoaded, setPricingLoaded] = useState(false)
     const [pricingRevision, setPricingRevision] = useState(0)
+
+    useEffect(() => {
+        const handleSessionCleared = () => setAuth(Boolean(readAdminSessionToken()))
+        window.addEventListener('tlv-admin-session-cleared', handleSessionCleared)
+        return () => window.removeEventListener('tlv-admin-session-cleared', handleSessionCleared)
+    }, [])
 
     useEffect(() => {
         if (!auth) return
@@ -1538,7 +1585,12 @@ export default function AdminPage() {
         }
     }, [auth])
 
-    if (!auth) return <Login onLogin={() => { sessionStorage.setItem('adm', 'ok'); setAuth(true) }} />
+    if (!auth) return <Login onLogin={(token) => {
+        if (!token) return
+        sessionStorage.setItem('adm', 'ok')
+        writeAdminSessionToken(token)
+        setAuth(true)
+    }} />
 
     const nav = [
         { id: 'dashboard', label: 'Дашборд',     icon: IC.dash },
@@ -1568,7 +1620,7 @@ export default function AdminPage() {
                 </nav>
                 <div className="adm-sidebar-ft">
                     <a href="/catalog" target="_blank" className="adm-nav-btn" title="Каталог"><Ic d={IC.ext} s={19} />{sidebar && <span>Каталог</span>}</a>
-                    <button className="adm-nav-btn" onClick={() => { sessionStorage.removeItem('adm'); setAuth(false) }} title="Выйти">
+                    <button className="adm-nav-btn" onClick={() => { clearAdminSessionStorage(); setAuth(false) }} title="Выйти">
                         <Ic d={IC.out} s={19} />{sidebar && <span>Выйти</span>}
                     </button>
                 </div>

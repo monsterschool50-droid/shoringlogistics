@@ -1,4 +1,11 @@
 const DEFAULT_PRUNE_INTERVAL_MS = 60 * 1000
+const SENSITIVE_QUERY_KEYS = new Set([
+  'admin_token',
+  'token',
+  'access_token',
+  'auth',
+  'authorization',
+])
 
 function normalizeIp(rawValue) {
   const raw = String(rawValue || '')
@@ -36,9 +43,46 @@ export function getClientIp(req) {
 export function applyBasicSecurityHeaders(_req, res, next) {
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+  res.setHeader('X-DNS-Prefetch-Control', 'off')
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
   next()
+}
+
+export function applyNoStoreHeaders(_req, res, next) {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+  res.setHeader('Pragma', 'no-cache')
+  res.setHeader('Expires', '0')
+  next()
+}
+
+export function getSafeRequestPath(req) {
+  const rawUrl = String(req?.originalUrl || req?.url || '').trim()
+  if (!rawUrl) return ''
+
+  try {
+    const parsed = new URL(rawUrl, 'http://localhost')
+    for (const key of parsed.searchParams.keys()) {
+      if (SENSITIVE_QUERY_KEYS.has(key.toLowerCase())) {
+        parsed.searchParams.set(key, '[redacted]')
+        continue
+      }
+
+      const values = parsed.searchParams.getAll(key)
+      if (values.some((value) => String(value || '').length > 120)) {
+        parsed.searchParams.delete(key)
+        parsed.searchParams.append(key, '[truncated]')
+      }
+    }
+
+    const safePath = `${parsed.pathname}${parsed.search}`
+    return safePath.length > 240 ? `${safePath.slice(0, 237)}...` : safePath
+  } catch {
+    const [pathname] = rawUrl.split('?')
+    return pathname || rawUrl
+  }
 }
 
 export function createRateLimitStore(name = 'default') {
@@ -123,6 +167,6 @@ export function sendSafeApiError(req, res, error, fallbackMessage = 'Ошибк�
   const status = Number(error?.status || error?.statusCode) || 500
   const responseStatus = status >= 400 && status < 600 ? status : 500
   const message = responseStatus >= 500 ? fallbackMessage : (error?.message || fallbackMessage)
-  console.error(`API_ERROR | ${req.method} ${req.originalUrl} |`, error?.stack || error?.message || error)
+  console.error(`API_ERROR | ${req.method} ${getSafeRequestPath(req)} |`, error?.stack || error?.message || error)
   return res.status(responseStatus).json({ error: message })
 }

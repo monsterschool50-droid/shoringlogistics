@@ -3,6 +3,8 @@ import pool from '../db.js'
 import { state } from '../scraper/state.js'
 import { runScrapeJob } from '../scraper/job.js'
 import { startScheduler, stopScheduler } from '../scraper/scheduler.js'
+import { requireAdminSession } from '../lib/adminAuth.js'
+import { applyNoStoreHeaders } from '../lib/requestSecurity.js'
 
 const router = Router()
 const PARSE_SCOPE_ALL = 'all'
@@ -17,6 +19,9 @@ const PARSE_SCOPE_OPTIONS = new Set([
   PARSE_SCOPE_JAPANESE,
   PARSE_SCOPE_GERMAN,
 ])
+
+router.use(applyNoStoreHeaders)
+router.use(requireAdminSession({ allowQuery: true }))
 
 function normalizeParseScope(value) {
   return PARSE_SCOPE_OPTIONS.has(value) ? value : PARSE_SCOPE_ALL

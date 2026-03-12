@@ -1,5 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
+const ADMIN_SESSION_STORAGE_KEY = 'tlv-admin-session-token'
+
+function getAdminSessionToken() {
+  if (typeof window === 'undefined') return ''
+  return String(window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) || '')
+}
+
+function buildAdminRequestInit(init = {}) {
+  const headers = new Headers(init.headers || {})
+  const token = getAdminSessionToken()
+  if (token) {
+    headers.set('X-Admin-Session', token)
+  }
+  return { ...init, headers }
+}
+
+function buildAdminStreamUrl(path) {
+  const token = getAdminSessionToken()
+  if (!token) return path
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}admin_token=${encodeURIComponent(token)}`
+}
+
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const PlayIcon = () => (
   <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
@@ -315,7 +338,7 @@ export default function AdminEncar() {
   // ── Fetch initial status ───────────────────────────────────────────────────
   const loadStatus = useCallback(async () => {
     try {
-      const res  = await fetch('/api/scraper/status')
+      const res  = await fetch('/api/scraper/status', buildAdminRequestInit())
       const data = await res.json()
       setStatus(data)
       if (data.config) {
@@ -336,8 +359,9 @@ export default function AdminEncar() {
   // ── SSE stream for live updates ────────────────────────────────────────────
   const connectSSE = useCallback(() => {
     if (evtRef.current) evtRef.current.close()
+    if (!getAdminSessionToken()) return
 
-    const es = new EventSource('/api/scraper/stream')
+    const es = new EventSource(buildAdminStreamUrl('/api/scraper/stream'))
     evtRef.current = es
 
     es.onmessage = (e) => {
@@ -368,6 +392,7 @@ export default function AdminEncar() {
 
     es.onerror = () => {
       es.close()
+      if (!getAdminSessionToken()) return
       // Reconnect after 3 s
       setTimeout(connectSSE, 3000)
     }
@@ -399,7 +424,7 @@ export default function AdminEncar() {
   )
 
   const saveConfig = useCallback(async ({ silent = false } = {}) => {
-    const res  = await fetch('/api/scraper/config', {
+    const res  = await fetch('/api/scraper/config', buildAdminRequestInit({
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -409,7 +434,7 @@ export default function AdminEncar() {
         hour:          cfgHour,
         intervalHours: cfgInterval,
       }),
-    })
+    }))
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Ошибка сохранения')
 
@@ -436,11 +461,11 @@ export default function AdminEncar() {
       if (hasPendingConfigChanges) {
         await saveConfig({ silent: true })
       }
-      const res  = await fetch('/api/scraper/start', {
+      const res  = await fetch('/api/scraper/start', buildAdminRequestInit({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ limit: cfgLimit, parseScope: cfgParseScope }),
-      })
+      }))
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Ошибка запуска')
       setStatus(prev => prev ? { ...prev, isRunning: true } : prev)
@@ -453,7 +478,7 @@ export default function AdminEncar() {
 
   const handleStop = async () => {
     try {
-      await fetch('/api/scraper/stop', { method: 'POST' })
+      await fetch('/api/scraper/stop', buildAdminRequestInit({ method: 'POST' }))
       flash('⏹ Запрос остановки отправлен', 'success')
     } catch (e) {
       setError(e.message)

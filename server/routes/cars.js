@@ -17,9 +17,11 @@ import {
 } from '../lib/vehicleData.js'
 import { normalizeCarTextFields } from '../lib/carRecordNormalization.js'
 import { isStandardVin, normalizeVin, sanitizeVin } from '../lib/vin.js'
+import { requireAdminSession } from '../lib/adminAuth.js'
 
 const router = Router()
 const MIN_CAR_YEAR = 2019
+const adminMutationProtection = requireAdminSession()
 
 function parseCatalogYear(value) {
   const match = String(value ?? '').match(/\d{4}/)
@@ -699,7 +701,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', adminMutationProtection, async (req, res) => {
   try {
     const normalizedYear = normalizeCatalogYear(req.body?.year)
     if (!normalizedYear) {
@@ -893,7 +895,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminMutationProtection, async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM cars WHERE id=$1 RETURNING id', [req.params.id])
     if (!result.rows.length) return res.status(404).json({ error: 'Не найдено' })

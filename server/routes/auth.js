@@ -11,8 +11,36 @@ import {
   validateAuthPassword,
   verifyPassword,
 } from '../lib/auth.js'
+import {
+  applyNoStoreHeaders,
+  createRateLimitMiddleware,
+  createRateLimitStore,
+  getClientIp,
+} from '../lib/requestSecurity.js'
 
 const router = Router()
+const authLoginRateLimitStore = createRateLimitStore('auth-login')
+const authRegisterRateLimitStore = createRateLimitStore('auth-register')
+
+const loginRateLimit = createRateLimitMiddleware({
+  store: authLoginRateLimitStore,
+  windowMs: 10 * 60 * 1000,
+  max: 8,
+  keyFn: (req) => `${getClientIp(req)}:${normalizeAuthLogin(req.body?.login) || 'anon'}`,
+  message: 'Слишком много попыток входа. Повторите позже.',
+  logLabel: 'AUTH_LOGIN_RATE_LIMIT',
+})
+
+const registerRateLimit = createRateLimitMiddleware({
+  store: authRegisterRateLimitStore,
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyFn: (req) => `${getClientIp(req)}:${normalizeAuthLogin(req.body?.login) || 'anon'}`,
+  message: 'Слишком много попыток регистрации. Повторите позже.',
+  logLabel: 'AUTH_REGISTER_RATE_LIMIT',
+})
+
+router.use(applyNoStoreHeaders)
 
 function toAuthUser(row) {
   if (!row) return null
@@ -79,7 +107,7 @@ async function findUserSession(token) {
   return row
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerRateLimit, async (req, res) => {
   const login = normalizeAuthLogin(req.body?.login)
   const password = String(req.body?.password || '')
 
@@ -130,7 +158,7 @@ router.post('/register', async (req, res) => {
   }
 })
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimit, async (req, res) => {
   const login = normalizeAuthLogin(req.body?.login)
   const password = String(req.body?.password || '')
 

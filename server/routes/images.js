@@ -4,12 +4,14 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import pool from '../db.js'
 import { upload } from '../middleware/upload.js'
+import { requireAdminSession } from '../lib/adminAuth.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const router = Router()
+const adminMutationProtection = requireAdminSession()
 
 // POST /api/cars/:id/images — загрузить фото
-router.post('/:id/images', upload.array('images', 30), async (req, res) => {
+router.post('/:id/images', adminMutationProtection, upload.array('images', 30), async (req, res) => {
   try {
     const carId = req.params.id
     const car = await pool.query('SELECT id FROM cars WHERE id=$1', [carId])
@@ -24,7 +26,7 @@ router.post('/:id/images', upload.array('images', 30), async (req, res) => {
     )
     let pos = posResult.rows[0].maxpos + 1
 
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`
+    const baseUrl = globalThis.process?.env?.BASE_URL || `http://localhost:${globalThis.process?.env?.PORT || 3001}`
     const inserted = []
 
     for (const file of req.files) {
@@ -44,7 +46,7 @@ router.post('/:id/images', upload.array('images', 30), async (req, res) => {
 })
 
 // DELETE /api/images/:id — удалить фото
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminMutationProtection, async (req, res) => {
   try {
     const result = await pool.query(
       'DELETE FROM car_images WHERE id=$1 RETURNING *',
