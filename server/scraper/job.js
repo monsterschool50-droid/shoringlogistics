@@ -114,11 +114,13 @@ const BUSINESS_SEDAN_MODEL_RE = [
 
 const EXECUTIVE_SEDAN_MODEL_RE = [
   /\bBMW\s+7\s*Series\b/i,
+  /\bBMW\s+i7\b/i,
   /\bMercedes[-\s]?Benz\s+S-Class\b/i,
   /\bAudi\s+A8\b/i,
   /\bGenesis\s+G90\b/i,
   /\bLexus\s+LS\b/i,
   /\bRolls-?Royce\s+Ghost(?:\s+EWB)?\b/i,
+  /\bBentley\s+Flying\s+Spur\b/i,
 ]
 
 const BODY_TYPE_MODEL_OVERRIDES = [
