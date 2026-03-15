@@ -22,13 +22,12 @@ export const KOREAN_VEHICLE_SQL_PATTERNS = Object.freeze([
   '%\uD604\uB300%',
   '%genesis%',
   '%\uC81C\uB124\uC2DC\uC2A4%',
-  '%chevrolet%',
-  '%\uC250\uBCF4\uB808%',
   '%daewoo%',
   '%\uB300\uC6B0%',
-  '%renault%',
+  '%renault korea%',
+  '%renault samsung%',
   '%reunokoria%',
-  '%\uB974\uB178%',
+  '%\uB974\uB178\uCF54\uB9AC\uC544%',
   '%samsung%',
   '%samseong%',
   '%\uC0BC\uC131%',
@@ -62,10 +61,14 @@ export const KOREAN_VEHICLE_SQL_PATTERNS = Object.freeze([
   '%kona%',
   '%orlando%',
   '%trax%',
+  '%trailblazer%',
   '%malibu%',
   '%spark%',
   '%matiz%',
+  '%damas%',
+  '%labo%',
   '%rexton%',
+  '%actyon%',
   '%korando%',
   '%tivoli%',
   '%torres%',
@@ -75,6 +78,8 @@ export const KOREAN_VEHICLE_SQL_PATTERNS = Object.freeze([
   '%ioniq%',
   '%aionik%',
   '%veloster%',
+  '%stinger%',
+  '%k5 hybrid%',
   '%sm3%',
   '%sm5%',
   '%sm6%',
@@ -590,9 +595,9 @@ export function normalizeManufacturer(value) {
 }
 
 const LEGACY_RENAULT_SAMSUNG_MODEL_RE = /\b(sm3|sm5|sm6|sm7|qm3|qm5|qm6|xm3)\b/i
-const KOREAN_VEHICLE_ORIGIN_RE = /\b(kia|gia|hyundai|hyeondae|genesis|jenesiseu|chevrolet|daewoo|renault(?:\s+korea|\s+samsung)?|reunokoria|samsung|samseong|ssangyong|kg\s*mobility|kgmobilriti)\b/i
-const KOREAN_VEHICLE_ORIGIN_HANGUL_RE = /\uAE30\uC544|\uD604\uB300|\uC81C\uB124\uC2DC\uC2A4|\uC250\uBCF4\uB808|\uB300\uC6B0|\uB974\uB178|\uC0BC\uC131|\uC30D\uC6A9|\uBAA8\uBE4C\uB9AC\uD2F0/u
-const KOREAN_VEHICLE_MODEL_RE = /\b(sm3|sm5|sm6|sm7|qm3|qm5|qm6|xm3|k3|k5|k7|k8|k9|g70|g80|g90|gv60|gv70|gv80|eq900|avante|elantra|sonata|grandeur|azera|santafe|santa\s*fe|tucson|palisade|staria|starex|porter|bongo|casper|morning|ray|carnival|sorento|sportage|seltos|mohave|niro|kona|orlando|trax|malibu|spark|matiz|rexton|korando|tivoli|torres|musso|bolteu|bolt|ioniq|aionik|veloster|soul|ssoul|ev3|ev4|ev5|ev6|ev9)\b/i
+const KOREAN_VEHICLE_BRAND_RE = /\b(kia|gia|hyundai|hyeondae|genesis|jenesiseu|daewoo|renault(?:\s+korea|\s+samsung)|renault samsung|reunokoria|samsung|samseong|ssangyong|kg\s*mobility|kgmobilriti)\b/i
+const KOREAN_VEHICLE_BRAND_HANGUL_RE = /\uAE30\uC544|\uD604\uB300|\uC81C\uB124\uC2DC\uC2A4|\uB300\uC6B0|\uB974\uB178\uCF54\uB9AC\uC544|\uC0BC\uC131|\uC30D\uC6A9|\uBAA8\uBE4C\uB9AC\uD2F0/u
+const KOREAN_VEHICLE_MODEL_RE = /\b(sm3|sm5|sm6|sm7|qm3|qm5|qm6|xm3|k3|k5|k7|k8|k9|g70|g80|g90|gv60|gv70|gv80|eq900|avante|elantra|sonata|grandeur|azera|santafe|santa\s*fe|tucson|palisade|staria|starex|porter|bongo|casper|morning|ray|carnival|sorento|sportage|seltos|mohave|niro|kona|orlando|trailblazer|trax|malibu|spark|matiz|damas|labo|rexton|actyon|korando|tivoli|torres|musso|bolteu|bolt|ioniq|aionik|veloster|stinger|soul|ssoul|ev3|ev4|ev5|ev6|ev9)\b/i
 
 export function resolveManufacturerDisplayName(manufacturer, ...contextValues) {
   const normalized = normalizeManufacturer(manufacturer)
@@ -623,8 +628,8 @@ export function classifyVehicleOrigin(...values) {
 
   if (!text) return ''
   if (
-    KOREAN_VEHICLE_ORIGIN_RE.test(text) ||
-    KOREAN_VEHICLE_ORIGIN_HANGUL_RE.test(text) ||
+    KOREAN_VEHICLE_BRAND_RE.test(text) ||
+    KOREAN_VEHICLE_BRAND_HANGUL_RE.test(text) ||
     KOREAN_VEHICLE_MODEL_RE.test(text)
   ) {
     return VEHICLE_ORIGIN_LABELS.korean

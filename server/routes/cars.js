@@ -275,6 +275,10 @@ function normalizeOriginFilterValue(value) {
   return ''
 }
 
+function buildOriginScopeSql(alias, parameterIndex) {
+  return `(\n    COALESCE(${alias}.name, '') ILIKE ANY($${parameterIndex}::text[])\n    OR COALESCE(${alias}.model, '') ILIKE ANY($${parameterIndex}::text[])\n    OR COALESCE(${alias}.trim_level, '') ILIKE ANY($${parameterIndex}::text[])\n    OR EXISTS (SELECT 1 FROM UNNEST(${alias}.tags) AS t WHERE t ILIKE ANY($${parameterIndex}::text[]))\n  )`
+}
+
 const SEARCH_ALIASES = [
   ['kia-alias', ['kia', 'gia', KO.kia]],
   ['hyundai-alias', ['hyundai', 'hyeondae', KO.hyundai]],
@@ -537,10 +541,11 @@ router.get('/', async (req, res) => {
       const wantsImported = normalizedOrigins.has('imported')
 
       if (wantsKorean !== wantsImported) {
+        const originScopeSql = buildOriginScopeSql('c', p)
         if (wantsKorean) {
-          conditions.push(`(COALESCE(c.name, '') ILIKE ANY($${p}::text[]) OR COALESCE(c.model, '') ILIKE ANY($${p}::text[]))`)
+          conditions.push(originScopeSql)
         } else {
-          conditions.push(`NOT (COALESCE(c.name, '') ILIKE ANY($${p}::text[]) OR COALESCE(c.model, '') ILIKE ANY($${p}::text[]))`)
+          conditions.push(`NOT ${originScopeSql}`)
         }
         params.push(KOREAN_VEHICLE_SQL_PATTERNS)
         p++

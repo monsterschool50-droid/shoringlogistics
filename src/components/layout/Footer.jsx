@@ -6,6 +6,10 @@ const SECONDARY_WHATSAPP_URL = 'https://wa.me/821065680943'
 const LOCAL_PHONE_URL = 'tel:+996779574444'
 const PRIMARY_PHONE_URL = 'tel:+821056650943'
 const CONTACT_EMAIL = 'avt.shoring@gmail.com'
+const TIKTOK_URL = 'https://www.tiktok.com/@avt.korea?_r=1&_t=ZS-94i804TOyQx'
+const PARKING_ADDRESS_KO = '\uC778\uCC9C \uC11C\uAD6C \uC624\uB958\uB3D9 1550'
+const PARKING_ADDRESS_EN = '1550 Oryu-dong, Seo-gu, Incheon'
+const YOUTUBE_URL = 'https://youtube.com/@avt_korea?si=svDsGDPlZS4lQy4s'
 
 const PhoneIcon = () => (
   <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,6 +38,12 @@ const YoutubeIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
       d="M22.54 6.42a2.78 2.78 0 00-1.94-1.96C18.88 4 12 4 12 4s-6.88 0-8.6.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.4 19.54C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 001.94-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58z"/>
     <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor" stroke="none"/>
+  </svg>
+)
+
+const TikTokIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.12v13.18a2.77 2.77 0 1 1-1.9-2.63V9.37a5.9 5.9 0 1 0 5.02 5.81V8.51a7.9 7.9 0 0 0 4.77 1.6V6.99c-.34 0-.68-.1-1-.3z"/>
   </svg>
 )
 
@@ -116,9 +126,15 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://youtube.com/@tlvauto1" target="_blank" rel="noreferrer" className="footer-link">
+                <a href={YOUTUBE_URL} target="_blank" rel="noreferrer" className="footer-link">
                   <span className="footer-link-icon red"><YoutubeIcon /></span>
-                  @tlvauto1
+                  @avt_korea
+                </a>
+              </li>
+              <li>
+                <a href={TIKTOK_URL} target="_blank" rel="noreferrer" className="footer-link">
+                  <span className="footer-link-icon dark"><TikTokIcon /></span>
+                  @avt.korea
                 </a>
               </li>
               <li>
@@ -148,36 +164,16 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 3: Наши офисы */}
+          {/* Column 3: Offices */}
           <div className="footer-col">
-            <h3 className="footer-col-title">Наши офисы</h3>
+            <h3 className="footer-col-title">{'\u041d\u0430\u0448\u0438 \u043e\u0444\u0438\u0441\u044b'}</h3>
             <ul className="footer-offices">
               <li className="footer-office">
                 <span className="footer-link-icon blue"><PinIcon /></span>
                 <div>
-                  <div className="footer-office-city">Бишкек</div>
-                  <div className="footer-office-addr">ул. Бакаева 140/1, БЦ SKY PLAZA, 5 этаж, 505 кабинет</div>
-                </div>
-              </li>
-              <li className="footer-office">
-                <span className="footer-link-icon blue"><PinIcon /></span>
-                <div>
-                  <div className="footer-office-city">Бишкек</div>
-                  <div className="footer-office-addr">ул. Турусбекова 109/3, БЦ Максимум, офис 208</div>
-                </div>
-              </li>
-              <li className="footer-office">
-                <span className="footer-link-icon blue"><PinIcon /></span>
-                <div>
-                  <div className="footer-office-city">Ош</div>
-                  <div className="footer-office-addr">ул. Аскар Шакиров 30, БЦ MAXCOM, 5 этаж, 9 кабинет</div>
-                </div>
-              </li>
-              <li className="footer-office">
-                <span className="footer-link-icon blue"><PinIcon /></span>
-                <div>
-                  <div className="footer-office-city">Корея</div>
-                  <div className="footer-office-addr">Сеул, Адрес уточняйте у менеджера</div>
+                  <div className="footer-office-city">{'\u041a\u043e\u0440\u0435\u044f'}</div>
+                  <div className="footer-office-addr">{PARKING_ADDRESS_KO}</div>
+                  <div className="footer-office-addr">{PARKING_ADDRESS_EN}</div>
                 </div>
               </li>
             </ul>

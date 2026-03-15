@@ -8,6 +8,7 @@ import DeliveryCountrySelect from '../components/shared/DeliveryCountrySelect.js
 import { CAR_SECTION_CONFIG, buildCarDetailsPath } from '../lib/catalogSections.js'
 import {
   appendDisplayTrimSuffix,
+  classifyVehicleOrigin,
   extractTrimLabelFromTitle,
   VAT_REFUND_RATE,
   VEHICLE_ORIGIN_LABELS,
@@ -468,6 +469,21 @@ function normalizeOriginFilterValues(value) {
     .filter(Boolean)
 }
 
+function filterCarsByOriginSelection(cars, originFilter) {
+  const normalizedOrigins = normalizeOriginFilterValues(originFilter)
+  const wantsImported = normalizedOrigins.includes('imported')
+  const wantsKorean = normalizedOrigins.includes('korean')
+
+  if (wantsImported === wantsKorean) return cars
+
+  return cars.filter((car) => {
+    const origin = classifyVehicleOrigin(car.name, car.model, car.trimLevel)
+    return wantsImported
+      ? origin === VEHICLE_ORIGIN_LABELS.imported
+      : origin === VEHICLE_ORIGIN_LABELS.korean
+  })
+}
+
 function buildCarUpdatePatch(prevCar, nextCar) {
   const patch = {}
 
@@ -893,7 +909,10 @@ export default function CatalogPage({ section = CAR_SECTION_CONFIG.main, introCo
 
     if (signal?.aborted || requestId !== activeCatalogRequestRef.current) return false
 
-    const filteredCars = fallbackCars.filter((car) => carMatchesSearch(car, searchQuery))
+    const filteredCars = filterCarsByOriginSelection(
+      fallbackCars.filter((car) => carMatchesSearch(car, searchQuery)),
+      filters.origin
+    )
     setCars(filteredCars)
     setMeta({ total: filteredCars.length, page: 1, pages: 1 })
     setLoadedPageEnd(1)
@@ -1097,7 +1116,7 @@ export default function CatalogPage({ section = CAR_SECTION_CONFIG.main, introCo
       }
       const data = await res.json()
 
-      const mappedCars = data.cars.map(mapCar)
+      const mappedCars = filterCarsByOriginSelection(data.cars.map(mapCar), filters.origin)
       if (searchQuery && data.total === 0 && !append) {
         await fetchCarsFallback({ signal: controller.signal, requestId })
         return

@@ -266,7 +266,8 @@ const CURRENCY_SYMBOLS = {
 function formatCurrencyAmount(amount, currency) {
   const parsed = Number(amount)
   if (!Number.isFinite(parsed)) return ''
-  const symbol = CURRENCY_SYMBOLS[currency] || currency || ''
+  const normalizedCurrency = String(currency || '').trim().toUpperCase()
+  const symbol = CURRENCY_SYMBOLS[normalizedCurrency] || normalizedCurrency || ''
   const formatted = parsed.toLocaleString('ru-RU', {
     minimumFractionDigits: Number.isInteger(parsed) ? 0 : 1,
     maximumFractionDigits: Number.isInteger(parsed) ? 0 : 1,
@@ -415,7 +416,90 @@ const INSPECTION_RU_MAP = {
   '타이로드엔드 및 볼 조인트': 'Наконечники рулевых тяг и шаровые опоры',
   '타이로드 엔드 및 볼 조인트': 'Наконечники рулевых тяг и шаровые опоры',
   '타이로드엔드 & 볼 조인트': 'Наконечники рулевых тяг и шаровые опоры',
+  '외판': 'Внешние панели',
+  '외부 패널': 'Внешние панели',
+  '외부패널': 'Внешние панели',
+  '주요골격': 'Силовой каркас',
+  '골격': 'Силовой каркас',
+  '앞(전방)': 'Перед',
+  '앞 (전방)': 'Перед',
+  '전방': 'Перед',
+  '뒤(후방)': 'Зад',
+  '뒤 (후방)': 'Зад',
+  '후방': 'Зад',
+  '교환': 'Замена',
+  '판금/도장': 'Ремонт / окрас',
+  '판금도장': 'Ремонт / окрас',
+  '판금/용접': 'Ремонт / сварка',
+  '판금용접': 'Ремонт / сварка',
+  '판금/부식': 'Ремонт / коррозия',
+  '부식': 'Коррозия',
+  '손상': 'Повреждение',
+  '이상없음': 'Без замечаний',
+  '이상 없음': 'Без замечаний',
+  '후드': 'Капот',
+  '프론트 휀더(좌)': 'Переднее крыло (левое)',
+  '프론트 휀더(우)': 'Переднее крыло (правое)',
+  '프론트 도어(좌)': 'Передняя дверь (левая)',
+  '프론트 도어(우)': 'Передняя дверь (правая)',
+  '리어 도어(좌)': 'Задняя дверь (левая)',
+  '리어 도어(우)': 'Задняя дверь (правая)',
+  '트렁크 리드': 'Крышка багажника',
+  '루프 패널': 'Панель крыши',
+  '쿼터 패널(리어펜더)(좌)': 'Заднее крыло (левое)',
+  '쿼터 패널(리어펜더)(우)': 'Заднее крыло (правое)',
+  '사이드실 패널(좌)': 'Порог (левый)',
+  '사이드실 패널(우)': 'Порог (правый)',
+  '라디에이터 서포트(볼트체결부품)': 'Радиаторная рамка',
 }
+
+const BODY_INSPECTION_ALIASES = {
+  bodyPanels: ['внешние панели', 'внешняя панель', 'outer panels', 'body panels', '외판', '외부패널', '외부 패널'],
+  frame: ['силовой каркас', 'каркас', 'frame', 'main frame', '주요골격', '골격'],
+  accidentHistory: ['аварийная история', 'история аварий', 'accident history', '사고이력', '사고 이력'],
+  cosmeticRepair: ['косметический ремонт', 'simple repair', 'cosmetic repair', '단순수리'],
+  front: ['перед', 'передняя часть', 'front', '전방', '앞', '앞전방'],
+  rear: ['зад', 'задняя часть', 'rear', '후방', '뒤', '뒤후방'],
+}
+
+const BODY_PART_HIGHLIGHT_GROUPS = [
+  { label: 'Капот', keys: ['hood'] },
+  { label: 'Передние крылья', keys: ['frontFenderLeft', 'frontFenderRight'], sideLabels: ['Левое', 'Правое'] },
+  { label: 'Передние двери', keys: ['frontDoorLeft', 'frontDoorRight'], sideLabels: ['Левая', 'Правая'] },
+  { label: 'Задние двери', keys: ['rearDoorLeft', 'rearDoorRight'], sideLabels: ['Левая', 'Правая'] },
+  { label: 'Багажник', keys: ['trunkLead'] },
+  { label: 'Крыша', keys: ['roofPanel'] },
+  { label: 'Задние крылья', keys: ['quarterPanelLeft', 'quarterPanelRight'], sideLabels: ['Левое', 'Правое'] },
+]
+
+const TECHNICAL_SUMMARY_RULES = [
+  {
+    label: 'Двигатель',
+    primary: (row) => matchesInspectionAliases(row?.section, ['самодиагностика']) && matchesInspectionAliases(row?.label, ['двигатель']),
+    fallbackSections: ['двигатель', 'течь масла', 'утечка охлаждающей жидкости'],
+  },
+  {
+    label: 'Трансмиссия',
+    primary: (row) => matchesInspectionAliases(row?.section, ['самодиагностика']) && matchesInspectionAliases(row?.label, ['трансмиссия']),
+    fallbackSections: ['трансмиссия и привод', 'трансмиссия'],
+  },
+  {
+    label: 'Рулевое управление',
+    fallbackSections: ['рулевое управление'],
+  },
+  {
+    label: 'Тормозная система',
+    fallbackSections: ['тормозная система'],
+  },
+  {
+    label: 'Электрика',
+    fallbackSections: ['электрика'],
+  },
+  {
+    label: 'Топливная система',
+    fallbackSections: ['топливная система'],
+  },
+]
 
 function formatInspectionDate(value) {
   const text = String(value || '').trim()
@@ -465,6 +549,55 @@ function normalizeInspectionValue(value) {
   return text
 }
 
+function normalizeInspectionLookupKey(value) {
+  return String(translateInspectionText(normalizeInspectionValue(value || '')) || value || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+}
+
+function matchesInspectionAliases(value, aliases = []) {
+  const key = normalizeInspectionLookupKey(value)
+  if (!key) return false
+  return aliases.some((alias) => normalizeInspectionLookupKey(alias) === key)
+}
+
+function findInspectionSummaryRow(inspection, aliases = []) {
+  const rows = Array.isArray(inspection?.summary) ? inspection.summary : []
+  return rows.find((item) => matchesInspectionAliases(item?.label, aliases)) || null
+}
+
+function findExteriorInspectionSection(inspection, aliases = []) {
+  const sections = Array.isArray(inspection?.exteriorStatus?.sections) ? inspection.exteriorStatus.sections : []
+  return sections.find((section) => matchesInspectionAliases(section?.title, aliases)) || null
+}
+
+function summarizeExteriorInspectionSection(section, emptyLabel = '-') {
+  if (!section || !Array.isArray(section.ranks)) return emptyLabel
+
+  const rows = section.ranks.flatMap((rank) => {
+    const status = formatInspectionDisplayText(rank?.rank || '')
+    const items = Array.isArray(rank?.items) ? rank.items : []
+
+    return items.map((item) => {
+      const translatedItem = formatInspectionDisplayText(item || '')
+      if (matchesInspectionAliases(translatedItem, BODY_INSPECTION_ALIASES.front)) {
+        return `Перед: ${status}`
+      }
+      if (matchesInspectionAliases(translatedItem, BODY_INSPECTION_ALIASES.rear)) {
+        return `Зад: ${status}`
+      }
+      return translatedItem && translatedItem !== '-'
+        ? `${translatedItem}: ${status}`
+        : status
+    })
+  })
+    .map((item) => String(item || '').trim())
+    .filter((item) => item && item !== '-')
+
+  if (!rows.length) return emptyLabel
+  return [...new Set(rows)].join(' • ')
+}
+
 function getInspectionBasicValue(inspection, label) {
   const items = Array.isArray(inspection?.basicInfo?.items) ? inspection.basicInfo.items : []
   const match = items.find((item) => item?.label === label)
@@ -472,8 +605,8 @@ function getInspectionBasicValue(inspection, label) {
 }
 
 function getInspectionSummaryText(inspection, label) {
-  const rows = Array.isArray(inspection?.summary) ? inspection.summary : []
-  const row = rows.find((item) => item?.label === label)
+  const aliases = Array.isArray(label) ? label : [label]
+  const row = findInspectionSummaryRow(inspection, aliases)
   if (!row) return '-'
 
   const parts = [
@@ -914,12 +1047,27 @@ function formatInspectionDisplayText(value) {
   return translated || normalized || '-'
 }
 
+const HIDDEN_INSPECTION_SUMMARY_LABELS = new Set([
+  'пробег',
+  'выхлоп',
+  'тюнинг',
+  'особая история',
+  'изменение назначения',
+  'тип окраса',
+  'основные опции',
+  'под отзыв',
+])
+
+function shouldHideInspectionSummaryItem(label) {
+  const translated = translateInspectionText(label || '') || String(label || '')
+  const normalized = translated.trim().toLowerCase()
+  return HIDDEN_INSPECTION_SUMMARY_LABELS.has(normalized)
+}
+
 function findRepairHistoryRow(inspection, label) {
   const rows = Array.isArray(inspection?.repairHistory) ? inspection.repairHistory : []
-  return rows.find((item) => {
-    const normalizedLabel = translateInspectionText(item?.label || '') || String(item?.label || '').trim()
-    return normalizedLabel === label
-  }) || null
+  const aliases = Array.isArray(label) ? label : [label]
+  return rows.find((item) => matchesInspectionAliases(item?.label, aliases)) || null
 }
 
 function formatFrontRearInspectionValue(value, emptyLabel = '') {
@@ -951,16 +1099,24 @@ function buildBodyInspectionSummary(car) {
   const inspection = car?.inspection
   if (!inspection) return []
 
-  const bodyPanelRow = findRepairHistoryRow(inspection, 'Внешние панели')
-  const frameRow = findRepairHistoryRow(inspection, 'Силовой каркас')
-  const accidentSummary = getInspectionSummaryText(inspection, 'Аварийная история')
-  const cosmeticSummary = getInspectionSummaryText(inspection, 'Косметический ремонт')
+  const bodyPanelRow = findRepairHistoryRow(inspection, BODY_INSPECTION_ALIASES.bodyPanels)
+  const frameRow = findRepairHistoryRow(inspection, BODY_INSPECTION_ALIASES.frame)
+  const bodyPanelSection = findExteriorInspectionSection(inspection, BODY_INSPECTION_ALIASES.bodyPanels)
+  const frameSection = findExteriorInspectionSection(inspection, BODY_INSPECTION_ALIASES.frame)
+  const accidentSummary = getInspectionSummaryText(inspection, BODY_INSPECTION_ALIASES.accidentHistory)
+  const cosmeticSummary = getInspectionSummaryText(inspection, BODY_INSPECTION_ALIASES.cosmeticRepair)
 
   const bodyPanelValue = hasNoExteriorPanelReplacementNote(inspection)
     ? 'Замены не выявлены'
-    : formatFrontRearInspectionValue(bodyPanelRow?.value || '', 'Замены не отмечены')
+    : (
+      formatFrontRearInspectionValue(bodyPanelRow?.value || '', '')
+      || summarizeExteriorInspectionSection(bodyPanelSection, 'Замены не отмечены')
+    )
 
-  const frameValue = formatFrontRearInspectionValue(frameRow?.value || '', 'Повреждений и замен не отмечено')
+  const frameValue = (
+    formatFrontRearInspectionValue(frameRow?.value || '', '')
+    || summarizeExteriorInspectionSection(frameSection, 'Повреждений и замен не отмечено')
+  )
 
   return [
     { label: 'Внешние панели', value: bodyPanelValue },
@@ -981,6 +1137,119 @@ function getInspectionStatusTone(value) {
   if (/течь|утеч|незнач|залог|арест|огранич|колич|под отзыв|особая история/.test(text)) return 'warn'
   if (/нормал|исправ|без\b|нет\b|доступн|выполнен|разрешен|нейтрал|цветной|не применяется/.test(text)) return 'good'
   return 'neutral'
+}
+
+function formatBodyConditionValue(part) {
+  const labels = Array.isArray(part?.statusLabels) ? part.statusLabels : []
+  if (!labels.length) return 'Нормально'
+  const translated = labels
+    .map((item) => formatInspectionDisplayText(item))
+    .filter(Boolean)
+  return translated.length ? translated.join(' • ') : 'Нормально'
+}
+
+function buildBodyPartInspectionHighlights(inspection) {
+  const parts = Array.isArray(inspection?.bodyCondition?.parts) ? inspection.bodyCondition.parts : []
+  if (!parts.length) return []
+
+  const byKey = new Map(parts.map((part) => [String(part?.key || '').trim(), part]))
+
+  return BODY_PART_HIGHLIGHT_GROUPS.map((group) => {
+    const matchedParts = group.keys
+      .map((key) => byKey.get(key))
+      .filter(Boolean)
+
+    if (!matchedParts.length) return null
+
+    if (matchedParts.length === 1) {
+      return {
+        label: group.label,
+        value: formatBodyConditionValue(matchedParts[0]),
+      }
+    }
+
+    const values = matchedParts.map((part) => formatBodyConditionValue(part))
+    const allSame = values.every((value) => value === values[0])
+
+    if (allSame) {
+      return {
+        label: group.label,
+        value: values[0],
+      }
+    }
+
+    return {
+      label: group.label,
+      value: 'Есть отличия',
+      metaLines: matchedParts.map((part, index) => {
+        const sideLabel = group.sideLabels?.[index] || part.label || `Сторона ${index + 1}`
+        return `${sideLabel}: ${formatBodyConditionValue(part)}`
+      }),
+    }
+  }).filter(Boolean)
+}
+
+function summarizeTechnicalRows(rows = []) {
+  const formattedRows = rows
+    .map((row) => {
+      const value = (row?.states?.map(translateInspectionText).join(', ')) || translateInspectionText(row?.detail) || '-'
+      return {
+        label: translateInspectionText(row?.label || ''),
+        value,
+        tone: getInspectionStatusTone(value),
+      }
+    })
+    .filter((row) => row.label && row.value && row.value !== '-')
+
+  if (!formattedRows.length) return null
+
+  const concernRows = formattedRows.filter((row) => ['danger', 'warn', 'info'].includes(row.tone))
+  if (!concernRows.length) {
+    return { value: 'Нормально', metaLines: [] }
+  }
+
+  if (concernRows.length === 1) {
+    const [row] = concernRows
+    return {
+      value: row.value,
+      metaLines: row.label ? [row.label] : [],
+    }
+  }
+
+  return {
+    value: 'Есть замечания',
+    metaLines: concernRows.slice(0, 3).map((row) => `${row.label}: ${row.value}`),
+  }
+}
+
+function buildTechnicalInspectionHighlights(inspection) {
+  const rows = Array.isArray(inspection?.detailStatus) ? inspection.detailStatus : []
+  if (!rows.length) return []
+
+  return TECHNICAL_SUMMARY_RULES.map((rule) => {
+    const primaryRows = typeof rule.primary === 'function'
+      ? rows.filter((row) => rule.primary(row))
+      : []
+
+    if (primaryRows.length) {
+      const firstRow = primaryRows[0]
+      const value = (firstRow.states?.map(translateInspectionText).join(', ')) || translateInspectionText(firstRow.detail) || '-'
+      return {
+        label: rule.label,
+        value,
+      }
+    }
+
+    const fallbackRows = rows.filter((row) => matchesInspectionAliases(row?.section, rule.fallbackSections || []))
+    const summary = summarizeTechnicalRows(fallbackRows)
+    if (!summary) return null
+
+    return {
+      label: rule.label,
+      value: summary.value,
+      metaLines: summary.metaLines,
+    }
+  }).filter(Boolean)
 }
 
 function buildExteriorInspectionRows(section) {
@@ -1039,6 +1308,13 @@ function translateInspectionText(value) {
   if (text === '해당없음') return 'Не применяется'
   if (text === '미세누유' || text === '미세누수') return 'Незначительная течь'
   if (text === '누유' || text === '누수') return 'Утечка'
+  if (/^교환$/u.test(text)) return 'Замена'
+  if (/판금\s*\/\s*도장|판금도장/u.test(text)) return 'Ремонт / окрас'
+  if (/판금\s*\/\s*용접|판금용접/u.test(text)) return 'Ремонт / сварка'
+  if (/판금\s*\/\s*부식/u.test(text)) return 'Ремонт / коррозия'
+  if (/^부식$/u.test(text)) return 'Коррозия'
+  if (/^손상$/u.test(text)) return 'Повреждение'
+  if (/이상\s*없음/u.test(text)) return 'Без замечаний'
   if (/일산화탄소/u.test(text) && /탄화수소/u.test(text)) return 'Оксид углерода (CO), углеводороды (HC)'
   if (text === '일산화탄소') return 'Оксид углерода (CO)'
   if (text === '탄화수소') return 'Углеводороды (HC)'
@@ -1681,10 +1957,16 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
   const historyInfoChanges = useMemo(() => buildVehicleHistoryInfoChanges(car), [car])
   const repairHistoryItems = useMemo(() => buildRepairHistoryItems(car), [car])
   const bodyInspectionSummary = useMemo(() => buildBodyInspectionSummary(car), [car])
+  const bodyPartInspectionHighlights = useMemo(() => buildBodyPartInspectionHighlights(car?.inspection), [car?.inspection])
+  const technicalInspectionHighlights = useMemo(() => buildTechnicalInspectionHighlights(car?.inspection), [car?.inspection])
   const encarFlagBadges = useMemo(() => buildEncarFlagBadges(car), [car])
   const displayLocation = useMemo(() => getShortLocationLabel(car?.location || '', 'Корея'), [car?.location])
   const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
   const inspectionSummary = Array.isArray(car?.inspection?.summary) ? car.inspection.summary : []
+  const filteredInspectionSummary = useMemo(
+    () => inspectionSummary.filter((item) => !shouldHideInspectionSummaryItem(item?.label)),
+    [inspectionSummary],
+  )
 
   const deliveryInfo = useMemo(
     () => resolveDeliveryForCar({ car, settings: deliverySettings, countryCode: selectedCountryCode }),
@@ -2020,6 +2302,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                     {customsResult.status === 'success' ? (
                       <div className="car-details-customs-result">
                         <strong>{formatCurrencyAmount(customsResult.amount, customsResult.currency)}</strong>
+                        <span className="car-details-customs-result-hint">Более точную информацию уточняйте в WhatsApp</span>
                       </div>
                     ) : null}
                   </div>
@@ -2090,7 +2373,6 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                 <div className="car-details-spec-item"><span>Комплектация</span><strong>{car.trimLevel || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Цвет кузова</span><strong>{car.bodyColor || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Цвет салона</span><strong>{car.interiorColor || '-'}</strong></div>
-                <div className="car-details-spec-item"><span>Пробег</span><strong>{car.mileage.toLocaleString()} км</strong></div>
                 <div className="car-details-spec-item"><span>Местоположение</span><strong>{displayLocation || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Тип кузова</span><strong>{car.bodyType || '-'}</strong></div>
                 <div className="car-details-spec-item"><span>Класс</span><strong>{car.vehicleClass || '-'}</strong></div>
@@ -2179,6 +2461,38 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
 
           {car.inspection ? (
             <div className="car-inspection-stack">
+              {!!technicalInspectionHighlights.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Техническое состояние</h4>
+                  <div className="car-inspection-status-list">
+                    {technicalInspectionHighlights.map((item) => (
+                      <InspectionStatusRow
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        metaLines={item.metaLines}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!!bodyPartInspectionHighlights.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Кузов по элементам</h4>
+                  <div className="car-inspection-status-list">
+                    {bodyPartInspectionHighlights.map((item) => (
+                      <InspectionStatusRow
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        metaLines={item.metaLines}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {!!bodyInspectionSummary.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">Кузов и ремонты</h4>
@@ -2209,11 +2523,11 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                 </div>
               )}
 
-              {!!inspectionSummary.length && (
+              {!!filteredInspectionSummary.length && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">{translateInspectionText('Overall condition')}</h4>
                   <div className="car-inspection-status-list">
-                    {inspectionSummary.map((item, index) => {
+                    {filteredInspectionSummary.map((item, index) => {
                       const primaryValue = (item.states?.map(translateInspectionText).join(', ')) || translateInspectionText(item.detail) || '-'
                       const metaLines = buildInspectionMetaLines(item, primaryValue)
 

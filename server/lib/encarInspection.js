@@ -137,6 +137,23 @@ const TEXT_MAP = new Map([
   ['타이로드엔드 & 볼 조인트', 'Наконечники рулевых тяг и шаровые опоры'],
 ])
 
+const PERFORMANCE_STATUS_MAP = {
+  CHANGE: 'Замена',
+  METAL: 'Ремонт / сварка',
+  CORROSION: 'Коррозия',
+  SCRATCH: 'Царапина',
+  HILLS: 'Вмятина',
+  DAMAGE: 'Повреждение',
+}
+
+const LEGACY_PERFORMANCE_STATUS_MAP = {
+  '1': ['CHANGE'],
+  '2': ['METAL'],
+  '3': ['CORROSION'],
+  '4': ['CHANGE', 'CORROSION'],
+  '5': ['METAL', 'CORROSION'],
+}
+
 function toAbsoluteUrl(path) {
   if (!path) return ''
   if (/^https?:\/\//i.test(path)) return path
@@ -237,6 +254,97 @@ function parseExteriorStatus($) {
   return { legend, sections }
 }
 
+function parsePerformanceDataGroup(scriptText) {
+  const groups = []
+  const groupPattern = /code:\s*'([^']+)'\s*,\s*name:\s*'([^']+)'\s*,\s*value:\s*'([^']+)'(?:\s*,\s*value_old:\s*'([^']+)')?\s*,\s*lank:\s*'([^']*)'/g
+  let match
+  while ((match = groupPattern.exec(scriptText))) {
+    groups.push({
+      code: match[1],
+      key: match[2],
+      label: cleanText(match[3]),
+      labelOld: cleanText(match[4] || ''),
+      rank: cleanText(match[5]),
+    })
+  }
+  return groups
+}
+
+function normalizePerformanceStatuses(rawValue) {
+  if (rawValue == null) return []
+  if (Array.isArray(rawValue)) {
+    return rawValue.map((item) => cleanText(item)).filter(Boolean)
+  }
+  const text = cleanText(rawValue)
+  if (!text) return []
+  return [text]
+}
+
+function parseLegacyPerformanceData(data, groups) {
+  const legacyEntries = Array.isArray(data) ? data : []
+  const byKey = new Map()
+  for (const entry of legacyEntries) {
+    const text = cleanText(entry)
+    const match = text.match(/^([^_]+)_(\d+)$/)
+    if (!match) continue
+    const [, code, legacyCode] = match
+    const meta = groups.find((item) => item.code === code)
+    if (!meta) continue
+    byKey.set(meta.key, LEGACY_PERFORMANCE_STATUS_MAP[legacyCode] || [])
+  }
+  return byKey
+}
+
+function parseBodyConditionFromScripts(html) {
+  const scriptBlocks = [...String(html || '').matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1])
+    .filter((scriptText) => scriptText.includes('var performanceCheck = {'))
+
+  if (!scriptBlocks.length) {
+    return { parts: [] }
+  }
+
+  const scriptText = scriptBlocks[0]
+  const groups = parsePerformanceDataGroup(scriptText)
+  if (!groups.length) {
+    return { parts: [] }
+  }
+
+  const initMatch = scriptText.match(/performanceCheck\.init\(\{\s*data\s*:\s*(null|\{[\s\S]*?\}|\[[\s\S]*?\])/)
+  const dataRaw = initMatch?.[1] || 'null'
+  let parsedData = null
+
+  try {
+    parsedData = JSON.parse(dataRaw)
+  } catch {
+    parsedData = null
+  }
+
+  const legacyData = Array.isArray(parsedData) ? parseLegacyPerformanceData(parsedData, groups) : new Map()
+  const parts = groups.map((meta) => {
+    const rawStatuses = Array.isArray(parsedData)
+      ? (legacyData.get(meta.key) || [])
+      : normalizePerformanceStatuses(parsedData?.[meta.key] ?? parsedData?.[meta.code] ?? null)
+
+    const statusCodes = rawStatuses.filter(Boolean)
+    const statusLabels = statusCodes.map((code) => PERFORMANCE_STATUS_MAP[code] || code)
+
+    return {
+      code: meta.code,
+      key: meta.key,
+      label: translateText(meta.label || meta.labelOld || meta.key),
+      rank: meta.rank || '',
+      statusCodes,
+      statusLabels,
+      hasIssue: statusCodes.length > 0,
+    }
+  })
+
+  return {
+    parts,
+  }
+}
+
 function parseDetailStatus($) {
   const rows = []
   let currentSection = ''
@@ -319,6 +427,7 @@ function createEmptyInspection() {
     summary: [],
     repairHistory: [],
     exteriorStatus: { legend: [], sections: [] },
+    bodyCondition: { parts: [] },
     detailStatus: [],
     opinion: [],
     photos: [],
@@ -334,6 +443,7 @@ function buildInspectionDiagnostics(parsed) {
     ['summary', Array.isArray(parsed?.summary) && parsed.summary.length > 0],
     ['repairHistory', Array.isArray(parsed?.repairHistory) && parsed.repairHistory.length > 0],
     ['exteriorStatus.sections', Array.isArray(parsed?.exteriorStatus?.sections) && parsed.exteriorStatus.sections.length > 0],
+    ['bodyCondition.parts', Array.isArray(parsed?.bodyCondition?.parts) && parsed.bodyCondition.parts.length > 0],
     ['detailStatus', Array.isArray(parsed?.detailStatus) && parsed.detailStatus.length > 0],
     ['opinion', Array.isArray(parsed?.opinion) && parsed.opinion.length > 0],
     ['photos', Array.isArray(parsed?.photos) && parsed.photos.length > 0],
@@ -361,6 +471,7 @@ export function parseEncarInspectionHtml(html, { sourceUrl = '' } = {}) {
     summary: parseSummaryTable($),
     repairHistory: parseRepairHistory($),
     exteriorStatus: parseExteriorStatus($),
+    bodyCondition: parseBodyConditionFromScripts(html),
     detailStatus: parseDetailStatus($),
     opinion: parseOpinion($),
     photos: parseInspectionPhotos($),

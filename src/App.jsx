@@ -7,6 +7,7 @@ import ContactsPage from './pages/ContactsPage'
 import AdminPage from './pages/AdminPage'
 import PartsCatalogPage from './pages/PartsCatalogPage'
 import PartDetailsPage from './pages/PartDetailsPage'
+import DeliveryPriceListPage from './pages/DeliveryPriceListPage'
 import DamagedStockTabs from './components/catalog/DamagedStockTabs.jsx'
 import { CAR_SECTION_CONFIG } from './lib/catalogSections.js'
 
@@ -16,6 +17,7 @@ function App() {
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/" element={<Layout><HomePage /></Layout>} />
+        <Route path="/delivery-price-list" element={<Layout><DeliveryPriceListPage /></Layout>} />
         <Route path="/catalog" element={<Layout><CatalogPage section={CAR_SECTION_CONFIG.main} /></Layout>} />
         <Route path="/catalog/:id" element={<Layout><CarDetailsPage section={CAR_SECTION_CONFIG.main} /></Layout>} />
         <Route path="/urgent-sale" element={<Layout><CatalogPage section={CAR_SECTION_CONFIG.urgent} /></Layout>} />

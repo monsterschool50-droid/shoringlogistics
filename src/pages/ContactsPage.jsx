@@ -22,6 +22,11 @@ const YouTubeIcon = () => (
     <polygon points="10,9 16,12 10,15" fill="currentColor" stroke="none"/>
   </svg>
 )
+const TikTokIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.12v13.18a2.77 2.77 0 1 1-1.9-2.63V9.37a5.9 5.9 0 1 0 5.02 5.81V8.51a7.9 7.9 0 0 0 4.77 1.6V6.99c-.34 0-.68-.1-1-.3z"/>
+  </svg>
+)
 const PhoneIcon = () => (
   <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -68,6 +73,10 @@ const SECONDARY_WHATSAPP_URL = 'https://wa.me/821065680943'
 const LOCAL_PHONE = '+996 779 574 444'
 const LOCAL_PHONE_URL = 'tel:+996779574444'
 const CONTACT_EMAIL = 'avt.shoring@gmail.com'
+const TIKTOK_URL = 'https://www.tiktok.com/@avt.korea?_r=1&_t=ZS-94i804TOyQx'
+const PARKING_ADDRESS_KO = '\uC778\uCC9C \uC11C\uAD6C \uC624\uB958\uB3D9 1550'
+const PARKING_ADDRESS_EN = '1550 Oryu-dong, Seo-gu, Incheon'
+const YOUTUBE_URL = 'https://youtube.com/@avt_korea?si=svDsGDPlZS4lQy4s'
 
 const CONTACT_CARDS = [
   {
@@ -119,36 +128,28 @@ const CONTACT_CARDS = [
     icon: <YouTubeIcon />,
     title: 'YouTube',
     desc: '\u0412\u0438\u0434\u0435\u043e \u043e\u0431\u0437\u043e\u0440\u044b \u0438 \u043a\u043e\u043d\u0442\u0435\u043d\u0442',
-    value: '@tlvauto1',
+    value: '@avt_korea',
     valueClass: 'cnt-val-blue',
     sub: '\u041e\u0431\u0437\u043e\u0440\u044b \u0430\u0432\u0442\u043e\u043c\u043e\u0431\u0438\u043b\u0435\u0439 \u0438 \u043f\u0440\u043e\u0446\u0435\u0441\u0441 \u0434\u043e\u0441\u0442\u0430\u0432\u043a\u0438',
-    href: 'https://youtube.com/@tlvauto1',
+    href: YOUTUBE_URL,
+  },
+  {
+    icon: <TikTokIcon />,
+    title: 'TikTok',
+    desc: 'TikTok видео и новые поступления',
+    value: '@avt.korea',
+    valueClass: 'cnt-val-dark',
+    sub: 'Короткие обзоры и свежие автомобили',
+    href: TIKTOK_URL,
   },
 ]
 
 const OFFICES = [
   {
-    city: 'Бишкек',
-    address: 'ул. Бакаева 140/1, БЦ SKY PLAZA, 5 этаж, 505 кабинет',
-    phone: LOCAL_PHONE,
-    email: CONTACT_EMAIL,
-  },
-  {
-    city: 'Бишкек',
-    address: 'ул. Турусбекова 109/3, БЦ Максимум, офис 208',
+    city: '\u041A\u043E\u0440\u0435\u044F',
+    address: PARKING_ADDRESS_KO,
+    addressSecondary: PARKING_ADDRESS_EN,
     phone: PRIMARY_PHONE,
-    email: CONTACT_EMAIL,
-  },
-  {
-    city: 'Ош',
-    address: 'ул. Аскар Шакиров 30, БЦ MAHCOM, 5 этаж 9 кабинет',
-    phone: LOCAL_PHONE,
-    email: CONTACT_EMAIL,
-  },
-  {
-    city: 'Корея',
-    address: 'Сеул (офис в Корее — уточняйте у менеджера)',
-    phone: LOCAL_PHONE,
     email: CONTACT_EMAIL,
   },
 ]
@@ -238,7 +239,7 @@ export default function ContactsPage() {
       {/* Offices */}
       <section className="cnt-section">
         <div className="cnt-inner">
-          <h2 className="cnt-section-title">Наши офисы</h2>
+          <h2 className="cnt-section-title">{'\u041d\u0430\u0448\u0438 \u043e\u0444\u0438\u0441\u044b'}</h2>
           <div className="cnt-offices-grid">
             {OFFICES.map((o, i) => (
               <div key={i} className="cnt-office-card">
@@ -247,7 +248,7 @@ export default function ContactsPage() {
                 </div>
                 <div className="cnt-office-row">
                   <span className="cnt-office-label">Адрес:</span>
-                  <span className="cnt-office-text">{o.address}</span>
+                  <span className="cnt-office-text">{o.address}{o.addressSecondary ? <><br />{o.addressSecondary}</> : null}</span>
                 </div>
                 <div className="cnt-office-row">
                   <span className="cnt-office-label">Телефон:</span>
@@ -302,11 +303,18 @@ export default function ContactsPage() {
               <GlobeIcon /> Instagram
             </a>
             <a
-              href="https://youtube.com/@tlvauto1"
+              href={YOUTUBE_URL}
               target="_blank" rel="noreferrer"
               className="cnt-btn-social"
             >
               <PlayIcon /> YouTube
+            </a>
+            <a
+              href={TIKTOK_URL}
+              target="_blank" rel="noreferrer"
+              className="cnt-btn-social"
+            >
+              <TikTokIcon /> TikTok
             </a>
           </div>
         </div>

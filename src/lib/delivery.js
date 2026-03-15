@@ -199,3 +199,33 @@ export function resolveDeliveryForCar({ car, settings, countryCode } = {}) {
     isDefaultCountry,
   }
 }
+
+export function resolveDeliveryPriceList({ settings, countryCode } = {}) {
+  const normalized = settings?.delivery_profiles ? settings : normalizeDeliverySettings({})
+  const countries = normalized.delivery_countries || []
+  const defaultCountryCode = normalized.default_country_code || resolveDefaultCountryCode(countries)
+  const resolvedCountryCode = String(countryCode || defaultCountryCode || '').trim()
+  const country = countries.find((item) => item.code === resolvedCountryCode) || countries[0] || null
+  const activeCountryCode = country?.code || defaultCountryCode
+
+  const items = (normalized.delivery_profiles || []).map((profile) => {
+    const countryPrice = toNumber(profile?.prices?.[activeCountryCode], null)
+    const legacyPrice = activeCountryCode === defaultCountryCode ? toNumber(profile?.price, null) : null
+    const resolvedPrice = Number.isFinite(countryPrice) && countryPrice > 0 ? countryPrice : legacyPrice
+    const priceSource = Number.isFinite(countryPrice) && countryPrice > 0
+      ? 'profile'
+      : (Number.isFinite(legacyPrice) && legacyPrice > 0 ? 'legacy' : 'missing')
+
+    return {
+      ...profile,
+      resolvedPrice,
+      priceSource,
+    }
+  })
+
+  return {
+    country,
+    items,
+    defaultCountryCode,
+  }
+}

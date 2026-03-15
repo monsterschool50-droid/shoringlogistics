@@ -817,7 +817,7 @@ body {
   font-weight: 900;
   color: #000000;
   line-height: 1.15;
-  margin: 0;
+  margin: 14px 0 0;
 }
 
 .hero-delivery-sub {
@@ -1869,6 +1869,11 @@ body {
 .footer-link-icon.blue {
   color: #3b82f6;
   background-color: #eff6ff;
+}
+
+.footer-link-icon.dark {
+  color: #111827;
+  background-color: #e5e7eb;
 }
 
 /* Hours column */
@@ -3707,13 +3712,25 @@ body {
 
 .car-details-customs-result {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
 }
 
 .car-details-customs-result strong {
   color: #c46011;
   font-size: 26px;
   font-weight: 800;
+  line-height: 1;
+}
+
+.car-details-customs-result-hint {
+  max-width: 180px;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #9a6b3c;
 }
 
 .car-details-customs-note {
@@ -4292,12 +4309,12 @@ body {
 .filter-sidebar {
   position: relative;
   isolation: isolate;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.74) 0%, rgba(245, 249, 253, 0.64) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(245, 249, 253, 0.86) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.88);
   border-radius: 16px;
   overflow: hidden;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
@@ -4305,7 +4322,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.06) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.12) 100%);
   pointer-events: none;
   z-index: 0;
 }
@@ -5939,6 +5956,11 @@ body {
   color: #64748b;
 }
 
+[data-theme="dark"] .footer-link-icon.dark {
+  color: #f8fafc;
+  background-color: #1f2937;
+}
+
 [data-theme="dark"] .footer-hours-label {
   color: #7a96b0;
 }
@@ -6033,15 +6055,15 @@ body {
 
 /* Filter sidebar */
 [data-theme="dark"] .filter-sidebar {
-  background: linear-gradient(180deg, rgba(17, 30, 46, 0.72) 0%, rgba(17, 30, 46, 0.6) 100%);
-  border-right-color: rgba(148, 163, 184, 0.18);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(180deg, rgba(17, 30, 46, 0.92) 0%, rgba(17, 30, 46, 0.86) 100%);
+  border-right-color: rgba(148, 163, 184, 0.24);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 18px 40px rgba(2, 6, 23, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 [data-theme="dark"] .filter-sidebar::before {
-  background: linear-gradient(180deg, rgba(148, 163, 184, 0.08) 0%, rgba(148, 163, 184, 0.02) 100%);
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.12) 0%, rgba(148, 163, 184, 0.04) 100%);
 }
 
 [data-theme="dark"] .filter-header {
@@ -6680,6 +6702,10 @@ body {
 
 [data-theme="dark"] .car-details-customs-result strong {
   color: #f59e0b;
+}
+
+[data-theme="dark"] .car-details-customs-result-hint {
+  color: #d7b98a;
 }
 
 [data-theme="dark"] .car-details-customs-breakdown-row {
@@ -10873,4 +10899,406 @@ body {
 
 [data-theme="dark"] .delivery-country-option:hover:not(.is-active) {
   background: rgba(148, 163, 184, 0.15);
+}
+
+.delivery-price-page {
+  padding: 36px 16px 64px;
+  background:
+    radial-gradient(circle at top left, rgba(133, 210, 255, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(218, 42, 48, 0.1), transparent 28%),
+    linear-gradient(180deg, #eef6fb 0%, #f6fbff 100%);
+}
+
+.delivery-price-shell {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.delivery-price-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(242, 248, 255, 0.98) 100%);
+  color: #0f2b43;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+}
+
+.delivery-price-kicker {
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  font-weight: 800;
+  color: #4f6e8a;
+}
+
+.delivery-price-title {
+  margin: 8px 0 0;
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 0.98;
+}
+
+.delivery-price-title-prefix,
+.delivery-price-title-country {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delivery-price-title-prefix {
+  display: block;
+}
+
+.delivery-price-title-country {
+  margin-top: 4px;
+}
+
+.delivery-price-title-flag {
+  width: 44px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 7px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  flex-shrink: 0;
+}
+
+.delivery-price-meta {
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.delivery-price-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: rgba(35, 77, 127, 0.08);
+  border: 1px solid rgba(35, 77, 127, 0.14);
+  color: #21476f;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.delivery-price-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.delivery-price-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(35, 77, 127, 0.14);
+  color: #21476f;
+  font-weight: 700;
+  text-decoration: none;
+  background: rgba(35, 77, 127, 0.06);
+}
+
+.delivery-price-link.is-primary {
+  background: linear-gradient(135deg, #da2a30 0%, #b8161c 100%);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.delivery-price-flags {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.delivery-price-flag-button {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(7, 53, 94, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+  color: #12324c;
+  font-weight: 700;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.delivery-price-flag-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--flag-accent-rgb, 218, 42, 48), 0);
+  box-shadow: inset 0 0 0 1px rgba(var(--flag-accent-rgb, 218, 42, 48), 0);
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+  pointer-events: none;
+}
+
+.delivery-price-flag-button > * {
+  position: relative;
+  z-index: 1;
+}
+
+.delivery-price-flag-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 26px rgba(15, 23, 42, 0.12);
+}
+
+.delivery-price-flag-button.is-active {
+  border-color: rgba(var(--flag-accent-rgb, 218, 42, 48), 0.4);
+  box-shadow: 0 16px 28px rgba(var(--flag-accent-rgb, 218, 42, 48), 0.16);
+}
+
+.delivery-price-flag-button.is-active::before {
+  background: rgba(var(--flag-accent-rgb, 218, 42, 48), 0.18);
+  box-shadow: inset 0 0 0 1px rgba(var(--flag-accent-rgb, 218, 42, 48), 0.24);
+}
+
+.delivery-price-flag {
+  width: 56px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
+  flex-shrink: 0;
+}
+
+.delivery-price-flag-button.is-active .delivery-price-flag {
+  border-color: rgba(var(--flag-accent-rgb, 218, 42, 48), 0.64);
+  box-shadow:
+    0 0 0 2px rgba(var(--flag-accent-rgb, 218, 42, 48), 0.18),
+    0 10px 20px rgba(var(--flag-accent-rgb, 218, 42, 48), 0.2);
+}
+
+.delivery-price-board {
+  margin-top: 24px;
+  padding: 18px 22px;
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(242, 248, 255, 0.96) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 28px 50px rgba(15, 23, 42, 0.12);
+}
+
+.delivery-price-board-head,
+.delivery-price-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.delivery-price-board-head {
+  padding: 0 6px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5c7285;
+}
+
+.delivery-price-row {
+  padding: 18px 6px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.delivery-price-row:last-child {
+  border-bottom: none;
+}
+
+.delivery-price-row-title {
+  font-size: 24px;
+  line-height: 1.05;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #0f2b43;
+}
+
+.delivery-price-row-description {
+  margin-top: 6px;
+  font-size: 16px;
+  color: #60788d;
+}
+
+.delivery-price-row-value {
+  min-width: 124px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1;
+  font-weight: 900;
+  color: #d36f21;
+  text-align: right;
+}
+
+.delivery-price-row-value.is-missing {
+  font-size: 20px;
+  color: #6b7280;
+}
+
+.delivery-price-empty {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #5c7285;
+}
+
+[data-theme="dark"] .delivery-price-page {
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 32%),
+    radial-gradient(circle at top right, rgba(218, 42, 48, 0.12), transparent 28%),
+    linear-gradient(180deg, #07131f 0%, #0a1725 100%);
+}
+
+[data-theme="dark"] .delivery-price-board,
+[data-theme="dark"] .delivery-price-flag-button {
+  background: rgba(15, 23, 42, 0.82);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .delivery-price-flag-button.is-active::before {
+  background: rgba(var(--flag-accent-rgb, 218, 42, 48), 0.24);
+  box-shadow: inset 0 0 0 1px rgba(var(--flag-accent-rgb, 218, 42, 48), 0.3);
+}
+
+[data-theme="dark"] .delivery-price-hero {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .delivery-price-kicker {
+  color: rgba(255, 255, 255, 0.64);
+}
+
+[data-theme="dark"] .delivery-price-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .delivery-price-link {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .delivery-price-row-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .delivery-price-row-description,
+[data-theme="dark"] .delivery-price-empty,
+[data-theme="dark"] .delivery-price-board-head {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .delivery-price-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .delivery-price-empty {
+  background: rgba(15, 23, 42, 0.82);
+}
+
+@media (max-width: 900px) {
+  .delivery-price-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .delivery-price-meta {
+    min-width: 0;
+    align-items: flex-start;
+  }
+
+  .delivery-price-actions {
+    justify-content: flex-start;
+  }
+
+  .delivery-price-flags {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .delivery-price-page {
+    padding: 20px 12px 44px;
+  }
+
+  .delivery-price-hero {
+    padding: 16px 18px;
+    border-radius: 22px;
+  }
+
+
+  .delivery-price-title-country {
+    gap: 10px;
+  }
+
+  .delivery-price-title-flag {
+    width: 38px;
+    height: 24px;
+  }
+
+  .delivery-price-flags {
+    gap: 10px;
+  }
+
+  .delivery-price-flag-button {
+    min-height: 58px;
+    padding: 10px 12px;
+    gap: 10px;
+    border-radius: 16px;
+    font-size: 13px;
+  }
+
+  .delivery-price-flag {
+    width: 42px;
+    height: 28px;
+  }
+
+  .delivery-price-board {
+    padding: 14px 14px 8px;
+    border-radius: 20px;
+  }
+
+  .delivery-price-board-head {
+    display: none;
+  }
+
+  .delivery-price-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 16px 2px;
+  }
+
+  .delivery-price-row-title {
+    font-size: 18px;
+  }
+
+  .delivery-price-row-description {
+    font-size: 14px;
+  }
+
+  .delivery-price-row-value {
+    min-width: 0;
+    text-align: left;
+    font-size: 26px;
+  }
 }

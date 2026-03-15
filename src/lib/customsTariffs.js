@@ -272,7 +272,7 @@ function buildSuccessResult({ amount, fuel, table, row, volume, direction, messa
   return {
     status: 'success',
     amount,
-    currency,
+    currency: currency || 'USD',
     message,
     breakdown,
     meta: buildMeta({ fuel, table, row, volume, direction }),
@@ -349,7 +349,7 @@ export function resolveCustomsCalculation(input, currentDate = new Date()) {
       row: rowLabel,
       volume: volume.label,
       direction: DIRECTION_LABELS[direction],
-      message: 'Расчёт выполнен по отдельной таблице гибридов до 3 лет.',
+      message: '',
     })
   }
 
@@ -375,7 +375,7 @@ export function resolveCustomsCalculation(input, currentDate = new Date()) {
         row: specialRowLabel,
         volume: specialVolume.label,
         direction: DIRECTION_LABELS[direction],
-        message: 'Расчёт выполнен по отдельной таблице бензина / газа до 3 лет.',
+        message: '',
       })
     }
   }
@@ -421,9 +421,7 @@ export function resolveCustomsCalculation(input, currentDate = new Date()) {
     table: tableLabel,
     row: rowKey,
     volume: volume.label,
-    message: fuel === 'lpg'
-      ? 'Газ рассчитан по общей бензиновой таблице из Таблица.md.'
-      : 'Расчёт выполнен строго по основной таблице из Таблица.md.',
+    message: '',
   })
 }
 

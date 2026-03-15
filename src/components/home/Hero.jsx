@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { VAT_REFUND_RATE } from '../../lib/vehicleDisplay'
 import { useDeliveryContext } from '../../context/DeliveryContext'
 
@@ -163,6 +163,7 @@ const flagAccentMap = {
 }
 
 export default function Hero() {
+  const navigate = useNavigate()
   const { countries, countryCode, hasUserSelectedCountry, selectedCountry, setCountryCode } = useDeliveryContext()
 
   const heroCountries = useMemo(() => {
@@ -176,6 +177,11 @@ export default function Hero() {
   }, [countries])
 
   const activeCountryLabel = selectedCountry?.label || 'Кыргызстан'
+
+  const handleCountryClick = (code) => {
+    setCountryCode(code)
+    navigate('/delivery-price-list')
+  }
 
   return (
     <section>
@@ -207,7 +213,7 @@ export default function Hero() {
                     '--flag-delay': flagEntryMotion[index]?.delay || '0s',
                     '--flag-accent-rgb': flagAccentMap[code] || '218, 42, 48',
                   }}
-                  onClick={() => setCountryCode(code)}
+                  onClick={() => handleCountryClick(code)}
                 >
                   <img
                     className="why-logistics-flag"
