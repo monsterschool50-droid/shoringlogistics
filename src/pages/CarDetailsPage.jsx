@@ -277,6 +277,7 @@ function formatCurrencyAmount(amount, currency) {
 const DEFAULT_CALC_YEAR = new Date().getFullYear()
 const DEFAULT_CALC_ENGINE = 2.0
 const KZ_UNION_CUSTOMS_USD_TO_EUR_RATIO = 0.92
+const DEFAULT_IMPORT_DIRECTION = 'asia'
 
 function formatCalcYearInput(value) {
   const year = parseYear(value)
@@ -333,25 +334,6 @@ function parseCalcEngineInput(value, fallback = DEFAULT_CALC_ENGINE) {
 
   const engine = Number(normalized)
   return Number.isFinite(engine) && engine > 0 ? engine : fallback
-}
-
-function inferImportDirection(...sources) {
-  const text = sources
-    .flatMap((source) => ([
-      source?.location,
-      source?.name,
-      source?.model,
-      source?.encarUrl,
-      source?.inspection?.sourceUrl,
-    ]))
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-
-  if (/(?:^|\W)(?:usa|u\.s\.a|united states|сша|америк|american)(?:$|\W)/i.test(text)) return 'usa'
-  if (/(?:^|\W)(?:japan|япони|jdm)(?:$|\W)/i.test(text)) return 'japan'
-  if (/(?:encar|korea|коре|china|китай|seoul|busan|incheon|сеул|пусан|инчхон)/i.test(text)) return 'asia'
-  return 'asia'
 }
 
 function resolveDefaultCalcEngineValue({ displacement, name, model }) {
@@ -1597,7 +1579,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
     year: String(DEFAULT_CALC_YEAR),
     engine: formatCalcEngineInput(DEFAULT_CALC_ENGINE),
     fuel: 'gasoline',
-    direction: 'asia',
+    direction: DEFAULT_IMPORT_DIRECTION,
     customsValue: '',
   })
   const [calcDefaults, setCalcDefaults] = useState({ year: DEFAULT_CALC_YEAR, engine: DEFAULT_CALC_ENGINE })
@@ -1623,7 +1605,6 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
 
         const mapped = mapCarWithNormalizedSpecs(data)
         const fuel = normalizeCustomsFuel(detectFuel(data))
-        const inferredDirection = inferImportDirection(data, mapped)
         setCar(mapped)
         setImgIdx(0)
         setError('')
@@ -1637,7 +1618,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
             year: formatCalcYearInput(nextCalcDefaults.year),
             engine: formatCalcEngineInput(nextCalcDefaults.engine),
             fuel,
-            direction: inferredDirection,
+            direction: DEFAULT_IMPORT_DIRECTION,
             customsValue: '',
           })
         }
@@ -1650,7 +1631,6 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
             if (!active) return
 
             const mergedDetailCar = mergeCarWithNormalizedEncar(mapped, detail)
-            const inferredDetailDirection = inferImportDirection(detail, mergedDetailCar, mapped)
             setCar((prev) => (prev ? mergeCarWithNormalizedEncar(prev, detail) : prev))
             setImgIdx(0)
             const nextCalcDefaults = {
@@ -1667,7 +1647,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                 year: formatCalcYearInput(nextCalcDefaults.year),
                 engine: formatCalcEngineInput(nextCalcDefaults.engine),
                 fuel: normalizeCustomsFuel(detectFuel({ fuel_type: detail?.fuel_type || mapped.fuelType, tags: mapped.tags })),
-                direction: inferredDetailDirection,
+                direction: DEFAULT_IMPORT_DIRECTION,
                 customsValue: '',
               })
             }
