@@ -507,6 +507,17 @@ const TECHNICAL_SUMMARY_RULES = [
   },
 ]
 
+const DETAILED_INSPECTION_SECTION_ORDER = [
+  'самодиагностика',
+  'двигатель',
+  'трансмиссия и привод',
+  'трансмиссия',
+  'рулевое управление',
+  'тормозная система',
+  'электрика',
+  'топливная система',
+]
+
 function formatInspectionDate(value) {
   const text = String(value || '').trim()
   if (!text) return '-'
@@ -884,6 +895,8 @@ function buildVehicleHistorySecondaryEntries(car) {
     'Государственный',
     'Объем двигателя',
     'Первая регистрация',
+    'Просмотры',
+    'Подписчики',
   ])
 
   return buildRegistrationHistoryEntries(car).filter((entry) => !hiddenLabels.has(entry.label))
@@ -1003,14 +1016,11 @@ function buildRegistrationHistoryEntries(car) {
     { label: 'Тип гарантии', value: getInspectionBasicValue(inspection, 'Тип гарантии') },
     { label: 'Дата отчета', value: getInspectionReportDate(inspection) },
     { label: 'Перерегистрация', value: getReregistrationLabel(manage) },
-    { label: 'Состояние одометра', value: getInspectionSummaryText(inspection, 'Состояние одометра') },
-    { label: 'Пробег по отчёту', value: getInspectionSummaryText(inspection, 'Пробег') },
-    { label: 'Маркировка VIN', value: getInspectionSummaryText(inspection, 'Маркировка VIN') },
-    { label: 'Диагностика Encar', value: getDiagnosisLabel(car?.detailFlags) },
-    { label: 'На Encar с', value: formatDate(manage.firstAdvertisedDateTime || car?.createdAt) },
-    { label: 'Обновлено на Encar', value: formatDate(manage.modifyDateTime || car?.updatedAt) },
-    { label: 'Просмотры', value: Number.isFinite(Number(manage.viewCount)) ? String(Number(manage.viewCount)) : '-' },
-    { label: 'Подписчики', value: Number.isFinite(Number(manage.subscribeCount)) ? String(Number(manage.subscribeCount)) : '-' },
+      { label: 'Диагностика Encar', value: getDiagnosisLabel(car?.detailFlags) },
+      { label: 'На Encar с', value: formatDate(manage.firstAdvertisedDateTime || car?.createdAt) },
+      { label: 'Обновлено на Encar', value: formatDate(manage.modifyDateTime || car?.updatedAt) },
+      { label: 'Просмотры', value: Number.isFinite(Number(manage.viewCount)) ? String(Number(manage.viewCount)) : '-' },
+      { label: 'Подписчики', value: Number.isFinite(Number(manage.subscribeCount)) ? String(Number(manage.subscribeCount)) : '-' },
   ]
 
   return entries.filter((entry) => hasHistoryDisplayValue(entry.value))
@@ -1029,9 +1039,7 @@ function buildAccidentHistoryEntries(car) {
     { label: 'Особая история', value: getInspectionSummaryText(inspection, 'Особая история') },
     { label: 'Изменение назначения', value: getInspectionSummaryText(inspection, 'Изменение назначения') },
     { label: 'Под отзыв', value: getInspectionSummaryText(inspection, 'Под отзыв') },
-    { label: 'Маркировка VIN', value: getInspectionSummaryText(inspection, 'Маркировка VIN') },
-    { label: 'Состояние одометра', value: getInspectionSummaryText(inspection, 'Состояние одометра') },
-    { label: 'Тип окраса', value: getInspectionSummaryText(inspection, 'Тип окраса') },
+      { label: 'Тип окраса', value: getInspectionSummaryText(inspection, 'Тип окраса') },
   ]
 
   return entries.filter((entry) => hasHistoryDisplayValue(entry.value))
@@ -1252,6 +1260,20 @@ function filterDetailedInspectionGroups(groups = []) {
       items: (group.items || []).filter((item) => !shouldHideDetailedInspectionRow(item)),
     }))
     .filter((group) => Array.isArray(group.items) && group.items.length)
+    .sort((left, right) => {
+      const leftTitle = translateInspectionText(left?.title || '')
+      const rightTitle = translateInspectionText(right?.title || '')
+      const leftIndex = DETAILED_INSPECTION_SECTION_ORDER.findIndex((item) => matchesInspectionAliases(leftTitle, [item]))
+      const rightIndex = DETAILED_INSPECTION_SECTION_ORDER.findIndex((item) => matchesInspectionAliases(rightTitle, [item]))
+      const normalizedLeftIndex = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex
+      const normalizedRightIndex = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex
+
+      if (normalizedLeftIndex !== normalizedRightIndex) {
+        return normalizedLeftIndex - normalizedRightIndex
+      }
+
+      return 0
+    })
 }
 
 function buildExteriorInspectionRows(section) {
@@ -1962,7 +1984,6 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
   const bodyInspectionSummary = useMemo(() => buildBodyInspectionSummary(car), [car])
   const bodyPartInspectionHighlights = useMemo(() => buildBodyPartInspectionHighlights(car?.inspection), [car?.inspection])
   const technicalInspectionHighlights = useMemo(() => buildTechnicalInspectionHighlights(car?.inspection), [car?.inspection])
-  const encarFlagBadges = useMemo(() => buildEncarFlagBadges(car), [car])
   const displayLocation = useMemo(() => getShortLocationLabel(car?.location || '', 'Корея'), [car?.location])
   const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
   const inspectionSummary = Array.isArray(car?.inspection?.summary) ? car.inspection.summary : []
@@ -2452,17 +2473,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
               <a href={car.inspection.sourceUrl} target="_blank" rel="noreferrer" className="btn-car-green">{translateInspectionText('Open inspection')}</a>
             )}
           </div>
-          {!!encarFlagBadges.length && (
-            <div className="car-inspection-badges">
-              {encarFlagBadges.map((badge) => (
-                <span key={badge.key} className={`car-inspection-badge car-inspection-badge-${badge.tone}`}>
-                  {badge.label}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {car.inspection ? (
+            {car.inspection ? (
             <div className="car-inspection-stack">
               {!!technicalInspectionHighlights.length && (
                 <div className="car-inspection-block">
@@ -2480,19 +2491,23 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                 </div>
               )}
 
-              {!!bodyPartInspectionHighlights.length && (
+              {car.inspection && (
                 <div className="car-inspection-block">
                   <h4 className="car-inspection-title">Состояние кузова по элементам</h4>
-                  <div className="car-inspection-status-list">
-                    {bodyPartInspectionHighlights.map((item) => (
-                      <InspectionStatusRow
-                        key={item.label}
-                        label={item.label}
-                        value={item.value}
-                        metaLines={item.metaLines}
-                      />
-                    ))}
-                  </div>
+                  {bodyPartInspectionHighlights.length ? (
+                    <div className="car-inspection-status-list">
+                      {bodyPartInspectionHighlights.map((item) => (
+                        <InspectionStatusRow
+                          key={item.label}
+                          label={item.label}
+                          value={item.value}
+                          metaLines={item.metaLines}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="car-inspection-empty">Покомпонентное состояние кузова в отчете Encar не найдено.</div>
+                  )}
                 </div>
               )}
 
@@ -2778,23 +2793,6 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
             </div>
           )}
 
-          {repairHistoryItems.length > 0 && (
-            <div className="car-inspection-block">
-              <h4 className="car-inspection-title">История ремонтов и замен</h4>
-              <div className="car-inspection-group">
-                <div className="car-inspection-group-list">
-                  {repairHistoryItems.map((item, index) => (
-                    <div key={`${item.label}-${index}`} className="car-inspection-line">
-                      <div>
-                        <span>{item.label}</span>
-                      </div>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </section>
       </div>
     </div>
