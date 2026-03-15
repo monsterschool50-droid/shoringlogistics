@@ -164,10 +164,18 @@ function cleanText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim()
 }
 
+function isInspectionPlaceholderValue(value) {
+  const text = cleanText(value)
+  if (!text) return true
+  return ['년', '년 월 일', 'km', '제 호', '// ~ //', '제시번호:'].includes(text)
+}
+
 function translateText(value) {
   const text = cleanText(value)
   if (!text) return ''
   if (TEXT_MAP.has(text)) return TEXT_MAP.get(text)
+  if (text === '사고이력') return 'Аварийная история'
+  if (text === '단순수리') return 'Косметический ремонт'
   if (/타이로드\s*엔드|타이로드엔드/u.test(text) && /볼\s*조인트/u.test(text)) {
     return 'Наконечники рулевых тяг и шаровые опоры'
   }
@@ -191,11 +199,12 @@ function parseBasicInfo($) {
     for (let i = 0; i < cells.length; i += 2) {
       const label = translateText($(cells[i]).text())
       const value = cleanText($(cells[i + 1]).text())
-      if (label && value) items.push({ label, value })
+      if (label && value && !isInspectionPlaceholderValue(value)) items.push({ label, value })
     }
   })
+  const certificate = cleanText($('.inspec_carinfo .ckdate').text())
   return {
-    certificate: cleanText($('.inspec_carinfo .ckdate').text()),
+    certificate: isInspectionPlaceholderValue(certificate) ? '' : certificate,
     items,
   }
 }
@@ -218,6 +227,26 @@ function parseSummaryTable($) {
       amount: amount || '',
       note: note || '',
     })
+  })
+  return rows
+}
+
+function parsePhotoSummaryTable($) {
+  const rows = []
+  $('.inspec_carinfo .tbl_photo tbody tr').each((_, row) => {
+    const cells = $(row).children('th,td').toArray()
+    for (let i = 0; i < cells.length; i += 2) {
+      const label = translateText($(cells[i]).find('.txt_name').text() || $(cells[i]).text())
+      const value = cleanText($(cells[i + 1]).text())
+      if (!label || !value || isInspectionPlaceholderValue(value)) continue
+      rows.push({
+        label,
+        states: [],
+        detail: value,
+        amount: '',
+        note: '',
+      })
+    }
   })
   return rows
 }
@@ -393,16 +422,26 @@ function parseOpinion($) {
 }
 
 function parseInspectionPhotos($) {
-  return $('.section_img .list_img li').map((_, li) => {
-    const $li = $(li)
-    const src = $li.find('img').attr('src')
-    const label = translateText($li.find('.txt_img').text())
-    if (!src) return null
-    return {
-      label: label || 'Фото инспекции',
-      url: toAbsoluteUrl(src),
-    }
-  }).get().filter(Boolean)
+  const photos = []
+  const seen = new Set()
+
+  for (const selector of ['.section_img .list_img li', '.section_photo_view .list_photo_view li']) {
+    $(selector).each((_, li) => {
+      const $li = $(li)
+      const href = $li.find('a').attr('href')
+      const src = $li.find('img').attr('src')
+      const resolvedUrl = toAbsoluteUrl(href || src || '')
+      if (!resolvedUrl || seen.has(resolvedUrl)) return
+      const label = translateText($li.find('.txt_img, .txt_name').text())
+      seen.add(resolvedUrl)
+      photos.push({
+        label: label || 'Фото инспекции',
+        url: resolvedUrl,
+      })
+    })
+  }
+
+  return photos
 }
 
 function parseSignatures($) {
@@ -464,11 +503,12 @@ function buildInspectionDiagnostics(parsed) {
 
 export function parseEncarInspectionHtml(html, { sourceUrl = '' } = {}) {
   const $ = load(html)
+  const summaryRows = parseSummaryTable($)
 
   const parsed = {
     sourceUrl,
     basicInfo: parseBasicInfo($),
-    summary: parseSummaryTable($),
+    summary: summaryRows.length ? summaryRows : parsePhotoSummaryTable($),
     repairHistory: parseRepairHistory($),
     exteriorStatus: parseExteriorStatus($),
     bodyCondition: parseBodyConditionFromScripts(html),

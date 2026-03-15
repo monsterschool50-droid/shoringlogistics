@@ -35,6 +35,7 @@ export default function DeliveryPriceListPage() {
   const country = priceList.country || selectedCountry || null
   const title = country?.label || 'Кыргызстан'
   const shippingTypeLabel = resolveDeliveryTypeLabel(country)
+  const shippingExtraPrice = countryCode === 'ru' ? '900$' : ''
   const visibleCountries = useMemo(
     () => (countries || []).filter((countryItem) => DISPLAY_COUNTRY_CODES.includes(countryItem.code)),
     [countries],
@@ -64,7 +65,12 @@ export default function DeliveryPriceListPage() {
             </h1>
           </div>
           <div className="delivery-price-meta">
-            <div className="delivery-price-badge">{shippingTypeLabel}</div>
+            <div className="delivery-price-badge-row">
+              <div className="delivery-price-badge">{shippingTypeLabel}</div>
+              {shippingExtraPrice ? (
+                <div className="delivery-price-badge delivery-price-badge-accent">{shippingExtraPrice}</div>
+              ) : null}
+            </div>
             <div className="delivery-price-actions">
               <Link to="/" className="delivery-price-link">На главную</Link>
               <Link to="/catalog" className="delivery-price-link is-primary">Каталог</Link>

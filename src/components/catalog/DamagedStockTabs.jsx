@@ -13,7 +13,7 @@ export default function DamagedStockTabs({ active = 'cars' }) {
       </Link>
       <Link
         to="/damaged-stock/parts"
-        className={`damaged-tab${active === 'parts' ? ' is-active' : ''}`}
+        className={`damaged-tab damaged-tab-parts${active === 'parts' ? ' is-active' : ''}`}
         role="tab"
         aria-selected={active === 'parts'}
       >

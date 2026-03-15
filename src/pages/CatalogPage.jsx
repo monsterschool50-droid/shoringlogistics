@@ -505,6 +505,18 @@ function buildCarUpdatePatch(prevCar, nextCar) {
   const nextTags = Array.isArray(nextCar.tags) ? nextCar.tags : []
   if (JSON.stringify(nextTags) !== JSON.stringify(prevTags)) patch.tags = nextTags
 
+  const prevDetailFlags = prevCar.detailFlags && typeof prevCar.detailFlags === 'object' ? prevCar.detailFlags : {}
+  const nextDetailFlags = nextCar.detailFlags && typeof nextCar.detailFlags === 'object' ? nextCar.detailFlags : {}
+  if (JSON.stringify(nextDetailFlags) !== JSON.stringify(prevDetailFlags)) {
+    patch.detail_flags = nextDetailFlags
+  }
+
+  const prevInspectionFormats = Array.isArray(prevCar.inspectionFormats) ? prevCar.inspectionFormats : []
+  const nextInspectionFormats = Array.isArray(nextCar.inspectionFormats) ? nextCar.inspectionFormats : []
+  if (JSON.stringify(nextInspectionFormats) !== JSON.stringify(prevInspectionFormats)) {
+    patch.inspection_formats = nextInspectionFormats
+  }
+
   const prevImages = normalizeImages(prevCar.images)
   const nextImages = normalizeImages(nextCar.images)
   if (JSON.stringify(nextImages) !== JSON.stringify(prevImages)) patch.images = nextImages
@@ -562,7 +574,9 @@ function hasWeakImages(car) {
 
 function needsEncarEnrichment(car) {
   if (!car?.encarId || car.encarId === '-') return false
+  const detailMetaReady = car.detailFlags?.metaReady === true
   return (
+    !detailMetaReady ||
     !car.transmission || car.transmission === '-' ||
     !car.driveType || car.driveType === '-' ||
     isWeakBodyTypeLabel(car.rawBodyType || car.bodyType) ||
@@ -588,9 +602,25 @@ async function fetchEncarDetail(encarId) {
 
   const promise = (async () => {
     try {
-      const res = await fetch(`/api/encar/${encodeURIComponent(key)}`)
-      if (!res.ok) return null
-      const detail = await res.json()
+      let detail = null
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const res = await fetch(`/api/encar/${encodeURIComponent(key)}`)
+          if (res.ok) {
+            detail = await res.json()
+            break
+          }
+          if (!TRANSIENT_CATALOG_HTTP_STATUSES.has(res.status) || attempt === 2) {
+            return null
+          }
+        } catch {
+          if (attempt === 2) return null
+        }
+        await sleep(CATALOG_RETRY_DELAYS_MS[Math.min(attempt, CATALOG_RETRY_DELAYS_MS.length - 1)])
+      }
+
+      if (!detail) return null
+
       const detailTrim = normalizeTrimLabel(detail?.trim_level || '') || extractTrimLabelFromTitle(detail?.name || '', detail?.model || '')
       const normalized = {
         images: normalizeImages(detail?.photos?.length ? detail.photos : detail?.images),
@@ -608,7 +638,7 @@ async function fetchEncarDetail(encarId) {
         interiorColor: normalizeInteriorColorLabel(detail?.interior_color || '', detail?.body_color || '', { allowBodyDuplicate: true }),
         location: getShortLocationLabel(detail?.location_short || detail?.location || ''),
         vin: sanitizeVin(detail?.vin) || '',
-        flags: detail?.flags || {},
+        flags: { ...(detail?.flags || {}), metaReady: true },
         inspectionFormats: detail?.condition?.inspectionFormats || [],
       }
       normalized.engineVolume = resolveEngineVolume(normalized)
@@ -749,8 +779,10 @@ function mapCar(c) {
     canNegotiate: c.can_negotiate,
     imageCount: images.length || 1,
     images,
-    detailFlags: {},
-    inspectionFormats: [],
+    detailFlags: c.detail_flags || c.flags || {},
+    inspectionFormats: Array.isArray(c.inspection_formats)
+      ? c.inspection_formats
+      : (Array.isArray(c.condition?.inspectionFormats) ? c.condition.inspectionFormats : []),
   }
 }
 
@@ -1350,10 +1382,10 @@ export default function CatalogPage({ section = CAR_SECTION_CONFIG.main, introCo
           </div>
 
           <div className="cat-top-btns">
-            <a href="https://www.encar.com" target="_blank" rel="noreferrer" className="btn-encar">
-              <EncarIcon /> Encar
-            </a>
-            <a href="https://chat.whatsapp.com/KYOi5t749ZT16iyqAzbkSd" target="_blank" rel="noreferrer" className="btn-wa-group">
+              <a href="https://www.encar.com" target="_blank" rel="noreferrer" className="btn-encar btn-encar-primary">
+                <EncarIcon /> Encar
+              </a>
+            <a href="https://chat.whatsapp.com/CVUnqkak74z1cBipvF4Vea?mode=gi_t" target="_blank" rel="noreferrer" className="btn-wa-group">
               <WaGroupIcon /> WhatsApp группы
             </a>
           </div>

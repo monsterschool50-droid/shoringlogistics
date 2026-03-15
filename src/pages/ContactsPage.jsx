@@ -271,7 +271,7 @@ export default function ContactsPage() {
           <p className="cnt-section-sub">Присоединяйтесь к группе и каналу AVT Auto V Korea</p>
           <div className="cnt-wa-btns">
             <a
-              href="https://chat.whatsapp.com/KYOi5t749ZT16iyqAzbkSd"
+              href="https://chat.whatsapp.com/CVUnqkak74z1cBipvF4Vea?mode=gi_t"
               target="_blank"
               rel="noreferrer"
               className="cnt-btn-primary"
@@ -323,5 +323,6 @@ export default function ContactsPage() {
     </div>
   )
 }
+
 
 

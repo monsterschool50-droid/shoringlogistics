@@ -10,6 +10,11 @@ import { buildBlockedGenericVehicleSql } from '../lib/catalogVehicleRules.js'
 import { fetchEncarVehicleEnrichment } from '../lib/encarVehicle.js'
 import { getPricingSettings, savePricingSettings } from '../lib/pricingSettings.js'
 import {
+  buildStoredDetailFlags,
+  ensureCarListingMetadataColumns,
+  normalizeInspectionFormats,
+} from '../lib/carListingMetadata.js'
+import {
   classifyVehicleOrigin,
   isWeakBodyType,
   normalizeColorName,
@@ -780,6 +785,7 @@ function buildEnrichFetchTargets(car = {}) {
 }
 
 async function updateCarFields(id, patch, meta = {}) {
+  await ensureCarListingMetadataColumns()
   const fields = Object.entries(patch).filter(([, value]) => value !== undefined)
 
   const updates = []
@@ -837,6 +843,8 @@ async function enrichCar(car, context = {}) {
     })
     const parseNotes = buildEnrichParseNotes(detail, car)
     const patch = {}
+    patch.detail_flags = buildStoredDetailFlags(detail.flags)
+    patch.inspection_formats = normalizeInspectionFormats(detail.condition?.inspectionFormats)
 
     if (shouldRefreshDriveType(car.drive_type)) {
       patch.drive_type_source = normalizeEvidenceSource(detail.drive_type_source)

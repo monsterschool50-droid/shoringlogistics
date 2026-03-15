@@ -81,8 +81,8 @@ const TRIM_REPLACEMENTS = [
   ['peurimieo', 'Премьер'],
   ['peurimio', 'Премьер'],
   ['premier', 'Премьер'],
-  ['the essential', 'Р­СЃСЃРµРЅС€Р»'],
-  ['essential', 'Р­СЃСЃРµРЅС€Р»'],
+  ['the essential', 'Эссеншл'],
+  ['essential', 'Эссеншл'],
   ['calligraphy', 'Каллиграфия'],
   ['prestige', 'Престиж'],
   ['luxury', 'Лакшери'],
@@ -237,7 +237,7 @@ const LIFTBACK_BODY_HINT_RE = /\b(sportback|seupoteubaek|liftback|fastback)\b/i
 const GRAN_COUPE_BODY_HINT_RE = /\b(gran\s+coupe|geurankupe|4[-\s]*door\s+coupe)\b/i
 const SPORTSCAR_BODY_HINT_RE = /\b(sportska|sportscar|huracan|aventador|gallardo|murcielago|revuelto|r8\b|amg\s*gt|mclaren|f8\b|488\b|458\b|720s\b|570s\b|650s\b|600lt\b)\b/i
 const SEDAN_BODY_HINT_RE = /\b(k3|k5|k7|k8|k9|avante|elantra|sonata|grandeur|g70|g80|g90|eq900|sm3|sm5|sm6|sm7|malibu|impala|cts|s80|s90|camry|accord)\b/i
-const HATCH_BODY_HINT_RE = /\b(ioniq|aionik|i30|ceed|cee['’ -]?d|picanto|morning|spark|matiz|golf|polo|veloster|brio)\b/i
+const HATCH_BODY_HINT_RE = /\b(ioniq|aionik|i30|ceed|cee['' -]?d|picanto|morning|spark|matiz|golf|polo|veloster|brio)\b/i
 const WAGON_BODY_HINT_RE = /\b(wagon|estate|touring|shooting\s*brake)\b/i
 const COUPE_BODY_HINT_RE = /\b(coupe|genesis\s+coupe|86|brz)\b/i
 const CABRIO_BODY_HINT_RE = /\b(cabrio|cabriolet|convertible|roadster)\b/i

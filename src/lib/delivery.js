@@ -31,6 +31,8 @@ const DEFAULT_SETTINGS = {
   delivery_profiles: DEFAULT_DELIVERY_PROFILES,
 }
 
+const KG_ONLY_PRICE_LIST_PROFILES = new Set(['sedan_osh', 'sedan_bishkek'])
+
 function toNumber(value, fallback = null) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : fallback
@@ -208,7 +210,9 @@ export function resolveDeliveryPriceList({ settings, countryCode } = {}) {
   const country = countries.find((item) => item.code === resolvedCountryCode) || countries[0] || null
   const activeCountryCode = country?.code || defaultCountryCode
 
-  const items = (normalized.delivery_profiles || []).map((profile) => {
+  const items = (normalized.delivery_profiles || [])
+    .filter((profile) => activeCountryCode === 'kg' || !KG_ONLY_PRICE_LIST_PROFILES.has(profile.code))
+    .map((profile) => {
     const countryPrice = toNumber(profile?.prices?.[activeCountryCode], null)
     const legacyPrice = activeCountryCode === defaultCountryCode ? toNumber(profile?.price, null) : null
     const resolvedPrice = Number.isFinite(countryPrice) && countryPrice > 0 ? countryPrice : legacyPrice

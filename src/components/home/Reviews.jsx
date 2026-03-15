@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const StarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="none">

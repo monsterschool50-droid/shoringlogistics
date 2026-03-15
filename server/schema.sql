@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS cars (
   encar_id         VARCHAR(50),
   can_negotiate    BOOLEAN DEFAULT false,
   tags             TEXT[]  DEFAULT '{}',
+  detail_flags     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  inspection_formats TEXT[] DEFAULT '{}',
   created_at       TIMESTAMP DEFAULT NOW(),
   updated_at       TIMESTAMP DEFAULT NOW()
 );
@@ -112,6 +114,8 @@ ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_last_status VARCHAR(20);
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_last_error TEXT;
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS enrich_last_encar_id VARCHAR(50);
 ALTER TABLE cars ADD COLUMN IF NOT EXISTS listing_type VARCHAR(20) NOT NULL DEFAULT 'main';
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS detail_flags JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS inspection_formats TEXT[] DEFAULT '{}';
 
 -- Индексы для быстрых фильтров
 CREATE INDEX IF NOT EXISTS idx_cars_price_usd  ON cars(price_usd);

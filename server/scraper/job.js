@@ -5,6 +5,11 @@ import { computePricing, getExchangeRateSnapshot } from '../lib/exchangeRate.js'
 import { getBlockedCatalogPriceReason } from '../lib/catalogPriceRules.js'
 import { normalizeCarTextFields } from '../lib/carRecordNormalization.js'
 import { fetchEncarVehicleEnrichment } from '../lib/encarVehicle.js'
+import {
+  buildStoredDetailFlags,
+  ensureCarListingMetadataColumns,
+  normalizeInspectionFormats,
+} from '../lib/carListingMetadata.js'
 import { getPricingSettings, resolveVehicleFees } from '../lib/pricingSettings.js'
 import { BODY_TYPE_LABELS } from '../../shared/vehicleTaxonomy.js'
 import {
@@ -657,6 +662,8 @@ function mergeCarEnrichment(car, enrichment, exchangeSnapshot, pricingSettings) 
       ? enrichment.image_urls
       : car.image_urls,
     encar_url: enrichment.encar_url || car.encar_url,
+    detail_flags: buildStoredDetailFlags(enrichment.flags || car.detail_flags),
+    inspection_formats: normalizeInspectionFormats(enrichment.condition?.inspectionFormats || car.inspection_formats),
   })
 
   return applyPricingToCar(merged, exchangeSnapshot, pricingSettings)
@@ -670,6 +677,7 @@ function createDuplicateError(code, duplicateId) {
 }
 
 async function insertCar(car, photoUrls) {
+  await ensureCarListingMetadataColumns()
   const existingByEncar = await pool.query(
     'SELECT id FROM cars WHERE encar_id = $1 LIMIT 1',
     [car.encar_id],
@@ -696,9 +704,10 @@ async function insertCar(car, photoUrls) {
       `INSERT INTO cars
          (name, model, year, mileage, price_krw, price_usd, fuel_type, transmission, drive_type, drive_type_source, drive_type_diagnostics,
           body_type, vehicle_class, trim_level, key_info, body_color, interior_color, interior_color_source, interior_color_diagnostics, warranty_company, warranty_body_months, warranty_body_km,
-          warranty_transmission_months, warranty_transmission_km, option_features, location, vin, encar_url, encar_id,
-          tags, can_negotiate, commission, delivery, delivery_profile_code, loading, unloading, storage, pricing_locked, vat_refund, total)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
+         warranty_transmission_months, warranty_transmission_km, option_features, location, vin, encar_url, encar_id,
+          tags, can_negotiate, commission, delivery, delivery_profile_code, loading, unloading, storage, pricing_locked, vat_refund, total,
+          detail_flags, inspection_formats)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)
        RETURNING id`,
       [
         car.name, car.model, car.year, car.mileage,
@@ -710,6 +719,7 @@ async function insertCar(car, photoUrls) {
         car.warranty_transmission_months ?? null, car.warranty_transmission_km ?? null, car.option_features || [], car.location, car.vin,
         car.encar_url, car.encar_id, car.tags, car.can_negotiate, car.commission, car.delivery, car.delivery_profile_code || null,
         car.loading, car.unloading, car.storage, car.pricing_locked || false, car.vat_refund, car.total,
+        buildStoredDetailFlags(car.detail_flags), normalizeInspectionFormats(car.inspection_formats),
       ],
     )
     const carId = res.rows[0].id

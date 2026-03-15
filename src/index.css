@@ -4,7 +4,7 @@
 
 /* ========= THEME TRANSITION ========= */
 
-/* РћС‚РєР»СЋС‡Р°РµРј РґРµС„РѕР»С‚РЅС‹Р№ РєСЂРѕСЃСЃ-С„РµР№Рґ вЂ” РёСЃРїРѕР»СЊР·СѓРµРј clip-path ripple */
+/* Отключаем дефолтный кросс-фейд — используем clip-path ripple */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
@@ -19,8 +19,8 @@
   z-index: 1;
 }
 
-/* Р’Рѕ РІСЂРµРјСЏ view transition РѕС‚РєР»СЋС‡Р°РµРј РІСЃРµ element-level transitions
-   С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ РґРІРѕР№РЅРѕР№ Р°РЅРёРјР°С†РёРё Рё "Р»Р°РіРѕРІ" */
+/* Во время view transition отключаем все element-level transitions
+   чтобы не было двойной анимации и "лагов" */
 html:has(::view-transition) *,
 html:has(::view-transition) *::before,
 html:has(::view-transition) *::after {
@@ -70,6 +70,14 @@ html:has(::view-transition) *::after {
 
 * {
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -160,14 +168,14 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-/* РќР° Р·РµР»С‘РЅРѕРј С„РѕРЅРµ A Рё T вЂ” СЃРІРµС‚Р»С‹Рµ */
+/* На зелёном фоне A и T — светлые */
 .header-logo .logo-a,
 .header-logo .logo-t {
   color: #e8ecf0;
   -webkit-text-fill-color: #e8ecf0;
 }
 
-/* РўС‘РјРЅР°СЏ С‚РµРјР° вЂ” СѓР±РёСЂР°РµРј Р·РµР»С‘РЅС‹Р№ С„РѕРЅ */
+/* Тёмная тема — убираем зелёный фон */
 [data-theme="dark"] .header-logo {
   background: none;
   box-shadow: none;
@@ -179,7 +187,7 @@ body {
   transform: none;
 }
 
-/* A Рё T вЂ” Barlow Condensed Black, С‚С‘РјРЅРѕ-СЃС‚Р°Р»СЊРЅРѕР№ РІ СЃРІРµС‚Р»РѕР№ С‚РµРјРµ */
+/* A и T — Barlow Condensed Black, тёмно-стальной в светлой теме */
 .logo-a,
 .logo-t {
   font-family: 'Barlow Condensed', sans-serif;
@@ -191,13 +199,13 @@ body {
   background: none;
 }
 
-/* V вЂ” SVG-РіР°Р»РѕС‡РєР°: С‚РѕР»СЊРєРѕ С„РёР»СЊС‚СЂ-С‚РµРЅСЊ, РѕСЃС‚Р°Р»СЊРЅРѕРµ РІ SVG inline */
+/* V — SVG-галочка: только фильтр-тень, остальное в SVG inline */
 .logo-v-svg {
   filter: drop-shadow(0 0 6px rgba(220, 50, 50, 0.65)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
   flex-shrink: 0;
 }
 
-/* V вЂ” СЃРёСЏСЋС‰РµРµ Р·РѕР»РѕС‚Рѕ */
+/* V — сияющее золото */
 .logo-v {
   font-weight: 900;
   font-size: 24px;
@@ -228,7 +236,7 @@ body {
   filter: none;
 }
 
-/* Dark mode вЂ” A Рё T СЏСЂС‡Рµ, Р±РѕР»СЊС€Рµ Р±РµР»РѕРіРѕ */
+/* Dark mode — A и T ярче, больше белого */
 [data-theme="dark"] .logo-a,
 [data-theme="dark"] .logo-t {
   background: linear-gradient(180deg,
@@ -250,7 +258,7 @@ body {
   filter: drop-shadow(0 0 5px rgba(245, 197, 24, 0.6));
 }
 
-/* Desktop nav вЂ” hidden on mobile */
+/* Desktop nav — hidden on mobile */
 .header-nav {
   display: none;
   align-items: center;
@@ -282,7 +290,7 @@ body {
   font-weight: 600;
 }
 
-/* Search вЂ” limited width, centered via auto margins */
+/* Search — limited width, centered via auto margins */
 .header-search {
   display: none;
   flex: 1;
@@ -342,7 +350,7 @@ body {
   box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.15);
 }
 
-/* Desktop theme toggle вЂ” hidden on mobile */
+/* Desktop theme toggle — hidden on mobile */
 .header-row>.theme-toggle {
   display: none;
 }
@@ -353,7 +361,7 @@ body {
   }
 }
 
-/* Desktop login вЂ” hidden on mobile */
+/* Desktop login — hidden on mobile */
 .header-login {
   display: none;
   align-items: center;
@@ -817,7 +825,7 @@ body {
   font-weight: 900;
   color: #000000;
   line-height: 1.15;
-  margin: 14px 0 0;
+  margin: 28px 0 0;
 }
 
 .hero-delivery-sub {
@@ -1257,7 +1265,7 @@ body {
   font-weight: 500;
 }
 
-/* Steps list вЂ” timeline */
+/* Steps list — timeline */
 .steps-list {
   margin-top: 40px;
   display: flex;
@@ -1356,7 +1364,7 @@ body {
   margin-bottom: 0;
 }
 
-/* Step header: "РЁР°Рі N" + badge */
+/* Step header: "Шаг N" + badge */
 .step-header {
   display: flex;
   align-items: center;
@@ -2012,7 +2020,7 @@ body {
   padding: 0;
 }
 
-/* Footer logo вЂ” AVT: A Рё T СЃРµСЂРµР±СЂРѕ, V Р·РѕР»РѕС‚Рѕ */
+/* Footer logo — AVT: A и T серебро, V золото */
 .footer-logo-tlv {
   font-size: 22px;
   font-weight: 900;
@@ -2311,8 +2319,18 @@ body {
   transition: background-color 0.15s;
 }
 
+.btn-encar-primary {
+  background: linear-gradient(135deg, #da2a30 0%, #b8161c 100%);
+  box-shadow: 0 10px 24px rgba(184, 22, 28, 0.22) !important;
+}
+
 .btn-encar:hover {
   background-color: #15304f;
+}
+
+.btn-encar-primary:hover {
+  background: linear-gradient(135deg, #ec383f 0%, #c71d24 100%);
+  box-shadow: 0 12px 28px rgba(184, 22, 28, 0.3) !important;
 }
 
 .btn-wa-group {
@@ -3000,6 +3018,20 @@ body {
 .btn-car-outline:hover {
   border-color: #1a3c5e;
   color: #1a3c5e;
+}
+
+.btn-car-encar {
+  background: linear-gradient(135deg, #da2a30 0%, #b8161c 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(184, 22, 28, 0.18) !important;
+}
+
+.btn-car-encar:hover {
+  background: linear-gradient(135deg, #ec383f 0%, #c71d24 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(184, 22, 28, 0.24) !important;
 }
 
 .btn-car-green {
@@ -5228,7 +5260,7 @@ body {
   }
 }
 
-/* Scroll reveal вЂ” elements start hidden, become visible via JS */
+/* Scroll reveal — elements start hidden, become visible via JS */
 .reveal {
   opacity: 0;
   transform: translateY(26px);
@@ -5262,7 +5294,7 @@ body {
 }
 
 /* =====================================================================
-   ENHANCED BUTTONS вЂ” hover lift + press + ripple
+   ENHANCED BUTTONS — hover lift + press + ripple
    ===================================================================== */
 
 /* Primary dark buttons */
@@ -5453,7 +5485,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* Nav links вЂ” underline slide */
+/* Nav links — underline slide */
 .header-nav a {
   position: relative;
 }
@@ -5556,7 +5588,7 @@ body {
 }
 
 /* =====================================================================
-   DARK MODE вЂ” COMPREHENSIVE OVERRIDES
+   DARK MODE — COMPREHENSIVE OVERRIDES
    ===================================================================== */
 
 [data-theme="dark"] body {
@@ -5786,7 +5818,7 @@ body {
   color: #00c9a7;
 }
 
-/* WhatsApp group button вЂ” keep green in dark mode too */
+/* WhatsApp group button — keep green in dark mode too */
 [data-theme="dark"] .btn-wa-group {
   background-color: #1da851;
   color: #ffffff;
@@ -5799,7 +5831,7 @@ body {
   color: #ffffff;
 }
 
-/* Buttons вЂ” primary dark */
+/* Buttons — primary dark */
 [data-theme="dark"] .btn-primary,
 [data-theme="dark"] .btn-process-cta,
 [data-theme="dark"] .btn-wa-primary,
@@ -5818,7 +5850,7 @@ body {
   background-color: #255a8a;
 }
 
-/* Buttons вЂ” outline */
+/* Buttons — outline */
 [data-theme="dark"] .btn-secondary,
 [data-theme="dark"] .btn-wa-secondary,
 [data-theme="dark"] .btn-cta-secondary,
@@ -5839,6 +5871,20 @@ body {
   background-color: #162032;
   border-color: #2d5070;
   color: #e2e8f0;
+}
+
+[data-theme="dark"] .btn-encar-primary,
+[data-theme="dark"] .btn-car-encar {
+  background: linear-gradient(135deg, #e03a41 0%, #ba171d 100%);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn-encar-primary:hover,
+[data-theme="dark"] .btn-car-encar:hover {
+  background: linear-gradient(135deg, #f24a51 0%, #ca2127 100%);
+  border-color: transparent;
+  color: #ffffff;
 }
 
 /* Process section */
@@ -6901,7 +6947,7 @@ body {
   color: #00c9a7;
 }
 
-/* в”Ђв”Ђ Catalog: loading / error / pagination в”Ђв”Ђ */
+/* в"Ђв"Ђ Catalog: loading / error / pagination в"Ђв"Ђ */
 .cat-loading {
   display: flex;
   flex-direction: column;
@@ -7074,7 +7120,7 @@ body {
    ADMIN PANEL
 в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ */
 
-/* в”Ђв”Ђв”Ђ Root layout в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Root layout в"Ђв"Ђв"Ђ */
 .adm-layout {
   display: flex;
   height: 100vh;
@@ -7084,7 +7130,7 @@ body {
   overflow: hidden;
 }
 
-/* в”Ђв”Ђв”Ђ Sidebar в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Sidebar в"Ђв"Ђв"Ђ */
 .adm-sidebar {
   width: 240px;
   background: linear-gradient(180deg, #0d1526 0%, #0a0f1a 100%);
@@ -7166,7 +7212,7 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* в”Ђв”Ђв”Ђ Main wrap в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Main wrap в"Ђв"Ђв"Ђ */
 .adm-main-wrap {
   flex: 1;
   display: flex;
@@ -7175,7 +7221,7 @@ body {
   overflow: hidden;
 }
 
-/* в”Ђв”Ђв”Ђ Topbar в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Topbar в"Ђв"Ђв"Ђ */
 .adm-topbar {
   display: flex;
   align-items: center;
@@ -7228,7 +7274,7 @@ body {
   text-transform: uppercase;
 }
 
-/* в”Ђв”Ђв”Ђ Content area в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Content area в"Ђв"Ђв"Ђ */
 .adm-content {
   flex: 1;
   overflow-y: auto;
@@ -7250,7 +7296,7 @@ body {
   border-radius: 3px;
 }
 
-/* в”Ђв”Ђв”Ђ Section heading в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Section heading в"Ђв"Ђв"Ђ */
 .adm-section-heading {
   font-size: 22px;
   font-weight: 800;
@@ -7258,7 +7304,7 @@ body {
   margin: 0;
 }
 
-/* в”Ђв”Ђв”Ђ Dashboard в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Dashboard в"Ђв"Ђв"Ђ */
 .adm-dash-header {
   display: flex;
   align-items: center;
@@ -7317,7 +7363,7 @@ body {
   font-weight: 500;
 }
 
-/* в”Ђв”Ђв”Ђ Brands chart в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Brands chart в"Ђв"Ђв"Ђ */
 .adm-brands-chart {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -7369,7 +7415,7 @@ body {
   text-align: right;
 }
 
-/* в”Ђв”Ђв”Ђ Cars list в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Cars list в"Ђв"Ђв"Ђ */
 .adm-cars-header {
   display: flex;
   align-items: center;
@@ -7385,7 +7431,7 @@ body {
   margin-top: 4px;
 }
 
-/* в”Ђв”Ђв”Ђ Toolbar в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Toolbar в"Ђв"Ђв"Ђ */
 .adm-toolbar {
   display: flex;
   align-items: center;
@@ -7484,7 +7530,7 @@ body {
   border-color: rgba(99, 102, 241, 0.5);
 }
 
-/* в”Ђв”Ђв”Ђ Buttons в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Buttons в"Ђв"Ђв"Ђ */
 .adm-btn {
   display: inline-flex;
   align-items: center;
@@ -7576,7 +7622,7 @@ body {
   background: rgba(16, 185, 129, 0.25);
 }
 
-/* в”Ђв”Ђв”Ђ Table в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Table в"Ђв"Ђв"Ђ */
 .adm-table-wrap {
   overflow-x: auto;
   border-radius: 14px;
@@ -7785,7 +7831,7 @@ body {
   border-color: rgba(239, 68, 68, 0.25);
 }
 
-/* в”Ђв”Ђв”Ђ Pagination в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Pagination в"Ђв"Ђв"Ђ */
 .adm-pagination {
   display: flex;
   align-items: center;
@@ -7800,7 +7846,7 @@ body {
   margin-left: auto;
 }
 
-/* в”Ђв”Ђв”Ђ Modal в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Modal в"Ђв"Ђв"Ђ */
 .adm-modal-overlay {
   position: fixed;
   inset: 0;
@@ -7895,7 +7941,7 @@ body {
   scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
 }
 
-/* в”Ђв”Ђв”Ђ Form в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Form в"Ђв"Ђв"Ђ */
 
 .adm-section-title {
   font-size: 12px;
@@ -8074,7 +8120,7 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* в”Ђв”Ђв”Ђ Image Manager в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Image Manager в"Ђв"Ђв"Ђ */
 
 .adm-imgmgr-upload {
   border: 2px dashed rgba(99, 102, 241, 0.3);
@@ -8182,7 +8228,7 @@ body {
   font-size: 13px;
 }
 
-/* в”Ђв”Ђв”Ђ Loading & Empty в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Loading & Empty в"Ђв"Ђв"Ђ */
 .adm-loading {
   display: flex;
   align-items: center;
@@ -8212,7 +8258,7 @@ body {
   font-size: 14px;
 }
 
-/* в”Ђв”Ђв”Ђ Toast в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Toast в"Ђв"Ђв"Ђ */
 .adm-toast {
   display: flex;
   align-items: center;
@@ -8257,7 +8303,7 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
-/* в”Ђв”Ђв”Ђ Login screen в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Login screen в"Ђв"Ђв"Ђ */
 .adm-login-screen {
   min-height: 100vh;
   display: flex;
@@ -8327,7 +8373,7 @@ body {
   font-size: 12px;
 }
 
-/* в”Ђв”Ђв”Ђ Filter sidebar improvements в”Ђв”Ђв”Ђ */
+/* в"Ђв"Ђв"Ђ Filter sidebar improvements в"Ђв"Ђв"Ђ */
 .filter-actions {
   display: flex;
   gap: 10px;
@@ -8381,7 +8427,7 @@ body {
   color: #374151;
 }
 
-/* в”Ђв”Ђ Admin v2 overrides & new components в”Ђв”Ђ */
+/* в"Ђв"Ђ Admin v2 overrides & new components в"Ђв"Ђ */
 .adm-sidebar-col {
   width: 64px;
 }
@@ -9068,7 +9114,7 @@ body {
   background: rgba(16, 185, 129, .25);
 }
 
-/* Quick action color fix вЂ” use static bg since CSS custom props from style don't work in :hover */
+/* Quick action color fix — use static bg since CSS custom props from style don't work in :hover */
 .adm-qa-btn:hover {
   background: rgba(99, 102, 241, .12);
   color: #e2e8f0;
@@ -10200,9 +10246,14 @@ body {
 }
 
 .damaged-tab.is-active {
-  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
-  box-shadow: 0 14px 28px rgba(185, 28, 28, 0.24);
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.24);
+}
+
+.damaged-tab-parts.is-active {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.24);
 }
 
 .parts-page-shell {
@@ -10830,13 +10881,25 @@ body {
 }
 
 .btn-primary.hero-btn-primary {
-  background: linear-gradient(135deg, #da2a30 0%, #b8161c 100%);
-  box-shadow: 0 10px 24px rgba(184, 22, 28, 0.22) !important;
+  position: relative;
+  overflow: hidden;
+  min-height: 72px;
+  padding: 20px 36px;
+  border-radius: 18px;
+  font-size: 17px;
+  font-weight: 800;
+  background:
+    linear-gradient(135deg, rgba(218, 42, 48, 0.72) 0%, rgba(184, 22, 28, 0.78) 100%),
+    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  box-shadow: 0 12px 28px rgba(184, 22, 28, 0.24) !important;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.24);
 }
 
 .btn-primary.hero-btn-primary:hover {
-  background: linear-gradient(135deg, #ec383f 0%, #c71d24 100%);
-  box-shadow: 0 12px 28px rgba(184, 22, 28, 0.3) !important;
+  background:
+    linear-gradient(135deg, rgba(236, 56, 63, 0.68) 0%, rgba(199, 29, 36, 0.74) 100%),
+    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  box-shadow: 0 16px 34px rgba(184, 22, 28, 0.3) !important;
 }
 
 .btn-process-cta,
@@ -10850,13 +10913,17 @@ body {
 }
 
 [data-theme="dark"] .btn-primary.hero-btn-primary {
-  background: linear-gradient(135deg, #e03a41 0%, #ba171d 100%);
-  box-shadow: 0 10px 24px rgba(186, 23, 29, 0.3) !important;
+  background:
+    linear-gradient(135deg, rgba(224, 58, 65, 0.72) 0%, rgba(186, 23, 29, 0.8) 100%),
+    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  box-shadow: 0 12px 28px rgba(186, 23, 29, 0.3) !important;
 }
 
 [data-theme="dark"] .btn-primary.hero-btn-primary:hover {
-  background: linear-gradient(135deg, #f24a51 0%, #ca2127 100%);
-  box-shadow: 0 12px 28px rgba(186, 23, 29, 0.38) !important;
+  background:
+    linear-gradient(135deg, rgba(242, 74, 81, 0.68) 0%, rgba(202, 33, 39, 0.76) 100%),
+    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  box-shadow: 0 16px 34px rgba(186, 23, 29, 0.38) !important;
 }
 
 [data-theme="dark"] .btn-process-cta,
@@ -10877,6 +10944,7 @@ body {
 
 .hero-logistics-card .why-logistics-title {
   margin-top: -6px;
+  color: #000000;
 }
 
 /* Admin delivery matrix */
@@ -11013,6 +11081,19 @@ body {
   color: #21476f;
   font-size: 14px;
   font-weight: 700;
+}
+
+.delivery-price-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delivery-price-badge-accent {
+  background: rgba(22, 163, 74, 0.12);
+  border-color: rgba(22, 163, 74, 0.2);
+  color: #15803d;
 }
 
 .delivery-price-actions {
@@ -11169,7 +11250,7 @@ body {
   font-size: clamp(28px, 4vw, 42px);
   line-height: 1;
   font-weight: 900;
-  color: #d36f21;
+  color: #16a34a;
   text-align: right;
 }
 
@@ -11219,6 +11300,12 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.08);
   color: #f8fafc;
+}
+
+[data-theme="dark"] .delivery-price-badge-accent {
+  background: rgba(22, 163, 74, 0.18);
+  border-color: rgba(22, 163, 74, 0.24);
+  color: #dcfce7;
 }
 
 [data-theme="dark"] .delivery-price-link {
@@ -11303,7 +11390,10 @@ body {
   }
 
   .delivery-price-board {
-    padding: 14px 14px 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
     border-radius: 20px;
   }
 
@@ -11313,21 +11403,41 @@ body {
 
   .delivery-price-row {
     grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-    padding: 16px 2px;
+    gap: 6px;
+    min-height: 132px;
+    padding: 14px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.82);
+    align-content: start;
+    border-bottom: none;
   }
 
   .delivery-price-row-title {
-    font-size: 18px;
+    font-size: 16px;
+    line-height: 1.05;
   }
 
   .delivery-price-row-description {
-    font-size: 14px;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .delivery-price-row-value {
     min-width: 0;
     text-align: left;
-    font-size: 26px;
+    font-size: 22px;
+    margin-top: 4px;
+  }
+
+  [data-theme="dark"] .delivery-price-row {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+@media (max-width: 390px) {
+  .delivery-price-board {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

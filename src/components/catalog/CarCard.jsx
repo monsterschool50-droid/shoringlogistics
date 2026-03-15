@@ -237,7 +237,7 @@ export default function CarCard({ car, detailsHref = `/catalog/${car?.id}`, list
     setImgIdx(0)
   }
 
-  const openDetails = () => navigate(detailsHref)
+  const openDetails = () => navigate(detailsHref, { state: { carPreview: car } })
 
   const onCardClick = (e) => {
     if (e.defaultPrevented) return
@@ -424,11 +424,11 @@ export default function CarCard({ car, detailsHref = `/catalog/${car?.id}`, list
       </div>
 
       <div className="car-card-actions">
-        <Link to={detailsHref} className="btn-car-primary">Открыть детали</Link>
+        <Link to={detailsHref} state={{ carPreview: car }} className="btn-car-primary">Открыть детали</Link>
         {car.encarUrl ? (
-          <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-outline">
-            Encar →
-          </a>
+                        <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-outline btn-car-encar">
+                          Encar →
+                        </a>
         ) : null}
         <a
           href={`https://wa.me/821056650943?text=${encodeURIComponent(`Хочу заказать: ${car.name} (${car.year}), VIN: ${car.vin || '-'}`)}`}

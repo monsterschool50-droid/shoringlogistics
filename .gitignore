@@ -32,3 +32,6 @@ server/uploads/cars/
 *.sw?
 
 /.claude/
+
+# Runtime cache (local only)
+server/scraper/.runtime-cache.json

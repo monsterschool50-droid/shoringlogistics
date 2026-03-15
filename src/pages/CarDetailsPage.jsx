@@ -1,5 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { applyVehicleTitleFixes } from '../../shared/vehicleTextFixes.js'
 import { sanitizeVin } from '../../shared/vin.js'
 import { useRef } from 'react'
@@ -696,7 +696,7 @@ function buildInspectionPhotoMeta(photo, index) {
 }
 
 function hasHistoryDisplayValue(value) {
-  return value !== null && value !== undefined && value !== '' && value !== '-' && value !== 'вЂ”'
+  return value !== null && value !== undefined && value !== '' && value !== '-' && value !== '—'
 }
 
 function formatHistoryNumber(value) {
@@ -1240,6 +1240,34 @@ function buildTechnicalInspectionHighlights(inspection) {
       metaLines: summary.metaLines,
     }
   }).filter(Boolean)
+}
+
+function getInspectionFormatLabel(condition = {}) {
+  const formats = Array.isArray(condition?.inspectionFormats) ? condition.inspectionFormats : []
+  if (formats.includes('TABLE')) return 'Табличный отчет'
+  if (formats.includes('IMAGE')) return 'Фотоотчет'
+  return condition?.accidentRecordView || condition?.accidentResumeView ? 'Ограниченный отчет' : '-'
+}
+
+function buildLimitedInspectionItems(car) {
+  const condition = car?.detailCondition || {}
+  const history = getVehicleHistory(car)
+  const overview = history?.overview || {}
+  const statistics = history?.statistics || {}
+
+  const accidentValue = Number.isFinite(Number(statistics.accidents))
+    ? formatCountLabel(statistics.accidents, 'Нет записей о ДТП')
+    : getAccidentHistoryLabel(condition)
+
+  return [
+    { label: 'Диагностика Encar', value: getDiagnosisLabel(car?.detailFlags) },
+    { label: 'Формат отчета', value: getInspectionFormatLabel(condition) },
+    { label: 'Аварийная история', value: accidentValue },
+    { label: 'Подробная запись', value: condition.accidentResumeView ? 'Доступна' : 'Нет' },
+    { label: 'Открытые данные', value: overview.openData || '-' },
+    { label: 'Залог', value: formatCountLabel(condition.pledgeCount, 'Без залога') },
+    { label: 'Арест / ограничения', value: formatCountLabel(condition.seizingCount, 'Без ограничений') },
+  ].filter((item) => hasHistoryDisplayValue(item.value))
 }
 
 function shouldHideDetailedInspectionRow(row) {
@@ -1864,15 +1892,20 @@ function mergeCarWithNormalizedEncar(baseCar, detail) {
 
 export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const deliveryContext = useDeliveryContext()
   const deliverySettings = deliveryContext?.settings
   const selectedCountryCode = deliveryContext?.countryCode
   const selectedCountry = deliveryContext?.selectedCountry
   const calcDirtyRef = useRef(false)
-  const [loading, setLoading] = useState(true)
+  const previewCar = useMemo(() => {
+    const candidate = location.state?.carPreview
+    return candidate && Number(candidate.id) === Number(id) ? candidate : null
+  }, [id, location.state])
+  const [loading, setLoading] = useState(() => !previewCar)
   const [error, setError] = useState('')
-  const [car, setCar] = useState(null)
+  const [car, setCar] = useState(() => previewCar)
   const [imgIdx, setImgIdx] = useState(0)
   const [inspectionOpen, setInspectionOpen] = useState(false)
   const [calc, setCalc] = useState({
@@ -1891,8 +1924,16 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
 
   useEffect(() => {
     let active = true
+    let hasBaseResponse = false
     calcDirtyRef.current = false
     setInspectionOpen(false)
+    if (previewCar) {
+      setCar(previewCar)
+      setLoading(false)
+    } else {
+      setCar(null)
+      setLoading(true)
+    }
 
     const run = async () => {
       try {
@@ -1904,10 +1945,12 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
         if (!active) return
 
         const mapped = mapCarWithNormalizedSpecs(data)
+        hasBaseResponse = true
         const fuel = normalizeCustomsFuel(detectFuel(data))
         setCar(mapped)
         setImgIdx(0)
         setError('')
+        setLoading(false)
         const nextCalcDefaults = {
           year: mapped.yearNum || DEFAULT_CALC_YEAR,
           engine: resolveDefaultCalcEngineValue({ displacement: mapped.displacement, name: mapped.name, model: mapped.model }),
@@ -1930,7 +1973,6 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
             const detail = await detailRes.json()
             if (!active) return
 
-            const mergedDetailCar = mergeCarWithNormalizedEncar(mapped, detail)
             setCar((prev) => (prev ? mergeCarWithNormalizedEncar(prev, detail) : prev))
             setImgIdx(0)
             const nextCalcDefaults = {
@@ -1959,13 +2001,13 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
         if (!active) return
         setError(e.message || 'Ошибка загрузки карточки')
       } finally {
-        if (active) setLoading(false)
+        if (active && !hasBaseResponse) setLoading(false)
       }
     }
 
     run()
     return () => { active = false }
-  }, [id, section.listingType])
+  }, [id, previewCar, section.listingType])
 
   const imageCount = car?.images?.length || 1
   const boundedIdx = Math.min(imgIdx, imageCount - 1)
@@ -1984,6 +2026,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
   const bodyInspectionSummary = useMemo(() => buildBodyInspectionSummary(car), [car])
   const bodyPartInspectionHighlights = useMemo(() => buildBodyPartInspectionHighlights(car?.inspection), [car?.inspection])
   const technicalInspectionHighlights = useMemo(() => buildTechnicalInspectionHighlights(car?.inspection), [car?.inspection])
+  const limitedInspectionItems = useMemo(() => buildLimitedInspectionItems(car), [car])
   const displayLocation = useMemo(() => getShortLocationLabel(car?.location || '', 'Корея'), [car?.location])
   const inspectionPhotos = Array.isArray(car?.inspection?.photos) ? car.inspection.photos : []
   const inspectionSummary = Array.isArray(car?.inspection?.summary) ? car.inspection.summary : []
@@ -1991,6 +2034,16 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
     () => inspectionSummary.filter((item) => !shouldHideInspectionSummaryItem(item?.label)),
     [inspectionSummary],
   )
+  const hasInspectionPrimaryContent = (
+    technicalInspectionHighlights.length > 0
+    || bodyPartInspectionHighlights.length > 0
+    || bodyInspectionSummary.length > 0
+    || inspectionPhotos.length > 0
+    || filteredInspectionSummary.length > 0
+    || repairHistoryItems.length > 0
+    || filteredInspectionGroups.length > 0
+  )
+  const canRenderInspectionBlock = Boolean(car?.inspection || limitedInspectionItems.length)
 
   const deliveryInfo = useMemo(
     () => resolveDeliveryForCar({ car, settings: deliverySettings, countryCode: selectedCountryCode }),
@@ -2196,7 +2249,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
 
               <div className="car-details-actions">
                 <a href={`https://wa.me/821056650943?text=Хочу заказать: ${car.name} (${car.year}), VIN: ${car.vin || '-'}`} target="_blank" rel="noreferrer" className="btn-car-green">Заказать</a>
-                {car.encarUrl ? <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-outline">На Encar</a> : null}
+                {car.encarUrl ? <a href={car.encarUrl} target="_blank" rel="noreferrer" className="btn-car-outline btn-car-encar">На Encar</a> : null}
               </div>
             </div>
           </section>
@@ -2445,12 +2498,12 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
           </aside>
         </div>
 
-                <section className="car-details-card car-details-bottom-card">
+        <section className="car-details-card car-details-bottom-card">
           <div className="car-inspection-header">
             <div>
               <h3 className="car-details-card-title">{translateInspectionText('Inspection and diagnostics')}</h3>
               <p className="car-details-muted">
-                {translateInspectionText(`Diagnosis Encar: ${car.detailFlags?.diagnosis ? 'available' : 'limited'}.`)} {translateInspectionText('Views')}: {Number(car.detailManage?.viewCount || 0).toLocaleString()} | {translateInspectionText('Subscribers')}: {Number(car.detailManage?.subscribeCount || 0).toLocaleString()}.
+                {translateInspectionText(`Diagnosis Encar: ${car.detailFlags?.diagnosis ? 'available' : 'limited'}.`)}
               </p>
             </div>
             {car.inspection && (
@@ -2473,7 +2526,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
               <a href={car.inspection.sourceUrl} target="_blank" rel="noreferrer" className="btn-car-green">{translateInspectionText('Open inspection')}</a>
             )}
           </div>
-            {car.inspection ? (
+            {canRenderInspectionBlock ? (
             <div className="car-inspection-stack">
               {!!technicalInspectionHighlights.length && (
                 <div className="car-inspection-block">
@@ -2506,7 +2559,7 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                       ))}
                     </div>
                   ) : (
-                    <div className="car-inspection-empty">Покомпонентное состояние кузова в отчете Encar не найдено.</div>
+                    <div className="car-inspection-empty">Encar не отдал покомпонентную схему кузова для этой машины.</div>
                   )}
                 </div>
               )}
@@ -2558,6 +2611,21 @@ export default function CarDetailsPage({ section = CAR_SECTION_CONFIG.main }) {
                         />
                       )
                     })}
+                  </div>
+                </div>
+              )}
+
+              {!hasInspectionPrimaryContent && !!limitedInspectionItems.length && (
+                <div className="car-inspection-block">
+                  <h4 className="car-inspection-title">Доступные данные Encar</h4>
+                  <div className="car-inspection-status-list">
+                    {limitedInspectionItems.map((item) => (
+                      <InspectionStatusRow
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                      />
+                    ))}
                   </div>
                 </div>
               )}

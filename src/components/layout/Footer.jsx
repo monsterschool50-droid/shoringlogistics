@@ -138,7 +138,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="https://chat.whatsapp.com/KYOi5t749ZT16iyqAzbkSd" target="_blank" rel="noreferrer" className="footer-link">
+                <a href="https://chat.whatsapp.com/CVUnqkak74z1cBipvF4Vea?mode=gi_t" target="_blank" rel="noreferrer" className="footer-link">
                   <span className="footer-link-icon green"><GroupIcon /></span>
                   <span>Группа WhatsApp: <strong>AVT Auto V Korea</strong></span>
                 </a>
@@ -208,5 +208,6 @@ export default function Footer() {
     </footer>
   )
 }
+
 
 

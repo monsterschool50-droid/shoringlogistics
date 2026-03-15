@@ -1,5 +1,6 @@
 import pool from '../server/db.js'
 import { fetchEncarVehicleEnrichment } from '../server/lib/encarVehicle.js'
+import { buildStoredDetailFlags, normalizeInspectionFormats } from '../server/lib/carListingMetadata.js'
 import { normalizeCarTextFields } from '../server/lib/carRecordNormalization.js'
 import { normalizeDrive, normalizeInteriorColorName } from '../server/lib/vehicleData.js'
 import { isStandardVin, normalizeVin } from '../server/lib/vin.js'
@@ -45,6 +46,8 @@ const SERVICE_ONLY_FIELDS = new Set([
   'drive_type_diagnostics',
   'interior_color_source',
   'interior_color_diagnostics',
+  'detail_flags',
+  'inspection_formats',
 ])
 
 function cleanText(value) {
@@ -137,6 +140,8 @@ async function ensureSchema() {
   await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS warranty_body_km BIGINT`)
   await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS warranty_transmission_months INTEGER`)
   await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS warranty_transmission_km BIGINT`)
+  await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS detail_flags JSONB NOT NULL DEFAULT '{}'::jsonb`)
+  await pool.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS inspection_formats TEXT[] DEFAULT '{}'::text[]`)
 }
 
 function hasTarget(name) {
@@ -381,6 +386,8 @@ async function main() {
           interior_color: detail.interior_color ?? row.interior_color,
         })
         const patch = {}
+        patch.detail_flags = buildStoredDetailFlags(detail.flags)
+        patch.inspection_formats = normalizeInspectionFormats(detail.condition?.inspectionFormats)
         const nextInterior = normalizeInteriorColorName(
           cleanText(normalizedDetail.interior_color),
           row.body_color || '',
