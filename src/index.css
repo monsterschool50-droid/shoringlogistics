@@ -1609,6 +1609,31 @@ body {
   font-style: italic;
 }
 
+.reviews-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.reviews-toggle {
+  min-width: 180px;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 22px;
+  background: linear-gradient(135deg, #d91e2b 0%, #ef4444 100%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(217, 30, 43, 0.22);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.reviews-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(217, 30, 43, 0.28);
+}
+
 /* в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
    WHATSAPP
 в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ */
@@ -5912,6 +5937,10 @@ body {
 
 [data-theme="dark"] .review-text {
   color: #7a96b0;
+}
+
+[data-theme="dark"] .reviews-toggle {
+  box-shadow: 0 12px 24px rgba(217, 30, 43, 0.28);
 }
 
 /* WhatsApp section */
