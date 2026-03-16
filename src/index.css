@@ -10888,18 +10888,39 @@ body {
   border-radius: 18px;
   font-size: 17px;
   font-weight: 800;
-  background:
-    linear-gradient(135deg, rgba(218, 42, 48, 0.72) 0%, rgba(184, 22, 28, 0.78) 100%),
-    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  background-color: #b8161c;
   box-shadow: 0 12px 28px rgba(184, 22, 28, 0.24) !important;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.24);
 }
 
 .btn-primary.hero-btn-primary:hover {
-  background:
-    linear-gradient(135deg, rgba(236, 56, 63, 0.68) 0%, rgba(199, 29, 36, 0.74) 100%),
-    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  background-color: #c71d24;
   box-shadow: 0 16px 34px rgba(184, 22, 28, 0.3) !important;
+}
+
+.hero-btn-primary-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.hero-btn-primary-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(218, 42, 48, 0.64) 0%, rgba(184, 22, 28, 0.74) 100%);
+  pointer-events: none;
+}
+
+.hero-btn-primary-content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-process-cta,
@@ -10913,16 +10934,12 @@ body {
 }
 
 [data-theme="dark"] .btn-primary.hero-btn-primary {
-  background:
-    linear-gradient(135deg, rgba(224, 58, 65, 0.72) 0%, rgba(186, 23, 29, 0.8) 100%),
-    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  background-color: #ba171d;
   box-shadow: 0 12px 28px rgba(186, 23, 29, 0.3) !important;
 }
 
 [data-theme="dark"] .btn-primary.hero-btn-primary:hover {
-  background:
-    linear-gradient(135deg, rgba(242, 74, 81, 0.68) 0%, rgba(202, 33, 39, 0.76) 100%),
-    url('https://kor.ill.in.ua/m/610x385/2593808.jpg') center center / cover no-repeat;
+  background-color: #ca2127;
   box-shadow: 0 16px 34px rgba(186, 23, 29, 0.38) !important;
 }
 

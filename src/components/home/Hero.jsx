@@ -245,8 +245,21 @@ export default function Hero() {
 
           <div className="hero-btns" style={{ marginTop: '28px', display: 'flex', gap: '12px' }}>
             <Link to="/catalog" className="btn-primary hero-btn-primary">
-              <CarIcon />
-              Посмотреть каталог
+              <video
+                className="hero-btn-primary-video"
+                src="/button.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-hidden="true"
+              />
+              <span className="hero-btn-primary-overlay" aria-hidden="true" />
+              <span className="hero-btn-primary-content">
+                <CarIcon />
+                Посмотреть каталог
+              </span>
             </Link>
             <a href={PRIMARY_WHATSAPP_URL} target="_blank" rel="noreferrer" className="btn-secondary">
               Связаться с нами
