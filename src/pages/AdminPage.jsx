@@ -67,6 +67,8 @@ const BACKFILL_MODE_OPTIONS = [
 ]
 const DEFAULT_CATALOG_EXPORT_LIMIT = 5000
 const MAX_CATALOG_EXPORT_LIMIT = 50000
+const DEFAULT_CATALOG_EXPORT_START = 1
+const MAX_CATALOG_EXPORT_START = 1000000
 const ADMIN_LOGIN_MAX_ATTEMPTS = 3
 const ADMIN_LOGIN_LOCKOUT_KEY = 'tlv-admin-login-lockout-until'
 const ADMIN_SESSION_STORAGE_KEY = 'tlv-admin-session-token'
@@ -166,6 +168,13 @@ function normalizeCatalogExportLimit(value) {
     const parsed = Number.parseInt(String(value), 10)
     if (!Number.isFinite(parsed)) return DEFAULT_CATALOG_EXPORT_LIMIT
     return Math.min(Math.max(parsed, 1), MAX_CATALOG_EXPORT_LIMIT)
+}
+
+function normalizeCatalogExportStart(value) {
+    if (value === '' || value === null || value === undefined) return DEFAULT_CATALOG_EXPORT_START
+    const parsed = Number.parseInt(String(value), 10)
+    if (!Number.isFinite(parsed)) return DEFAULT_CATALOG_EXPORT_START
+    return Math.min(Math.max(parsed, DEFAULT_CATALOG_EXPORT_START), MAX_CATALOG_EXPORT_START)
 }
 
 function formatEnrichScopeLabel(scope, latestLimit) {
@@ -381,8 +390,11 @@ const api = {
     getStats: () => apiFetch('/api/admin/stats'),
     getPricingSettings: () => apiFetch('/api/admin/pricing-settings'),
     updatePricingSettings: d => apiFetch('/api/admin/pricing-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
-    downloadCatalogExport: (limit) => {
+    downloadCatalogExport: (start, limit) => {
         const params = new URLSearchParams()
+        if (start !== null && start !== undefined && start !== '') {
+            params.set('start', String(start))
+        }
         if (limit !== null && limit !== undefined && limit !== '') {
             params.set('limit', String(limit))
         }
@@ -1482,6 +1494,7 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
     const [adding, setAdding] = useState(!!initAdd)
     const [busy, setBusy] = useState(false)
     const [exporting, setExporting] = useState(false)
+    const [catalogExportStart, setCatalogExportStart] = useState(String(DEFAULT_CATALOG_EXPORT_START))
     const [catalogExportLimit, setCatalogExportLimit] = useState(String(DEFAULT_CATALOG_EXPORT_LIMIT))
     const [enriching, setEnriching] = useState(false)
     const [stoppingEnrich, setStoppingEnrich] = useState(false)
@@ -1757,13 +1770,16 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
     const downloadCatalogExport = async () => {
         setExporting(true)
         try {
+            const exportStart = normalizeCatalogExportStart(catalogExportStart)
             const exportLimit = normalizeCatalogExportLimit(catalogExportLimit)
-            const response = await api.downloadCatalogExport(exportLimit)
+            const response = await api.downloadCatalogExport(exportStart, exportLimit)
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
             const blob = await response.blob()
             const disposition = response.headers.get('Content-Disposition') || ''
-            const fallbackSuffix = exportLimit ? `latest-${exportLimit}-` : ''
+            const fallbackSuffix = exportLimit
+                ? `from-${exportStart}-count-${exportLimit}-`
+                : `from-${exportStart}-`
             const fallbackName = `catalog-export-${fallbackSuffix}${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`
             const match = disposition.match(/filename="?([^"]+)"?/i)
             const filename = match?.[1] || fallbackName
@@ -1775,7 +1791,12 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
             link.click()
             link.remove()
             window.URL.revokeObjectURL(url)
-            toast(exportLimit ? `JSON скачан: последние ${exportLimit.toLocaleString('ru-RU')} авто` : 'JSON каталога скачан полностью', 'success')
+            const exportMessage = exportLimit
+                ? `JSON скачан: с позиции ${exportStart.toLocaleString('ru-RU')}, ${exportLimit.toLocaleString('ru-RU')} авто`
+                : (exportStart > 1
+                    ? `JSON скачан: с позиции ${exportStart.toLocaleString('ru-RU')} до конца`
+                    : 'JSON каталога скачан полностью')
+            toast(exportMessage, 'success')
         } catch {
             toast('Ошибка экспорта JSON', 'error')
         }
@@ -2072,15 +2093,32 @@ function Cars({ toast, initAdd, pricingSettings, pricingRevision }) {
                                         type="number"
                                         inputMode="numeric"
                                         min="1"
+                                        max={Math.max(total || DEFAULT_CATALOG_EXPORT_START, DEFAULT_CATALOG_EXPORT_START)}
+                                        step="1"
+                                        value={catalogExportStart}
+                                        onChange={e => setCatalogExportStart(e.target.value)}
+                                        disabled={exporting}
+                                        placeholder={String(DEFAULT_CATALOG_EXPORT_START)}
+                                        title="С какой позиции по новизне выгружать"
+                                    />
+                                    <span className="adm-export-limit-suffix">с позиции</span>
+                                </label>
+                                <label className="adm-export-limit">
+                                    <span className="adm-export-limit-label">JSON</span>
+                                    <input
+                                        className="adm-input adm-export-limit-input"
+                                        type="number"
+                                        inputMode="numeric"
+                                        min="1"
                                         max={Math.max(total || DEFAULT_CATALOG_EXPORT_LIMIT, DEFAULT_CATALOG_EXPORT_LIMIT)}
                                         step="1"
                                         value={catalogExportLimit}
                                         onChange={e => setCatalogExportLimit(e.target.value)}
                                         disabled={exporting}
                                         placeholder={String(DEFAULT_CATALOG_EXPORT_LIMIT)}
-                                        title="Leave empty to export the whole catalog"
+                                        title="Сколько машин выгружать"
                                     />
-                                    <span className="adm-export-limit-suffix">последних</span>
+                                    <span className="adm-export-limit-suffix">сколько</span>
                                 </label>
                                 <button className="adm-btn adm-btn-sm" onClick={downloadCatalogExport} disabled={exporting}>
                                     <Ic d={IC.download} s={14} /> {exporting ? 'Экспорт...' : 'Скачать JSON'}

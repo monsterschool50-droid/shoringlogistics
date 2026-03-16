@@ -62,6 +62,8 @@ const DEFAULT_BACKFILL_CONCURRENCY = 3
 const MAX_BACKFILL_CONCURRENCY = 8
 const DEFAULT_CATALOG_EXPORT_LIMIT = 5000
 const MAX_CATALOG_EXPORT_LIMIT = 50000
+const DEFAULT_CATALOG_EXPORT_START = 1
+const MAX_CATALOG_EXPORT_START = 1000000
 const WEAK_BODY_TYPES = new Set(['', '-', 'SUV', 'Вэн', 'Малый класс', 'Компактный класс', 'Средний класс', 'Бизнес-класс'])
 
 function resolveRequestedListingType(value, { allowAll = false } = {}) {
@@ -671,6 +673,13 @@ function normalizeCatalogExportLimit(value) {
   const parsed = Number.parseInt(String(value), 10)
   if (!Number.isFinite(parsed)) return DEFAULT_CATALOG_EXPORT_LIMIT
   return Math.min(Math.max(parsed, 1), MAX_CATALOG_EXPORT_LIMIT)
+}
+
+function normalizeCatalogExportStart(value) {
+  if (value === undefined || value === null || value === '') return DEFAULT_CATALOG_EXPORT_START
+  const parsed = Number.parseInt(String(value), 10)
+  if (!Number.isFinite(parsed)) return DEFAULT_CATALOG_EXPORT_START
+  return Math.min(Math.max(parsed, DEFAULT_CATALOG_EXPORT_START), MAX_CATALOG_EXPORT_START)
 }
 
 function isWeakBodyTypeForEnrichment(value) {
@@ -1882,12 +1891,20 @@ router.post('/encar-backfill/stop', adminRouteProtection, async (_req, res) => {
 
 router.get('/catalog-export', adminRouteProtection, async (req, res) => {
   try {
+    const exportStart = normalizeCatalogExportStart(req.query?.start)
     const exportLimit = normalizeCatalogExportLimit(req.query?.limit)
+    const exportOffset = Math.max(0, exportStart - 1)
     const queryParams = []
     const limitSql = exportLimit
       ? (() => {
           queryParams.push(exportLimit)
           return `LIMIT $${queryParams.length}`
+        })()
+      : ''
+    const offsetSql = exportOffset
+      ? (() => {
+          queryParams.push(exportOffset)
+          return `OFFSET $${queryParams.length}`
         })()
       : ''
 
@@ -1897,13 +1914,57 @@ router.get('/catalog-export', adminRouteProtection, async (req, res) => {
         FROM cars
         ORDER BY created_at DESC, id DESC
         ${limitSql}
+        ${offsetSql}
       )
       SELECT
-        c.*,
+        c.id,
+        c.listing_type,
+        c.name,
+        c.model,
+        c.year,
+        c.mileage,
+        c.fuel_type,
+        c.transmission,
+        c.drive_type,
+        c.body_type,
+        c.vehicle_class,
+        c.trim_level,
+        c.key_info,
+        c.displacement,
+        c.body_color,
+        c.body_color_dots,
+        c.interior_color,
+        c.interior_color_dots,
+        c.warranty_company,
+        c.warranty_body_months,
+        c.warranty_body_km,
+        c.warranty_transmission_months,
+        c.warranty_transmission_km,
+        c.option_features,
+        c.location,
+        c.vin,
+        c.price_krw,
+        c.price_usd,
+        c.commission,
+        c.delivery,
+        c.delivery_profile_code,
+        c.loading,
+        c.unloading,
+        c.storage,
+        c.pricing_locked,
+        c.vat_refund,
+        c.total,
+        c.encar_url,
+        c.encar_id,
+        c.can_negotiate,
+        c.tags,
+        c.detail_flags,
+        c.inspection_formats,
+        c.created_at,
+        c.updated_at,
         COALESCE(
           json_agg(
             json_build_object(
-              'id', ci.id,
               'url', ci.url,
               'position', ci.position
             )
@@ -1921,16 +1982,21 @@ router.get('/catalog-export', adminRouteProtection, async (req, res) => {
     const exportedAt = new Date().toISOString()
     const payload = {
       exported_at: exportedAt,
+      requested_start: exportStart,
+      requested_offset: exportOffset,
       requested_limit: exportLimit,
+      compact: true,
       total: result.rows.length,
       cars: result.rows,
     }
 
     const fileStamp = exportedAt.replace(/[:.]/g, '-')
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
-    const filePrefix = exportLimit ? `catalog-export-latest-${exportLimit}` : 'catalog-export'
+    const filePrefix = exportLimit
+      ? `catalog-export-from-${exportStart}-count-${exportLimit}`
+      : `catalog-export-from-${exportStart}`
     res.setHeader('Content-Disposition', `attachment; filename="${filePrefix}-${fileStamp}.json"`)
-    return res.status(200).send(JSON.stringify(payload, null, 2))
+    return res.status(200).send(JSON.stringify(payload))
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: 'Ошибка сервера' })
