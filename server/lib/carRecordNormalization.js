@@ -4,9 +4,11 @@ import {
   inferDrive,
   normalizeColorName,
   normalizeDrive,
+  normalizeFuel,
   normalizeInteriorColorName,
   normalizeLocationName,
   normalizeText,
+  normalizeTransmission,
   resolveBodyType,
   resolveVehicleClass,
   normalizeTrimLevel,
@@ -57,6 +59,8 @@ const BODY_TYPE_MODEL_OVERRIDES = [
   { pattern: /\bSsangYong\s+Musso\b/i, body: BODY_TYPE_LABELS.pickup },
   { pattern: /\bSsangYong\s+Rexton\b/i, body: BODY_TYPE_LABELS.suv },
   { pattern: /\bSuzuki\s+Jimny\b/i, body: BODY_TYPE_LABELS.suv },
+  { pattern: /\bKia\s+Soul\s+Booster\b/i, body: BODY_TYPE_LABELS.suv },
+  { pattern: /\bKia\s+EV6\b/i, body: BODY_TYPE_LABELS.suv },
   { pattern: /\bIneos\s+Grenadier\b.*\bStation\s+Wagon\b/i, body: BODY_TYPE_LABELS.suv },
   { pattern: /\bRolls-?Royce\s+Cullinan\b/i, body: BODY_TYPE_LABELS.suv },
   { pattern: /\bBMW\s+X5\b/i, body: BODY_TYPE_LABELS.suv },
@@ -78,6 +82,15 @@ const RE_JEEP_GLADIATOR = /\bJeep\s+Gladiator\b/i
 const RE_KIA_TASMAN = /\bKia\s+Tasman\b/i
 const RE_CHEVROLET_DAMAS = /\bChevrolet\s+Damas\b/i
 const RE_LEXUS_LM = /\bLexus\s+LM\b/i
+const HYBRID_FUEL_HINT_RE = /(?:\b(?:hybrid|hev|phev)\b|\uD558\uC774\uBE0C\uB9AC\uB4DC)/i
+const CANONICAL_FUEL_TYPES = new Set(['Бензин', 'Дизель', 'Гибрид', 'Электро', 'Газ (LPG)'])
+const CANONICAL_TRANSMISSION_TYPES = new Set(['Автомат', 'Механика', 'Робот', 'CVT'])
+const CANONICAL_DRIVE_TYPES = new Set(['Передний (FWD)', 'Задний (RWD)', 'Полный (AWD)', 'Полный (4WD)'])
+const CANONICAL_TAG_VALUES = new Set([
+  ...CANONICAL_FUEL_TYPES,
+  ...CANONICAL_TRANSMISSION_TYPES,
+  ...CANONICAL_DRIVE_TYPES,
+])
 
 function matchesAny(text, patterns) {
   return patterns.some((pattern) => pattern.test(text))
@@ -175,11 +188,61 @@ function normalizeNullableText(value, normalizer) {
   return normalizer(value)
 }
 
+function resolveFuelType(value, ...contextValues) {
+  const normalized = normalizeFuel(value)
+  const context = [value, ...contextValues]
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .join(' ')
+
+  if (HYBRID_FUEL_HINT_RE.test(context)) return 'Гибрид'
+  return normalized
+}
+
+function rebuildNormalizedTags(tags, { drive_type, transmission, fuel_type }) {
+  const preserved = Array.isArray(tags)
+    ? tags
+      .map((tag) => String(tag || '').trim())
+      .filter(Boolean)
+      .filter((tag) => {
+        if (CANONICAL_TAG_VALUES.has(tag)) return false
+
+        const normalizedFuelTag = normalizeFuel(tag)
+        if (CANONICAL_FUEL_TYPES.has(normalizedFuelTag)) return false
+
+        const normalizedTransmissionTag = normalizeTransmission(tag)
+        if (CANONICAL_TRANSMISSION_TYPES.has(normalizedTransmissionTag)) return false
+
+        const normalizedDriveTag = normalizeDrive(tag)
+        if (CANONICAL_DRIVE_TYPES.has(normalizedDriveTag)) return false
+
+        if (HYBRID_FUEL_HINT_RE.test(tag)) return false
+        if (/(?:электро|electric|бензин|gasoline|дизель|diesel|газ|lpg)/i.test(tag)) return false
+
+        return true
+      })
+    : []
+
+  const next = []
+  for (const value of [drive_type, transmission, fuel_type]) {
+    const text = String(value || '').trim()
+    if (!text || next.includes(text)) continue
+    next.push(text)
+  }
+
+  for (const tag of preserved) {
+    if (!next.includes(tag)) next.push(tag)
+  }
+
+  return next
+}
+
 export function normalizeCarTextFields(input = {}) {
   const normalizedName = normalizeNullableText(input.name, (value) => applyVehicleTitleFixes(normalizeText(value)))
   const normalizedModel = normalizeNullableText(input.model, (value) => applyVehicleTitleFixes(normalizeText(value)))
   const bodyColor = normalizeNullableText(input.body_color, (value) => normalizeColorName(value))
   const bodyColorForInterior = bodyColor === undefined ? (input.body_color ?? '') : (bodyColor ?? '')
+  const normalizedTransmission = normalizeNullableText(input.transmission, (value) => normalizeTransmission(value))
   const rawTrimValue = input.trim_level
   const normalizedDirectTrim =
     (rawTrimValue === undefined || rawTrimValue === null
@@ -214,6 +277,18 @@ export function normalizeCarTextFields(input = {}) {
   const finalModel = identityNormalized.model ?? normalizedModel
   const finalTrim = identityNormalized.trim_level ?? normalizedTrim
   const finalDrive = identityNormalized.drive_type === undefined ? normalizedDriveValue : identityNormalized.drive_type
+  const normalizedFuelValue = normalizeNullableText(
+    input.fuel_type,
+    (value) => resolveFuelType(
+      value,
+      finalName ?? input.name ?? '',
+      finalModel ?? input.model ?? '',
+      finalTrim ?? rawTrimValue ?? '',
+      input.name ?? '',
+      input.model ?? '',
+      rawTrimValue ?? '',
+    ),
+  )
   let normalizedBodyType = resolveBodyType(
     input.body_type ?? '',
     finalName ?? input.name ?? '',
@@ -235,17 +310,31 @@ export function normalizeCarTextFields(input = {}) {
     normalizedBodyType,
     [finalName ?? input.name ?? '', finalModel ?? input.model ?? '', finalTrim ?? rawTrimValue ?? ''].join(' ')
   )
+  const shouldNormalizeTags =
+    input.tags !== undefined ||
+    input.drive_type !== undefined ||
+    input.transmission !== undefined ||
+    input.fuel_type !== undefined
+  const normalizedTags = !shouldNormalizeTags
+    ? undefined
+    : rebuildNormalizedTags(input.tags, {
+      drive_type: finalDrive,
+      transmission: normalizedTransmission ?? input.transmission ?? '',
+      fuel_type: normalizedFuelValue ?? input.fuel_type ?? '',
+    })
 
   return {
     name: finalName,
     model: finalModel,
     drive_type: finalDrive,
+    fuel_type: normalizedFuelValue,
     body_type: normalizedBodyType,
     vehicle_class: normalizedVehicleClass,
     trim_level: finalTrim,
     body_color: bodyColor,
     interior_color: normalizeNullableText(input.interior_color, (value) => normalizeInteriorColorName(value, bodyColorForInterior, { allowBodyDuplicate: true })),
     location: normalizeNullableText(input.location, (value) => normalizeLocationName(value)),
+    tags: normalizedTags,
   }
 }
 
@@ -257,7 +346,11 @@ export function diffNormalizedCarTextFields(input = {}) {
     if (after === undefined) continue
 
     const before = input[field]
-    if (before === after) continue
+    if (Array.isArray(before) || Array.isArray(after)) {
+      if (JSON.stringify(before ?? null) === JSON.stringify(after ?? null)) continue
+    } else if (before === after) {
+      continue
+    }
 
     changes[field] = { before, after }
   }

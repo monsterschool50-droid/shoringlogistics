@@ -605,12 +605,15 @@ function applyPricingToCar(car, exchangeSnapshot, pricingSettings) {
 
 function normalizeImportedCar(car) {
   const normalizedText = normalizeCarTextFields(car)
+  const nextFuelType = normalizedText.fuel_type ?? car.fuel_type
+  const nextDriveType = normalizedText.drive_type ?? car.drive_type
 
   return {
     ...car,
     name: normalizedText.name ?? car.name,
     model: normalizedText.model ?? car.model,
-    drive_type: normalizedText.drive_type ?? car.drive_type,
+    fuel_type: nextFuelType,
+    drive_type: nextDriveType,
     body_type: normalizedText.body_type ?? car.body_type,
     vehicle_class: normalizedText.vehicle_class ?? car.vehicle_class,
     trim_level: normalizedText.trim_level ?? car.trim_level,
@@ -620,6 +623,11 @@ function normalizeImportedCar(car) {
       ? [...new Set(car.option_features.map((item) => String(item || '').trim()).filter(Boolean))].slice(0, 16)
       : [],
     location: normalizedText.location || car.location || 'Корея',
+    tags: normalizedText.tags ?? rebuildTags({
+      ...car,
+      fuel_type: nextFuelType,
+      drive_type: nextDriveType,
+    }),
     vin: normalizeVin(car.vin) || null,
   }
 }

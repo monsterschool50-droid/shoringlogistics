@@ -508,7 +508,7 @@ function run() {
     name: 'Hyundai Tucson Inspiration 2WD',
     trim_level: 'Inspire 2WD',
   })
-  assert.equal(inspirationTrim.trim_level, 'Inspiration 2WD')
+  assert.equal(inspirationTrim.trim_level, 'Inspiration')
 
   const compactBmwXdrive = normalizeCarTextFields({
     name: 'BMW X5 xDrive 40i M Sport',
@@ -607,7 +607,7 @@ function run() {
     name: 'Kia Sportage Signature Geuraebiti 2WD',
     drive_type: 'Полный (4WD)',
   })
-  assert.equal(kiaSportage2wdFix.name, 'Kia Sportage Signature Gravity 2WD')
+  assert.equal(kiaSportage2wdFix.name, 'Kia Sportage Signature Gravity')
   assert.equal(kiaSportage2wdFix.drive_type, 'Передний (FWD)')
 
   const genesis2wdFix = normalizeCarTextFields({
@@ -615,6 +615,199 @@ function run() {
     drive_type: '',
   })
   assert.equal(genesis2wdFix.drive_type, 'Задний (RWD)')
+
+  const sportage4wdFix = normalizeCarTextFields({
+    name: 'Kia Sportage Signature 4WD',
+    model: 'Sportage Signature 4WD',
+    trim_level: 'Signature 4WD',
+    drive_type: 'Полный (4WD)',
+  })
+  assert.equal(sportage4wdFix.name, 'Kia Sportage Signature')
+  assert.equal(sportage4wdFix.model, 'Sportage Signature')
+  assert.equal(sportage4wdFix.trim_level, 'Signature')
+  assert.equal(sportage4wdFix.drive_type, 'Полный (AWD)')
+
+  const coloradoExtremeFix = normalizeCarTextFields({
+    name: 'Chevrolet Colorado 3.6 Ikseuteurim-X 4WD',
+    model: 'Colorado 3.6 Ikseuteurim-X 4WD',
+    trim_level: '3.6 Ikseuteurim-X 4WD',
+    drive_type: 'Полный (4WD)',
+  })
+  assert.equal(coloradoExtremeFix.name, 'Chevrolet Colorado 3.6 Extreme-X')
+  assert.equal(coloradoExtremeFix.model, 'Colorado 3.6 Extreme-X')
+  assert.equal(coloradoExtremeFix.trim_level, '3.6 Extreme-X')
+  assert.equal(coloradoExtremeFix.drive_type, 'Полный (AWD)')
+
+  const equinox2wdFix = normalizeCarTextFields({
+    name: 'Chevrolet Equinox 2WD LT',
+    model: 'Equinox 2WD LT',
+    trim_level: '2WD LT',
+    drive_type: 'Передний (FWD)',
+  })
+  assert.equal(equinox2wdFix.name, 'Chevrolet Equinox LT')
+  assert.equal(equinox2wdFix.model, 'Equinox LT')
+  assert.equal(equinox2wdFix.trim_level, 'LT')
+  assert.equal(equinox2wdFix.drive_type, 'Передний (FWD)')
+
+  const qm62wdFix = normalizeCarTextFields({
+    name: 'Renault Samsung QM6 2.0 LPe RE Signature 2WD',
+    model: 'QM6 2.0 LPe RE Signature 2WD',
+    trim_level: '2.0 LPe RE Signature 2WD',
+    drive_type: 'Передний (FWD)',
+  })
+  assert.equal(qm62wdFix.name, 'Renault Samsung QM6 2.0 LPe RE Signature')
+  assert.equal(qm62wdFix.model, 'QM6 2.0 LPe RE Signature')
+  assert.equal(qm62wdFix.trim_level, '2.0 LPe RE Signature')
+  assert.equal(qm62wdFix.drive_type, 'Передний (FWD)')
+
+  const gv702wdFix = normalizeCarTextFields({
+    name: 'Genesis GV70 2.5T Gasoline 2WD',
+    model: 'GV70 2.5T Gasoline 2WD',
+    drive_type: 'Задний (RWD)',
+  })
+  assert.equal(gv702wdFix.name, 'Genesis GV70 2.5T Gasoline')
+  assert.equal(gv702wdFix.model, 'GV70 2.5T Gasoline')
+  assert.equal(gv702wdFix.drive_type, 'Задний (RWD)')
+
+  const torresTypoFix = normalizeCarTextFields({
+    name: 'SsangYong Torres TV7',
+    model: 'Torres TV7',
+    trim_level: 'TV7',
+    drive_type: 'Передний (FWD)',
+  })
+  assert.equal(torresTypoFix.name, 'SsangYong Torres T7')
+  assert.equal(torresTypoFix.model, 'Torres T7')
+  assert.equal(torresTypoFix.trim_level, 'T7')
+  assert.equal(torresTypoFix.drive_type, 'Передний (FWD)')
+
+  const k5StandardFix = normalizeCarTextFields({
+    name: 'Kia K5 Strandard',
+    model: 'K5 Strandard',
+    trim_level: 'Strandard',
+    drive_type: 'Передний (FWD)',
+  })
+  assert.equal(k5StandardFix.name, 'Kia K5 Standard')
+  assert.equal(k5StandardFix.model, 'K5 Standard')
+  assert.equal(k5StandardFix.trim_level, 'Standard')
+
+  const peugeotPureTechFix = normalizeCarTextFields({
+    name: 'Peugeot 5008 1.2 PurE-Tech GT',
+    model: '5008 1.2 PurE-Tech GT',
+    trim_level: '1.2 PurE-Tech GT',
+    drive_type: 'Передний (FWD)',
+  })
+  assert.equal(peugeotPureTechFix.name, 'Peugeot 5008 1.2 Pure Tech GT')
+  assert.equal(peugeotPureTechFix.model, '5008 1.2 Pure Tech GT')
+  assert.equal(peugeotPureTechFix.trim_level, '1.2 Pure Tech GT')
+
+  const bentleyFlyingSpurDriveFix = normalizeCarTextFields({
+    name: 'Bentley Flying Spur 6.0',
+    model: 'Flying Spur 6.0',
+    drive_type: 'Передний (FWD)',
+  })
+  assert.equal(bentleyFlyingSpurDriveFix.drive_type, 'Полный (AWD)')
+
+  const ioniqQDriveFix = normalizeCarTextFields({
+    name: 'Hyundai Ioniq Q',
+    model: 'Ioniq Q',
+    trim_level: 'Q',
+    drive_type: '',
+  })
+  assert.equal(ioniqQDriveFix.drive_type, 'Передний (FWD)')
+
+  const ev6BodyFix = normalizeCarTextFields({
+    name: 'Kia EV6 GT Line',
+    model: 'EV6 GT Line',
+    body_type: 'Седан',
+    drive_type: '',
+  })
+  assert.equal(ev6BodyFix.body_type, 'Кроссовер / внедорожник')
+
+
+  const k53rdGenFix = normalizeCarTextFields({
+    name: 'Kia K5 3th Gen',
+    model: 'K5 3th Gen',
+    trim_level: '3th Gen',
+  })
+  assert.equal(k53rdGenFix.name, 'Kia K5 3rd Gen')
+  assert.equal(k53rdGenFix.model, 'K5 3rd Gen')
+  assert.equal(k53rdGenFix.trim_level, '3rd Gen')
+
+  const mohaveTheMasterFix = normalizeCarTextFields({
+    name: 'Kia Mohave Deo Master',
+    model: 'Mohave Deo Master',
+    trim_level: 'Deo Master',
+  })
+  assert.equal(mohaveTheMasterFix.name, 'Kia Mohave The Master')
+  assert.equal(mohaveTheMasterFix.model, 'Mohave The Master')
+  assert.equal(mohaveTheMasterFix.trim_level, 'The Master')
+
+  const theK9Fix = normalizeCarTextFields({
+    name: 'Kia Deo K9 3.8 GDI',
+    model: 'Deo K9 3.8 GDI',
+  })
+  assert.equal(theK9Fix.name, 'Kia The K9 3.8 GDI')
+  assert.equal(theK9Fix.model, 'The K9 3.8 GDI')
+
+  const soulBoosterFix = normalizeCarTextFields({
+    name: 'Kia Soul Buseuteo',
+    model: 'Soul Buseuteo',
+    body_type: 'Седан',
+  })
+  assert.equal(soulBoosterFix.name, 'Kia Soul Booster')
+  assert.equal(soulBoosterFix.model, 'Soul Booster')
+  assert.equal(soulBoosterFix.body_type, 'Кроссовер / внедорожник')
+
+  const morningUrbanFix = normalizeCarTextFields({
+    name: 'Kia Morning Eoban (JA)',
+    model: 'Morning Eoban (JA)',
+    trim_level: 'Eoban (JA)',
+  })
+  assert.equal(morningUrbanFix.name, 'Kia Morning Urban (JA)')
+  assert.equal(morningUrbanFix.model, 'Morning Urban (JA)')
+  assert.equal(morningUrbanFix.trim_level, 'Urban (JA)')
+
+  const stariaLoungeFix = normalizeCarTextFields({
+    name: 'Hyundai Staria 4WD Raunji',
+    model: 'Staria 4WD Raunji',
+    trim_level: '4WD Raunji',
+    drive_type: 'Полный (4WD)',
+  })
+  assert.equal(stariaLoungeFix.name, 'Hyundai Staria Lounge')
+  assert.equal(stariaLoungeFix.model, 'Staria Lounge')
+  assert.equal(stariaLoungeFix.trim_level, 'Lounge')
+  assert.equal(stariaLoungeFix.drive_type, 'Полный (4WD)')
+
+  const sonataTheEdgeFix = normalizeCarTextFields({
+    name: 'Hyundai Sonata Di Etji Hybrid (DN8)',
+    model: 'Sonata Di Etji Hybrid (DN8)',
+    trim_level: 'Di Etji Hybrid (DN8)',
+    fuel_type: 'Электро',
+  })
+  assert.equal(sonataTheEdgeFix.name, 'Hyundai Sonata The Edge Hybrid (DN8)')
+  assert.equal(sonataTheEdgeFix.model, 'Sonata The Edge Hybrid (DN8)')
+  assert.equal(sonataTheEdgeFix.trim_level, 'The Edge Hybrid (DN8)')
+  assert.equal(sonataTheEdgeFix.fuel_type, 'Гибрид')
+
+  const g80TagsFix = normalizeCarTextFields({
+    name: 'Genesis G80 (RG3) Gasoline 3.5 Turbo 2WD',
+    model: 'G80 (RG3) Gasoline 3.5 Turbo 2WD',
+    drive_type: 'Задний (RWD)',
+    transmission: 'Автомат',
+    fuel_type: 'Бензин',
+    tags: ['Передний (FWD)', 'Автомат', 'Бензин'],
+  })
+  assert.equal(g80TagsFix.drive_type, 'Задний (RWD)')
+  assert.deepEqual(g80TagsFix.tags, ['Задний (RWD)', 'Автомат', 'Бензин'])
+
+  const k8HybridFuelFix = normalizeCarTextFields({
+    name: 'Kia K8 Hybrid Signature',
+    model: 'K8 Hybrid Signature',
+    fuel_type: 'Электро',
+    tags: ['Автомат', 'Электро'],
+  })
+  assert.equal(k8HybridFuelFix.fuel_type, 'Гибрид')
+  assert.deepEqual(k8HybridFuelFix.tags, ['Передний (FWD)', 'Гибрид'])
 
   const unrelatedTitle = normalizeCarTextFields({
     name: 'Generic Tueoring Package',

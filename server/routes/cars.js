@@ -376,7 +376,11 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
   const normalizedText = normalizeCarTextFields(row)
   const normalizedName = normalizedText.name ?? row.name
   const normalizedModel = normalizedText.model ?? row.model
+  const normalizedDriveType = normalizedText.drive_type ?? row.drive_type
+  const normalizedBodyType = normalizedText.body_type ?? row.body_type
+  const normalizedFuelType = normalizedText.fuel_type ?? row.fuel_type
   const normalizedBodyColor = normalizedText.body_color ?? normalizeColorName(row.body_color || '')
+  const normalizedTags = normalizedText.tags ?? row.tags ?? []
   const sanitizedVin = sanitizeVin(row.vin)
   const fees = resolveVehicleFees(row, pricingSettings)
   const pricing = computePricing({
@@ -395,9 +399,12 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
     listing_type: resolveRequestedListingType(row.listing_type),
     name: normalizedName,
     model: normalizedModel,
+    drive_type: normalizedDriveType,
+    body_type: normalizedBodyType,
+    fuel_type: normalizedFuelType,
     vehicle_class: resolveVehicleClass(
       row.vehicle_class || '',
-      row.body_type || '',
+      normalizedBodyType || '',
       normalizedName || '',
       normalizedModel || '',
       row.trim_level || '',
@@ -411,6 +418,7 @@ function decorateCarRow(row, exchangeSnapshot, pricingSettings) {
     key_info: String(row.key_info || '').trim(),
     location: normalizedText.location || normalizeLocationName(row.location || '') || row.location || '',
     location_short: extractShortLocation(normalizedText.location ?? row.location ?? ''),
+    tags: normalizedTags,
     pricing_locked: fees.pricing_locked,
     delivery_profile_code: fees.delivery_profile_code,
     delivery_profile_label: fees.delivery_profile_label,
@@ -792,6 +800,8 @@ router.post('/', adminMutationProtection, async (req, res) => {
     const normalizedText = normalizeCarTextFields({
       name,
       model,
+      fuel_type,
+      transmission,
       trim_level,
       drive_type,
       body_type,
@@ -816,14 +826,14 @@ router.post('/', adminMutationProtection, async (req, res) => {
       [
         normalizedListingType,
         normalizedText.name ?? name, normalizedText.model ?? model, normalizedYear, mileage || 0,
-        fuel_type, transmission, normalizedText.drive_type ?? drive_type, normalizedText.body_type ?? body_type,
+        normalizedText.fuel_type ?? fuel_type, transmission, normalizedText.drive_type ?? drive_type, normalizedText.body_type ?? body_type,
         normalizedText.vehicle_class ?? vehicle_class ?? null, normalizedText.trim_level ?? trim_level, key_info, displacement || 0,
         normalizedText.body_color ?? body_color, body_color_dots || [], normalizedText.interior_color ?? interior_color, interior_color_dots || [],
         warranty_company || null, warranty_body_months ?? null, warranty_body_km ?? null, warranty_transmission_months ?? null, warranty_transmission_km ?? null,
         normalizeOptionFeatures(option_features), normalizedText.location || location, normalizedVin || null, price_krw || 0, price_usd || 0,
         commission ?? DEFAULT_FEES.commission, delivery ?? 0, delivery_profile_code || null, loading ?? DEFAULT_FEES.loading,
         unloading ?? DEFAULT_FEES.unloading, storage ?? DEFAULT_FEES.storage, pricing_locked || false, vat_refund || 0, total || 0,
-        encar_url, encar_id, can_negotiate || false, tags || [], buildStoredDetailFlags(detail_flags), normalizeInspectionFormats(inspection_formats),
+        encar_url, encar_id, can_negotiate || false, normalizedText.tags ?? tags ?? [], buildStoredDetailFlags(detail_flags), normalizeInspectionFormats(inspection_formats),
       ]
     )
     const exchangeSnapshot = await getExchangeRateSnapshot()
@@ -896,6 +906,15 @@ router.put('/:id', async (req, res) => {
         updates.push(`${field} = $${p++}`)
         params.push(normalizedText[field] !== undefined ? normalizedText[field] : payload[field])
       }
+    }
+
+    if (
+      payload.tags === undefined &&
+      normalizedText.tags !== undefined &&
+      (payload.drive_type !== undefined || payload.transmission !== undefined || payload.fuel_type !== undefined)
+    ) {
+      updates.push(`tags = $${p++}`)
+      params.push(normalizedText.tags)
     }
 
     if (!updates.length && images === undefined) return res.status(400).json({ error: 'Нет данных для обновления' })

@@ -315,6 +315,13 @@ const TRIM_REPLACEMENTS = [
   ['smart', 'Смарт'],
   ['style', 'Стайл'],
   ['comfort', 'Комфорт'],
+  ['strandard', 'Standard'],
+  ['pure-tech', 'Pure Tech'],
+  ['pure tech', 'Pure Tech'],
+  ['puretech', 'Pure Tech'],
+  ['pur-tech', 'Pure Tech'],
+  ['pur tech', 'Pure Tech'],
+  ['purtech', 'Pure Tech'],
   ['standard', 'Стандарт'],
   ['special', 'Спешл'],
   ['tech', 'Тех'],
@@ -861,8 +868,9 @@ export function normalizeTrimLevel(...values) {
     if (tokens.every((token) => SPEC_TOKENS.test(token))) continue
 
     const translated = translateTrimWords(text)
-    if (translated && !tokens.every((token) => SPEC_TOKENS.test(token)) && !isTrimNoise(translated)) {
-      return translated
+    const finalized = applyTrimFixes(translated || text)
+    if (finalized && !tokens.every((token) => SPEC_TOKENS.test(token)) && !isTrimNoise(finalized)) {
+      return finalized
     }
   }
 

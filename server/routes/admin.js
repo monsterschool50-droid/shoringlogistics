@@ -841,6 +841,8 @@ async function enrichCar(car, context = {}) {
     const normalizedDetail = normalizeCarTextFields({
       name: detail.name || car.name,
       model: detail.model || car.model,
+      fuel_type: detail.fuel_type ?? car.fuel_type,
+      transmission: detail.transmission ?? car.transmission,
       trim_level: detail.trim_level ?? car.trim_level,
       drive_type: detail.drive_type ?? car.drive_type,
       body_type: detail.body_type ?? car.body_type,
@@ -861,6 +863,10 @@ async function enrichCar(car, context = {}) {
       if (cleanText(normalizedDetail.drive_type)) {
         patch.drive_type = normalizedDetail.drive_type
       }
+    }
+
+    if (cleanText(normalizedDetail.fuel_type) && cleanText(normalizedDetail.fuel_type) !== cleanText(car.fuel_type)) {
+      patch.fuel_type = normalizedDetail.fuel_type
     }
 
     if (shouldRefreshKeyInfo(car.key_info) && cleanText(detail.key_info)) {
@@ -913,6 +919,10 @@ async function enrichCar(car, context = {}) {
     const sanitizedDetailVin = sanitizeVin(detail.vin)
     if (shouldRefreshVin(car.vin) && sanitizedDetailVin) {
       patch.vin = sanitizedDetailVin
+    }
+
+    if (Array.isArray(normalizedDetail.tags) && JSON.stringify(normalizedDetail.tags) !== JSON.stringify(car.tags ?? [])) {
+      patch.tags = normalizedDetail.tags
     }
 
     if (Object.keys(patch).length) {
