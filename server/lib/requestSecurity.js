@@ -7,6 +7,19 @@ const SENSITIVE_QUERY_KEYS = new Set([
   'authorization',
 ])
 
+function normalizeOrigin(value) {
+  return String(value || '').trim().replace(/\/+$/, '')
+}
+
+function parseAllowedOrigins(value) {
+  return new Set(
+    String(value || '')
+      .split(',')
+      .map((item) => normalizeOrigin(item))
+      .filter(Boolean),
+  )
+}
+
 function normalizeIp(rawValue) {
   const raw = String(rawValue || '')
     .split(',')
@@ -49,6 +62,57 @@ export function applyBasicSecurityHeaders(_req, res, next) {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin')
   next()
+}
+
+export function createCorsOptions({
+  allowedOrigins = '',
+  credentials = false,
+} = {}) {
+  const allowedOriginSet = parseAllowedOrigins(allowedOrigins)
+  const allowAll = allowedOriginSet.size === 0 || allowedOriginSet.has('*')
+
+  return {
+    credentials: Boolean(credentials),
+    optionsSuccessStatus: 204,
+    origin(origin, callback) {
+      if (!origin || allowAll) {
+        callback(null, true)
+        return
+      }
+
+      callback(null, allowedOriginSet.has(normalizeOrigin(origin)))
+    },
+  }
+}
+
+export function getProductionStartupWarnings(env = {}) {
+  const isProduction = String(env.NODE_ENV || '').trim() === 'production'
+  if (!isProduction) return []
+
+  const warnings = []
+  const rawAllowedOrigins = String(env.CORS_ALLOWED_ORIGINS || '').trim()
+  const allowedOriginSet = parseAllowedOrigins(rawAllowedOrigins)
+  const registrationEnabled = String(env.AUTH_ALLOW_REGISTRATION || 'true').trim().toLowerCase() !== 'false'
+
+  if (!rawAllowedOrigins) {
+    warnings.push('CORS_ALLOWED_ORIGINS is not set; API CORS is open to any browser origin')
+  } else if (allowedOriginSet.has('*')) {
+    warnings.push('CORS_ALLOWED_ORIGINS contains "*" and keeps API CORS open to any browser origin')
+  }
+
+  if (!String(env.ADMIN_SESSION_SECRET || '').trim()) {
+    warnings.push('ADMIN_SESSION_SECRET is not set; admin session secret is derived from ADMIN_PASSWORD')
+  }
+
+  if (registrationEnabled) {
+    warnings.push('AUTH_ALLOW_REGISTRATION is enabled; public user registration remains open')
+  }
+
+  if (!String(env.DATABASE_URL || '').trim()) {
+    warnings.push('DATABASE_URL is not set')
+  }
+
+  return warnings
 }
 
 export function applyNoStoreHeaders(_req, res, next) {

@@ -21,6 +21,7 @@ import {
 const router = Router()
 const authLoginRateLimitStore = createRateLimitStore('auth-login')
 const authRegisterRateLimitStore = createRateLimitStore('auth-register')
+const AUTH_ALLOW_REGISTRATION = String(globalThis.process?.env?.AUTH_ALLOW_REGISTRATION || 'true').trim().toLowerCase() !== 'false'
 
 const loginRateLimit = createRateLimitMiddleware({
   store: authLoginRateLimitStore,
@@ -108,6 +109,10 @@ async function findUserSession(token) {
 }
 
 router.post('/register', registerRateLimit, async (req, res) => {
+  if (!AUTH_ALLOW_REGISTRATION) {
+    return res.status(403).json({ ok: false, error: 'Публичная регистрация отключена' })
+  }
+
   const login = normalizeAuthLogin(req.body?.login)
   const password = String(req.body?.password || '')
 

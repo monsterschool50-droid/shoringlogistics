@@ -16,8 +16,10 @@ import { startScheduler } from './scraper/scheduler.js'
 import { state as scraperState } from './scraper/state.js'
 import {
   applyBasicSecurityHeaders,
+  createCorsOptions,
   createRateLimitMiddleware,
   getSafeRequestPath,
+  getProductionStartupWarnings,
   sendSafeApiError,
 } from './lib/requestSecurity.js'
 
@@ -34,7 +36,9 @@ const REQUEST_BODY_LIMIT = '256kb'
 
 app.disable('x-powered-by')
 app.set('trust proxy', 1)
-app.use(cors())
+app.use(cors(createCorsOptions({
+  allowedOrigins: ENV.CORS_ALLOWED_ORIGINS,
+})))
 app.use(applyBasicSecurityHeaders)
 app.use('/api', createRateLimitMiddleware({
   windowMs: API_RATE_LIMIT_WINDOW_MS,
@@ -158,6 +162,11 @@ async function start() {
       }
     } catch (error) {
       console.warn('SCRAPER_CONFIG_LOAD_WARNING |', error?.message || error)
+    }
+
+    const startupWarnings = getProductionStartupWarnings(ENV)
+    for (const warning of startupWarnings) {
+      console.warn(`PRODUCTION_CONFIG_WARNING | ${warning}`)
     }
 
     app.listen(PORT, () => {
